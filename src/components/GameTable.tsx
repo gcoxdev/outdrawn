@@ -56,6 +56,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
       {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
+      <GameMenu settings={state.settings} dispatch={dispatch} />
       <header className="status-bar">
         <div>
           <p className="eyebrow">Round {state.round}</p>
@@ -76,12 +77,6 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                           ? `${displayPlayer.name}'s market pick`
                           : `${currentPlayer.name}'s turn`}
           </h1>
-        </div>
-        <div className="status-bar__meta">
-          <span>{state.mainDeck.length} deck</span>
-          <span>{state.discardPile.length} discard</span>
-          <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
-          <span>{state.eventDeck.length} events</span>
         </div>
       </header>
 
@@ -161,7 +156,12 @@ export function GameTable({ state, dispatch }: GameTableProps) {
           />
         </div>
         <div className="board-panel board-panel-log">
-          <GameMenu settings={state.settings} dispatch={dispatch} placement="inline" />
+          <div className="log-panel__meta">
+            <span>{state.mainDeck.length} deck</span>
+            <span>{state.discardPile.length} discard</span>
+            <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
+            <span>{state.eventDeck.length} events</span>
+          </div>
           <GameLog entries={state.log} />
         </div>
       </section>

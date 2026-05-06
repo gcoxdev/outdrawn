@@ -58,15 +58,6 @@ button {
   text-transform: uppercase;
 }
 
-.menu-trigger--inline {
-  position: static;
-  top: auto;
-  right: auto;
-  justify-content: center;
-  width: 100%;
-  margin-bottom: 10px;
-}
-
 .menu-overlay {
   position: fixed;
   inset: 0;
@@ -448,6 +439,7 @@ p {
 }
 
 .status-bar__meta span,
+.log-panel__meta span,
 .stat-chip {
   display: inline-flex;
   align-items: center;
@@ -803,6 +795,13 @@ p {
 .game-log {
   max-height: calc(100vh - 190px);
   overflow: auto;
+}
+
+.log-panel__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .game-log ol {
