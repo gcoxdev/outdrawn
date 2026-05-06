@@ -125,4 +125,36 @@ describe("event cards", () => {
 
     expect(state.players.map((player) => player.health)).toEqual([11, 9, 2]);
   });
+
+  it("Bounty draws a card for attackers who damage the highest-health player", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const attacker = state.players[state.currentPlayerIndex];
+    const target = state.players.find((player) => player.id !== attacker.id)!;
+    const pistol = main("weapon_pistol");
+    const reward = main("weapon_knife");
+    state = {
+      ...state,
+      round: 3,
+      activeEvent: { card: event("event_bounty"), timing: "thisRound" },
+      mainDeck: [reward],
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, health: 14, hand: [pistol] }
+          : player.id === target.id
+            ? { ...player, health: 20 }
+            : { ...player, health: 12 }
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: pistol.instanceId
+    });
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: target.id });
+
+    expect(state.players.find((player) => player.id === attacker.id)!.hand.map((card) => card.instanceId)).toEqual([reward.instanceId]);
+    expect(state.mainDeck).toHaveLength(0);
+  });
 });

@@ -179,6 +179,7 @@ Currently implemented event cards:
 
 - **High Ground:** Active this round. Each player's first attack this round deals +1 damage.
 - **Low Ammo:** Immediate. Each player discards their highest-damage weapon from hand or takes 3 damage.
+- **Bounty:** Active this round. Damaging the highest-health player draws 1 card.
 - **No Cover:** Active this round. Block/reduction reactions prevent 1 less damage.
 - **Critical Condition:** Immediate. Players at 10 or less health take 1 damage; players below 5 health take 2.
 
@@ -186,7 +187,6 @@ Pending event cards:
 
 - **Pressure Zone**
 - **Supply Drop**
-- **Bounty**
 - **Black Market**
 
 ## 2. Draw Phase

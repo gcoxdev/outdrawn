@@ -31,6 +31,7 @@ const implementedCardIds = new Set([
   "healing_second_wind",
   "event_high_ground",
   "event_low_ammo",
+  "event_bounty",
   "event_no_cover",
   "event_critical_condition"
 ]);

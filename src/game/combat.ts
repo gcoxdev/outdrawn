@@ -106,7 +106,26 @@ export function resolveAttack(
 
     return player;
   });
-  const nextState = { ...state, players };
+  let nextState = { ...state, players };
+  if (shouldRewardBounty(state, target, damage)) {
+    const bountyDraw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
+    nextState = {
+      ...nextState,
+      mainDeck: bountyDraw.mainDeck,
+      discardPile: bountyDraw.discardPile,
+      players: nextState.players.map((player) =>
+        player.id === attacker.id
+          ? {
+              ...player,
+              hand: [...player.hand, ...bountyDraw.drawn]
+            }
+          : player
+      )
+    };
+    if (bountyDraw.drawn.length > 0) {
+      messages.push(`${attacker.name} claimed the Bounty and drew 1 card.`);
+    }
+  }
   const winner = getWinner(nextState);
 
   if (winner) {
@@ -225,6 +244,15 @@ function getEventAttackBonus(state: GameState, attacker: PlayerState): number {
   }
 
   return 0;
+}
+
+function shouldRewardBounty(state: GameState, target: PlayerState, damage: number): boolean {
+  if (state.activeEvent?.card.definitionId !== "event_bounty" || damage <= 0) {
+    return false;
+  }
+
+  const highestHealth = Math.max(...state.players.filter((player) => !player.eliminated).map((player) => player.health));
+  return target.health === highestHealth;
 }
 
 function getGrenadeSplashTargets(players: PlayerState[], attackerId: string, targetId: string): PlayerState[] {
