@@ -55,12 +55,13 @@ function advanceTurn(state: GameState): GameState {
 
   const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
   const nextRound = allLivingActed;
+  const transitionState = nextRound ? resolveRoundTransition(state) : state;
   const firstPlayerIndex = nextRound
-    ? findNextLivingIndex(state.players, state.firstPlayerIndex)
-    : state.firstPlayerIndex;
-  const currentPlayerIndex = nextRound ? firstPlayerIndex : findNextLivingIndex(state.players, state.currentPlayerIndex);
+    ? findNextLivingIndex(transitionState.players, transitionState.firstPlayerIndex)
+    : transitionState.firstPlayerIndex;
+  const currentPlayerIndex = nextRound ? firstPlayerIndex : findNextLivingIndex(transitionState.players, transitionState.currentPlayerIndex);
 
-  const players = state.players.map((player, index) => {
+  const players = transitionState.players.map((player, index) => {
     const resetForRound = nextRound
       ? {
           actedThisRound: false,
@@ -72,17 +73,17 @@ function advanceTurn(state: GameState): GameState {
     return {
       ...player,
       ...resetForRound,
-      actionsRemaining: index === currentPlayerIndex ? state.settings.actionsPerTurn : player.actionsRemaining
+      actionsRemaining: index === currentPlayerIndex ? transitionState.settings.actionsPerTurn : player.actionsRemaining
     };
   });
 
   const advanced = {
-    ...state,
-    round: nextRound ? state.round + 1 : state.round,
+    ...transitionState,
+    round: nextRound ? transitionState.round + 1 : transitionState.round,
     players,
     firstPlayerIndex,
     currentPlayerIndex,
-    markedTargets: nextRound ? {} : state.markedTargets
+    markedTargets: nextRound ? {} : transitionState.markedTargets
   };
   advanced.smokeProtectedPlayerIds = advanced.smokeProtectedPlayerIds.filter(
     (playerId) => playerId !== advanced.players[currentPlayerIndex].id
@@ -95,6 +96,101 @@ function advanceTurn(state: GameState): GameState {
       ? `Round ${advanced.round} begins. ${advanced.players[currentPlayerIndex].name} is up.`
       : `${advanced.players[currentPlayerIndex].name} is up.`
   );
+}
+
+function resolveRoundTransition(state: GameState): GameState {
+  const stateWithoutExpiredEvent = state.activeEvent
+    ? {
+        ...state,
+        activeEvent: null,
+        eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
+      }
+    : state;
+  const [eventCard, ...eventDeck] = stateWithoutExpiredEvent.eventDeck;
+  const eventDefinition = eventCard ? getCardDefinitionById(eventCard.definitionId) : undefined;
+
+  if (!eventCard || !eventDefinition || eventDefinition.type !== "event") {
+    return stateWithoutExpiredEvent;
+  }
+
+  if (eventDefinition.timing === "immediate") {
+    return applyImmediateEvent({
+      ...stateWithoutExpiredEvent,
+      eventDeck,
+      eventDiscardPile: [...stateWithoutExpiredEvent.eventDiscardPile, eventCard]
+    }, eventDefinition.id);
+  }
+
+  if (eventDefinition.timing === "thisRound" || eventDefinition.timing === "ongoing") {
+    return {
+      ...stateWithoutExpiredEvent,
+      eventDeck,
+      activeEvent: {
+        card: eventCard,
+        timing: eventDefinition.timing
+      }
+    };
+  }
+
+  return {
+    ...stateWithoutExpiredEvent,
+    eventDeck,
+    eventDiscardPile: [...stateWithoutExpiredEvent.eventDiscardPile, eventCard]
+  };
+}
+
+function applyImmediateEvent(state: GameState, eventId: string): GameState {
+  if (eventId === "event_low_ammo") {
+    const discardedWeapons: CardInstance[] = [];
+    const players = state.players.map((player) => {
+      if (player.eliminated) {
+        return player;
+      }
+
+      const weapon = getHighestDamageWeapon(player.hand);
+      if (!weapon) {
+        const health = Math.max(0, player.health - 3);
+        return {
+          ...player,
+          health,
+          eliminated: health === 0
+        };
+      }
+
+      discardedWeapons.push(weapon);
+      return {
+        ...player,
+        hand: player.hand.filter((card) => card.instanceId !== weapon.instanceId)
+      };
+    });
+
+    return {
+      ...state,
+      players,
+      discardPile: [...state.discardPile, ...discardedWeapons]
+    };
+  }
+
+  if (eventId === "event_critical_condition") {
+    return {
+      ...state,
+      players: state.players.map((player) => {
+        if (player.eliminated || player.health > 10) {
+          return player;
+        }
+
+        const damage = player.health < 5 ? 2 : 1;
+        const health = Math.max(0, player.health - damage);
+        return {
+          ...player,
+          health,
+          eliminated: health === 0
+        };
+      })
+    };
+  }
+
+  return state;
 }
 
 function findNextLivingIndex(players: PlayerState[], startIndex: number): number {

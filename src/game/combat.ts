@@ -25,11 +25,14 @@ export function resolveAttack(
   }
 
   const baseDamage = Math.min(
-    (weaponDefinition.damage ?? 0) + (state.attackBonuses[attacker.id] ?? 0) + (state.markedTargets[target.id] ?? 0),
+    (weaponDefinition.damage ?? 0) +
+      (state.attackBonuses[attacker.id] ?? 0) +
+      (state.markedTargets[target.id] ?? 0) +
+      getEventAttackBonus(state, attacker),
     state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
   );
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
-  const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition);
+  const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition, state.activeEvent?.card.definitionId);
   const damage = reactionResult.damage;
   const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
@@ -139,7 +142,8 @@ function resolveReactionDamage(
   baseDamage: number,
   defenderHealth: number,
   weaponDefinition: CardDefinition,
-  reactionDefinition: CardDefinition | undefined
+  reactionDefinition: CardDefinition | undefined,
+  activeEventId: string | undefined
 ): {
   damage: number;
   counterDamage: number;
@@ -164,7 +168,12 @@ function resolveReactionDamage(
   }
 
   if (reactionDefinition.id === "defense_brace") {
-    return { ...baseResult, damage: Math.floor(baseDamage / 2), message: "{defender} braced for impact." };
+    const prevented = baseDamage - Math.floor(baseDamage / 2);
+    return {
+      ...baseResult,
+      damage: applyNoCover(baseDamage, prevented, activeEventId),
+      message: "{defender} braced for impact."
+    };
   }
 
   if (reactionDefinition.id === "defense_counterattack") {
@@ -197,12 +206,25 @@ function resolveReactionDamage(
   if (block > 0) {
     return {
       ...baseResult,
-      damage: Math.max(0, baseDamage - block),
+      damage: applyNoCover(baseDamage, block, activeEventId),
       message: `{defender} blocked ${block} damage.`
     };
   }
 
   return baseResult;
+}
+
+function applyNoCover(baseDamage: number, preventedDamage: number, activeEventId: string | undefined): number {
+  const adjustedPrevention = activeEventId === "event_no_cover" ? Math.max(0, preventedDamage - 1) : preventedDamage;
+  return Math.max(0, baseDamage - adjustedPrevention);
+}
+
+function getEventAttackBonus(state: GameState, attacker: PlayerState): number {
+  if (state.activeEvent?.card.definitionId === "event_high_ground" && !attacker.attackedThisRound) {
+    return 1;
+  }
+
+  return 0;
 }
 
 function getGrenadeSplashTargets(players: PlayerState[], attackerId: string, targetId: string): PlayerState[] {
@@ -248,7 +270,10 @@ export function createPendingReaction(
   }
 
   const baseDamage = Math.min(
-    (weaponDefinition.damage ?? 0) + (state.attackBonuses[attacker.id] ?? 0) + (state.markedTargets[target.id] ?? 0),
+    (weaponDefinition.damage ?? 0) +
+      (state.attackBonuses[attacker.id] ?? 0) +
+      (state.markedTargets[target.id] ?? 0) +
+      getEventAttackBonus(state, attacker),
     state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
   );
   const pendingReaction: PendingReaction = {

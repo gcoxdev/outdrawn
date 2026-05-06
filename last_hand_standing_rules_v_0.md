@@ -163,7 +163,7 @@ Each round consists of:
 
 ## 1. Event Phase
 
-Reveal 1 event card.
+In the current web prototype, the first event is revealed when Round 2 begins, and then one event is revealed at the start of each later round.
 
 Resolve it according to its text.
 
@@ -174,6 +174,20 @@ There are three event timings:
 - **Ongoing:** Stays active until replaced or removed.
 
 The starter deck currently uses immediate and this-round events only.
+
+Currently implemented event cards:
+
+- **High Ground:** Active this round. Each player's first attack this round deals +1 damage.
+- **Low Ammo:** Immediate. Each player discards their highest-damage weapon from hand or takes 3 damage.
+- **No Cover:** Active this round. Block/reduction reactions prevent 1 less damage.
+- **Critical Condition:** Immediate. Players at 10 or less health take 1 damage; players below 5 health take 2.
+
+Pending event cards:
+
+- **Pressure Zone**
+- **Supply Drop**
+- **Bounty**
+- **Black Market**
 
 ## 2. Draw Phase
 

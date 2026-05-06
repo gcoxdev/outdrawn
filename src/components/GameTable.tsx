@@ -28,6 +28,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const selectedDefinition = definitionFor(selectedCard);
+  const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
   const winner = state.players.find((player) => player.id === state.winnerId);
 
   return (
@@ -53,6 +54,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         <div className="status-bar__meta">
           <span>{state.mainDeck.length} deck</span>
           <span>{state.discardPile.length} discard</span>
+          <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
           <span>{state.eventDeck.length} events</span>
         </div>
       </header>

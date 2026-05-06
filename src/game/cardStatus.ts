@@ -28,7 +28,11 @@ const implementedCardIds = new Set([
   "healing_bandage",
   "healing_medkit",
   "healing_painkillers",
-  "healing_second_wind"
+  "healing_second_wind",
+  "event_high_ground",
+  "event_low_ammo",
+  "event_no_cover",
+  "event_critical_condition"
 ]);
 
 export function getCardImplementationStatus(card: Card): "implemented" | "partial" | "pending" {
