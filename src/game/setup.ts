@@ -50,6 +50,7 @@ export function createNewGame(
     activeEvent: null,
     pendingReaction: null,
     pendingDiscard: null,
+    pendingSearch: null,
     selectedCardId: null,
     attackBonuses: {},
     markedTargets: {},

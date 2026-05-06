@@ -43,8 +43,13 @@ describe("starter deck balance", () => {
   it("leans toward damage without making survival cards irrelevant", () => {
     const pressure = totalWeaponDamage() + totalDamageSupport();
     const survival = estimatedSurvivalValue();
+    const weaponCount = mainDeckCards.filter((card) => card.type === "weapon").reduce((total, card) => total + card.count, 0);
+    const survivalCount = mainDeckCards
+      .filter((card) => card.type === "defense" || card.type === "healing")
+      .reduce((total, card) => total + card.count, 0);
 
     expect(pressure / survival).toBeGreaterThanOrEqual(1.45);
     expect(pressure / survival).toBeLessThanOrEqual(1.9);
+    expect(weaponCount).toBeGreaterThan(survivalCount);
   });
 });

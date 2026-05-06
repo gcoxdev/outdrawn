@@ -17,7 +17,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
   const livingTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
   );
-  const canAct = state.phase === "action" && !state.pendingReaction && !state.pendingDiscard && currentPlayer.actionsRemaining > 0;
+  const canAct =
+    state.phase === "action" && !state.pendingReaction && !state.pendingDiscard && !state.pendingSearch && currentPlayer.actionsRemaining > 0;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
   const pendingDiscardPlayer = state.pendingDiscard ? getPlayer(state, state.pendingDiscard.playerId) : undefined;
@@ -127,10 +128,46 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
     );
   }
 
+  if (state.pendingSearch) {
+    const searchingPlayer = getPlayer(state, state.pendingSearch.playerId);
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Search</p>
+          <h2>{searchingPlayer?.name ?? "Player"}, keep 1 card</h2>
+          <p>Choose one revealed card to add to your hand. The rest go to discard.</p>
+        </div>
+        <div className="pending-discard-list">
+          {state.pendingSearch.cards.map((card) => {
+            const definition = getCardDefinitionById(card.definitionId);
+            return definition ? (
+              <button
+                className="reaction-card-button"
+                key={card.instanceId}
+                onClick={() =>
+                  dispatch({
+                    type: "RESOLVE_PENDING_SEARCH",
+                    playerId: state.pendingSearch!.playerId,
+                    keepCardInstanceId: card.instanceId
+                  })
+                }
+              >
+                <CardView card={definition} mode="board" />
+              </button>
+            ) : null;
+          })}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="action-panel">
       <div className="action-panel__commands">
-        <button disabled={!canAct || state.mainDeck.length === 0} onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}>
+        <button
+          disabled={!canAct || (state.mainDeck.length === 0 && state.discardPile.length === 0)}
+          onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
+        >
           Draw
         </button>
         <button disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
@@ -164,7 +201,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
             )}
             {selectedDefinition.type === "ability" && selectedDefinition.target !== "onePlayer" && (
               <button
-                disabled={!canAct || !["ability_ambush", "ability_adrenaline"].includes(selectedDefinition.id)}
+                disabled={!canAct || !["ability_ambush", "ability_adrenaline", "ability_search"].includes(selectedDefinition.id)}
                 onClick={() =>
                   dispatch({
                     type: "PLAY_ABILITY",

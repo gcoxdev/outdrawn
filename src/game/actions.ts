@@ -10,6 +10,7 @@ export type GameAction =
   | { type: "PLAY_HEALING"; playerId: PlayerId; cardInstanceId: CardInstanceId }
   | { type: "PLAY_ABILITY"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
   | { type: "RESOLVE_PENDING_DISCARD"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
+  | { type: "RESOLVE_PENDING_SEARCH"; playerId: PlayerId; keepCardInstanceId: CardInstanceId }
   | {
       type: "ATTACK";
       attackerId: PlayerId;

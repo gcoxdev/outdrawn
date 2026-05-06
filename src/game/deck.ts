@@ -38,3 +38,34 @@ export function drawCards(deck: CardInstance[], count: number) {
     deck: deck.slice(count)
   };
 }
+
+export function drawCardsWithRefill(
+  mainDeck: CardInstance[],
+  discardPile: CardInstance[],
+  count: number
+): {
+  drawn: CardInstance[];
+  mainDeck: CardInstance[];
+  discardPile: CardInstance[];
+} {
+  const drawn: CardInstance[] = [];
+  let deck = mainDeck;
+  let discard = discardPile;
+
+  while (drawn.length < count && (deck.length > 0 || discard.length > 0)) {
+    if (deck.length === 0) {
+      deck = discard;
+      discard = [];
+    }
+
+    const [nextCard, ...rest] = deck;
+    drawn.push(nextCard);
+    deck = rest;
+  }
+
+  return {
+    drawn,
+    mainDeck: deck,
+    discardPile: discard
+  };
+}

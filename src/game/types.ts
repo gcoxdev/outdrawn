@@ -50,6 +50,11 @@ export type PendingDiscard = {
   reason: string;
 };
 
+export type PendingSearch = {
+  playerId: PlayerId;
+  cards: CardInstance[];
+};
+
 export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
@@ -66,6 +71,7 @@ export type GameState = {
   activeEvent: ActiveEvent | null;
   pendingReaction: PendingReaction | null;
   pendingDiscard: PendingDiscard | null;
+  pendingSearch: PendingSearch | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   markedTargets: Record<PlayerId, number>;

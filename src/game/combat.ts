@@ -1,6 +1,7 @@
 import { allCards } from "../data/cards";
 import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState } from "./types";
 import { getCardDefinitionById, getWinner } from "./rules";
+import { drawCardsWithRefill } from "./deck";
 
 export type AttackResult = {
   state: GameState;
@@ -226,21 +227,20 @@ export function resolveHealing(
   const draw = definition.draw ?? 0;
   const actionsCost = definition.actionsCost ?? 1;
   const nextHealth = Math.min(state.settings.maxHealth, player.health + heal);
-  const drawn = state.mainDeck.slice(0, draw);
-  const deck = state.mainDeck.slice(draw);
+  const deckDraw = drawCardsWithRefill(state.mainDeck, state.discardPile, draw);
   const messages = [`${player.name} played ${definition.name} and healed ${nextHealth - player.health}.`];
 
   return {
     state: {
       ...state,
-      mainDeck: deck,
-      discardPile: [...state.discardPile, card],
+      mainDeck: deckDraw.mainDeck,
+      discardPile: [...deckDraw.discardPile, card],
       players: state.players.map((candidate) =>
         candidate.id === player.id
           ? {
               ...candidate,
               health: nextHealth,
-              hand: [...candidate.hand.filter((handCard) => handCard.instanceId !== card.instanceId), ...drawn],
+              hand: [...candidate.hand.filter((handCard) => handCard.instanceId !== card.instanceId), ...deckDraw.drawn],
               actionsRemaining: Math.max(0, candidate.actionsRemaining - actionsCost),
               actedThisRound: true
             }

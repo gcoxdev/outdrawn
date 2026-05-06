@@ -143,4 +143,24 @@ describe("gameplay corrections", () => {
     expect(state.players.find((candidate) => candidate.id === player.id)!.hand[0].instanceId).toBe(discarded.instanceId);
     expect(state.discardPile).toHaveLength(0);
   });
+
+  it("healing draw effects also refill from discard when the main deck is empty", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    const [painkillers, discarded] = instances(["healing_painkillers", "weapon_pistol"]);
+    state = {
+      ...state,
+      mainDeck: [],
+      discardPile: [discarded],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, health: 12, hand: [painkillers], actionsRemaining: 1 } : candidate
+      )
+    };
+
+    state = gameReducer(state, { type: "PLAY_HEALING", playerId: player.id, cardInstanceId: painkillers.instanceId });
+
+    const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
+    expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([discarded.instanceId]);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual([painkillers.instanceId]);
+  });
 });

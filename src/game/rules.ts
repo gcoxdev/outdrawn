@@ -40,6 +40,7 @@ export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
     state.phase === "action" &&
     !state.pendingReaction &&
     !state.pendingDiscard &&
+    !state.pendingSearch &&
     player.id === playerId &&
     !player.eliminated &&
     player.actionsRemaining > 0

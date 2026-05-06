@@ -18,6 +18,7 @@ const implementedCardIds = new Set([
   "ability_ambush",
   "ability_disarm",
   "ability_steal",
+  "ability_search",
   "ability_sabotage",
   "ability_mark_target",
   "ability_adrenaline",

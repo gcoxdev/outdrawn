@@ -1,5 +1,5 @@
 import { allCards } from "../data/cards";
-import { drawCards } from "./deck";
+import { drawCardsWithRefill } from "./deck";
 import type { CardInstance } from "./types";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
@@ -132,12 +132,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      const deckState = refillDeckIfNeeded(state);
-      const draw = drawCards(deckState.mainDeck, 1);
+      const draw = drawCardsWithRefill(state.mainDeck, state.discardPile, 1);
       let nextState = {
-        ...deckState,
-        mainDeck: draw.deck,
-        discardPile: deckState.discardPile
+        ...state,
+        mainDeck: draw.mainDeck,
+        discardPile: draw.discardPile
       };
       nextState = updatePlayer(nextState, action.playerId, (player) => ({
         ...player,
@@ -202,6 +201,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       return log(nextState, `${player.name} discarded ${selected.length} cards for ${pendingDiscard.reason}.`);
+    }
+    case "RESOLVE_PENDING_SEARCH": {
+      const pendingSearch = state.pendingSearch;
+      const player = pendingSearch ? getPlayer(state, pendingSearch.playerId) : undefined;
+      const kept = pendingSearch?.cards.find((card) => card.instanceId === action.keepCardInstanceId);
+
+      if (!pendingSearch || !player || action.playerId !== player.id || !kept) {
+        return state;
+      }
+
+      const discarded = pendingSearch.cards.filter((card) => card.instanceId !== kept.instanceId);
+      const nextState = {
+        ...state,
+        pendingSearch: null,
+        discardPile: [...state.discardPile, ...discarded],
+        players: state.players.map((candidate) =>
+          candidate.id === player.id
+            ? {
+                ...candidate,
+                hand: [...candidate.hand, kept]
+              }
+            : candidate
+        )
+      };
+
+      return log(nextState, `${player.name} kept 1 card from Search and discarded ${discarded.length}.`);
     }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {
@@ -405,6 +430,21 @@ function resolveAbility(
     message = `${player.name} stole 1 card from ${target.name}.`;
   }
 
+  if (definitionId === "ability_search") {
+    const discardWithoutSearch = nextState.discardPile.filter((discardedCard) => discardedCard.instanceId !== card.instanceId);
+    const searchDraw = drawCardsWithRefill(nextState.mainDeck, discardWithoutSearch, 3);
+    nextState = {
+      ...nextState,
+      mainDeck: searchDraw.mainDeck,
+      discardPile: [...searchDraw.discardPile, card],
+      pendingSearch: {
+        playerId: player.id,
+        cards: searchDraw.drawn
+      }
+    };
+    message = `${player.name} searched and must keep 1 of ${searchDraw.drawn.length} cards.`;
+  }
+
   if (definitionId === "ability_disarm" && target) {
     const weapon = getHighestDamageWeapon(target.hand);
     if (!weapon) {
@@ -461,16 +501,4 @@ function getHighestDamageWeapon(hand: CardInstance[]): CardInstance | null {
       const rightDamage = getCardDefinitionById(right.definitionId)?.damage ?? 0;
       return rightDamage - leftDamage;
     })[0] ?? null;
-}
-
-function refillDeckIfNeeded(state: GameState): GameState {
-  if (state.mainDeck.length > 0 || state.discardPile.length === 0) {
-    return state;
-  }
-
-  return {
-    ...state,
-    mainDeck: state.discardPile,
-    discardPile: []
-  };
 }
