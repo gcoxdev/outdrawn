@@ -51,6 +51,7 @@ export function createNewGame(
     pendingReaction: null,
     pendingRedirect: null,
     pendingAttackCost: null,
+    pendingMultiHitAttack: null,
     pendingDiscard: null,
     pendingSearch: null,
     pendingSupplyDrop: null,

@@ -41,9 +41,6 @@ const implementedCardIds = new Set([
 
 export function getCardImplementationStatus(card: Card): "implemented" | "partial" | "pending" {
   if (implementedCardIds.has(card.id)) {
-    if (card.id === "weapon_smg") {
-      return "partial";
-    }
     return "implemented";
   }
 

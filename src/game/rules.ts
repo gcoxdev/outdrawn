@@ -41,6 +41,7 @@ export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
     !state.pendingReaction &&
     !state.pendingRedirect &&
     !state.pendingAttackCost &&
+    !state.pendingMultiHitAttack &&
     !state.pendingDiscard &&
     !state.pendingSearch &&
     !state.pendingSupplyDrop &&

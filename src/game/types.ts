@@ -54,6 +54,14 @@ export type PendingAttackCost = {
   sourcePlayerId: PlayerId;
 };
 
+export type PendingMultiHitAttack = {
+  attackerId: PlayerId;
+  defenderId: PlayerId;
+  weapon: CardInstance;
+  hitsRemaining: number;
+  hitDamage: number;
+};
+
 export type PendingDiscard = {
   sourcePlayerId: PlayerId;
   playerId: PlayerId;
@@ -94,6 +102,7 @@ export type GameState = {
   pendingReaction: PendingReaction | null;
   pendingRedirect: PendingRedirect | null;
   pendingAttackCost: PendingAttackCost | null;
+  pendingMultiHitAttack: PendingMultiHitAttack | null;
   pendingDiscard: PendingDiscard | null;
   pendingSearch: PendingSearch | null;
   pendingSupplyDrop: PendingSupplyDrop | null;

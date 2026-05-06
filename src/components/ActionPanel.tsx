@@ -23,6 +23,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
     !state.pendingReaction &&
     !state.pendingRedirect &&
     !state.pendingAttackCost &&
+    !state.pendingMultiHitAttack &&
     !state.pendingDiscard &&
     !state.pendingSearch &&
     !state.pendingSupplyDrop &&

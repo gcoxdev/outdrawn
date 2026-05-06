@@ -282,7 +282,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = getPlayer(state, action.playerId);
       const card = player?.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
 
-      if (!player || !card || state.pendingReaction || state.pendingRedirect || state.pendingAttackCost) {
+      if (!player || !card || state.pendingReaction || state.pendingRedirect || state.pendingAttackCost || state.pendingMultiHitAttack) {
         return state;
       }
 
@@ -590,6 +590,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (
         state.pendingRedirect ||
         state.pendingAttackCost ||
+        state.pendingMultiHitAttack ||
         !target ||
         target.eliminated ||
         target.id === attacker.id ||
@@ -618,6 +619,28 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             }
           },
           `${attacker.name} must discard 1 card to attack ${target.name}.`
+        );
+      }
+
+      if (weaponDefinition.id === "weapon_smg") {
+        return log(
+          {
+            ...state,
+            pendingReaction: {
+              attackerId: attacker.id,
+              defenderId: target.id,
+              weapon,
+              baseDamage: 2
+            },
+            pendingMultiHitAttack: {
+              attackerId: attacker.id,
+              defenderId: target.id,
+              weapon,
+              hitsRemaining: 2,
+              hitDamage: 2
+            }
+          },
+          `${attacker.name} played SMG targeting ${target.name}.`
         );
       }
 
@@ -660,7 +683,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         );
       }
 
-      const result = resolveAttack(state, attacker, defender, pending.weapon, reaction);
+      const result = resolvePendingAttack(state, attacker, defender, pending.weapon, reaction);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
     case "SKIP_REACTION": {
@@ -672,7 +695,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      const result = resolveAttack(state, attacker, defender, pending.weapon, null);
+      const result = resolvePendingAttack(state, attacker, defender, pending.weapon, null);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
     case "PASS_ACTION": {
@@ -710,6 +733,63 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 }
 
 export const cardDefinitions = allCards;
+
+function resolvePendingAttack(
+  state: GameState,
+  attacker: PlayerState,
+  defender: PlayerState,
+  weapon: CardInstance,
+  reaction: CardInstance | null
+) {
+  const multiHit = state.pendingMultiHitAttack;
+
+  if (!multiHit || multiHit.weapon.instanceId !== weapon.instanceId) {
+    return resolveAttack(state, attacker, defender, weapon, reaction);
+  }
+
+  const isFinalHit = multiHit.hitsRemaining <= 1;
+  const result = resolveAttack(state, attacker, defender, weapon, reaction, {
+    baseDamageOverride: multiHit.hitDamage,
+    keepWeaponInHand: !isFinalHit,
+    spendAction: multiHit.hitsRemaining === 2,
+    clearAttackBonuses: isFinalHit
+  });
+  const nextDefender = getPlayer(result.state, defender.id);
+  const shouldContinue =
+    !isFinalHit &&
+    nextDefender &&
+    !nextDefender.eliminated &&
+    !result.state.smokeProtectedPlayerIds.includes(defender.id) &&
+    result.state.phase !== "gameOver";
+
+  if (!shouldContinue || !nextDefender) {
+    return {
+      ...result,
+      state: {
+        ...result.state,
+        pendingMultiHitAttack: null
+      }
+    };
+  }
+
+  return {
+    ...result,
+    state: {
+      ...result.state,
+      pendingMultiHitAttack: {
+        ...multiHit,
+        hitsRemaining: multiHit.hitsRemaining - 1
+      },
+      pendingReaction: {
+        attackerId: attacker.id,
+        defenderId: defender.id,
+        weapon,
+        baseDamage: multiHit.hitDamage
+      }
+    },
+    messages: [...result.messages, `${attacker.name}'s SMG fires again at ${defender.name}.`]
+  };
+}
 
 function resolveAbility(
   state: GameState,

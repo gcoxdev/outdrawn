@@ -185,4 +185,75 @@ describe("remaining main deck card implementations", () => {
     expect(state.players.find((player) => player.id === target.id)!.hand.map((card) => card.instanceId)).toEqual([weapon.instanceId]);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([intimidate.instanceId, costCard.instanceId]));
   });
+
+  it("SMG resolves as two separate 2-damage hits with separate reaction windows", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const attacker = state.players[state.currentPlayerIndex];
+    const defender = state.players.find((player) => player.id !== attacker.id)!;
+    const [smg, shield] = instances(["weapon_smg", "defense_shield_plate"]);
+    state = {
+      ...state,
+      round: 3,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [smg], actionsRemaining: 2 }
+          : player.id === defender.id
+            ? { ...player, hand: [shield] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: defender.id,
+      weaponInstanceId: smg.instanceId
+    });
+    expect(state.pendingReaction?.baseDamage).toBe(2);
+    expect(state.pendingMultiHitAttack?.hitsRemaining).toBe(2);
+
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: shield.instanceId });
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.pendingReaction?.baseDamage).toBe(2);
+    expect(state.pendingMultiHitAttack?.hitsRemaining).toBe(1);
+
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: defender.id });
+
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(18);
+    expect(state.pendingReaction).toBeNull();
+    expect(state.pendingMultiHitAttack).toBeNull();
+    expect(state.players.find((player) => player.id === attacker.id)!.hand).toHaveLength(0);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([smg.instanceId, shield.instanceId]));
+  });
+
+  it("Smoke Bomb stops the second SMG hit after canceling the first hit", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const attacker = state.players[state.currentPlayerIndex];
+    const defender = state.players.find((player) => player.id !== attacker.id)!;
+    const [smg, smoke] = instances(["weapon_smg", "defense_smoke_bomb"]);
+    state = {
+      ...state,
+      round: 3,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [smg], actionsRemaining: 2 }
+          : player.id === defender.id
+            ? { ...player, hand: [smoke] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: defender.id,
+      weaponInstanceId: smg.instanceId
+    });
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: smoke.instanceId });
+
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.pendingReaction).toBeNull();
+    expect(state.pendingMultiHitAttack).toBeNull();
+    expect(state.smokeProtectedPlayerIds).toContain(defender.id);
+  });
 });

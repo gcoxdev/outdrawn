@@ -8,12 +8,20 @@ export type AttackResult = {
   messages: string[];
 };
 
+export type ResolveAttackOptions = {
+  baseDamageOverride?: number;
+  keepWeaponInHand?: boolean;
+  spendAction?: boolean;
+  clearAttackBonuses?: boolean;
+};
+
 export function resolveAttack(
   state: GameState,
   attacker: PlayerState,
   target: PlayerState,
   weapon: CardInstance,
-  reaction: CardInstance | null
+  reaction: CardInstance | null,
+  options: ResolveAttackOptions = {}
 ): AttackResult {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (!weaponDefinition || weaponDefinition.type !== "weapon") {
@@ -24,13 +32,15 @@ export function resolveAttack(
     return { state, messages: [`${weaponDefinition.name} is on cooldown.`] };
   }
 
-  const baseDamage = Math.min(
-    (weaponDefinition.damage ?? 0) +
-      (state.attackBonuses[attacker.id] ?? 0) +
-      (state.markedTargets[target.id] ?? 0) +
-      getEventAttackBonus(state, attacker),
-    state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
-  );
+  const baseDamage =
+    options.baseDamageOverride ??
+    Math.min(
+      (weaponDefinition.damage ?? 0) +
+        (state.attackBonuses[attacker.id] ?? 0) +
+        (state.markedTargets[target.id] ?? 0) +
+        getEventAttackBonus(state, attacker),
+      state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
+    );
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
   const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition, state.activeEvent?.card.definitionId);
   const damage = reactionResult.damage;
@@ -75,12 +85,12 @@ export function resolveAttack(
       const attackerHealth = Math.max(0, player.health - counterDamage);
       return {
         ...player,
-        hand: [...player.hand.filter((card) => card.instanceId !== weapon.instanceId), ...loot],
+        hand: [...(options.keepWeaponInHand ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...loot],
         health: attackerHealth,
         eliminated: attackerHealth === 0,
         attackedThisRound: true,
         actedThisRound: true,
-        actionsRemaining: Math.max(0, player.actionsRemaining - 1),
+        actionsRemaining: options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1),
         weaponCooldowns: player.weaponCooldowns
       };
     }
@@ -139,14 +149,14 @@ export function resolveAttack(
       ...nextState,
       pendingReaction: null,
       pendingRedirect: null,
-      attackBonuses: omitKey(nextState.attackBonuses, attacker.id),
+      attackBonuses: options.clearAttackBonuses === false ? nextState.attackBonuses : omitKey(nextState.attackBonuses, attacker.id),
       smokeProtectedPlayerIds:
         reactionDefinition?.id === "defense_smoke_bomb"
           ? Array.from(new Set([...nextState.smokeProtectedPlayerIds, target.id]))
           : nextState.smokeProtectedPlayerIds,
       discardPile: [
         ...nextState.discardPile,
-        weapon,
+        ...(options.keepWeaponInHand ? [] : [weapon]),
         ...(reaction ? [reaction] : []),
         ...(reactionResult.discardsDefenderHand ? target.hand.filter((card) => card.instanceId !== reaction?.instanceId) : [])
       ],
