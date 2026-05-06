@@ -68,7 +68,7 @@ The starter main deck currently has **77 cards**.
 ## Weapons — 29 cards
 
 - **Pistol (x8):** Deal 3 damage.
-- **Shotgun (x5):** Deal 6 damage. After use, it cannot be used on your next turn.
+- **Shotgun (x5):** Deal 6 damage, then discard.
 - **Sniper Rifle (x3):** Deal 8 damage. You must declare the target before any attack modifiers are played.
 - **Knife (x3):** Deal 2 damage. If this eliminates a player, you may keep 1 extra loot card from them this turn.
 - **Grenade (x4):** Deal 4 damage to one target and 2 splash damage to nearby non-attacking players in turn order.

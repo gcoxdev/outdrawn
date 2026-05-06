@@ -95,4 +95,31 @@ describe("game simulator", () => {
 
     expect(action).toMatchObject({ type: "ATTACK", targetPlayerId: "player_2" });
   });
+
+  it("master uses the cheapest lethal weapon instead of wasting stronger damage", () => {
+    let state = createNewGame(
+      [
+        { name: "Ari", controller: { type: "computer", strategy: "master" } },
+        { name: "Blake", controller: { type: "computer", strategy: "beginner" } },
+        { name: "Casey", controller: { type: "computer", strategy: "expert" } }
+      ],
+      () => 0
+    );
+    const pistol = main("weapon_pistol");
+    const sniper = main("weapon_sniper_rifle");
+    state = {
+      ...state,
+      players: state.players.map((player, index) =>
+        index === 0
+          ? { ...player, hand: [sniper, pistol] }
+          : index === 1
+            ? { ...player, health: 3, hand: [] }
+            : { ...player, health: 20, hand: [main("weapon_shotgun")] }
+      )
+    };
+
+    const action = chooseAutomatedAction(state, "master", () => 0);
+
+    expect(action).toMatchObject({ type: "ATTACK", targetPlayerId: "player_2", weaponInstanceId: pistol.instanceId });
+  });
 });

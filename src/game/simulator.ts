@@ -333,8 +333,8 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
 
 function chooseHealing(state: GameState, player: PlayerState, strategy: StrategyLevel, urgentOnly: boolean): CardInstance | null {
   const threshold =
-    strategy === "master" ? 0.4 : strategy === "expert" ? 0.45 : strategy === "competent" ? 0.5 : strategy === "novice" ? 0.4 : 0.3;
-  const urgentThreshold = Math.floor(state.settings.maxHealth * 0.35);
+    strategy === "master" ? 0.5 : strategy === "expert" ? 0.45 : strategy === "competent" ? 0.5 : strategy === "novice" ? 0.4 : 0.3;
+  const urgentThreshold = Math.floor(state.settings.maxHealth * (strategy === "master" ? 0.45 : 0.35));
   if (urgentOnly && player.health > urgentThreshold) {
     return null;
   }
@@ -444,14 +444,18 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
 }
 
 function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyLevel, random: () => number): GameAction | null {
-  const weapon = pickWeapon(
-    player.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "weapon"),
-    strategy,
-    random
-  );
+  const weapons = player.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "weapon");
+  const weapon = pickWeapon(weapons, strategy, random);
 
   if (!weapon) {
     return null;
+  }
+
+  if (strategy === "master") {
+    const masterAttack = chooseMasterAttack(state, player, weapons, random);
+    if (masterAttack) {
+      return masterAttack;
+    }
   }
 
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
@@ -471,6 +475,50 @@ function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyL
   }
 
   return { type: "ATTACK", attackerId: player.id, targetPlayerId: target.id, weaponInstanceId: weapon.instanceId };
+}
+
+function chooseMasterAttack(state: GameState, player: PlayerState, weapons: CardInstance[], random: () => number): GameAction | null {
+  const attackOptions = weapons.flatMap((weapon) =>
+    getValidAttackTargets(state, player, weapon).map((target) => ({
+      target,
+      weapon,
+      damage: getWeaponDamagePotential(state, player, weapon)
+    }))
+  );
+  const killOptions = attackOptions.filter((option) => option.damage >= option.target.health);
+
+  if (killOptions.length > 0) {
+    const chosen = [...killOptions].sort(
+      (left, right) =>
+        threatScore(right.target) - threatScore(left.target) ||
+        left.damage - right.damage ||
+        cardValue(left.weapon) - cardValue(right.weapon)
+    )[0];
+    return { type: "ATTACK", attackerId: player.id, targetPlayerId: chosen.target.id, weaponInstanceId: chosen.weapon.instanceId };
+  }
+
+  const bestWeapon = pickBestCard(weapons, "master", random);
+  const validTargets = getValidAttackTargets(state, player, bestWeapon);
+  if (validTargets.length === 0) {
+    return null;
+  }
+
+  const target = chooseThreatTarget(validTargets, "master", random);
+  return target ? { type: "ATTACK", attackerId: player.id, targetPlayerId: target.id, weaponInstanceId: bestWeapon.instanceId } : null;
+}
+
+function getValidAttackTargets(state: GameState, player: PlayerState, weapon: CardInstance): PlayerState[] {
+  return state.players
+    .filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
+    .filter((candidate) => {
+      const intimidationSources = state.intimidations[player.id] ?? [];
+      return !intimidationSources.includes(candidate.id) || player.hand.some((card) => card.instanceId !== weapon.instanceId);
+    });
+}
+
+function getWeaponDamagePotential(state: GameState, player: PlayerState, weapon: CardInstance): number {
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  return (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) + (state.attackBonuses[player.id] ?? 0);
 }
 
 function dispatchWithMetrics(state: GameState, action: GameAction, metrics: SimulationMetrics): GameState {
@@ -701,8 +749,12 @@ function chooseAttackTarget(players: PlayerState[], strategy: StrategyLevel, ran
 
 function chooseThreatTarget(players: PlayerState[], strategy: StrategyLevel, random: () => number): PlayerState {
   const sorted = [...players].sort((left, right) => threatScore(right) - threatScore(left));
+  if (strategy === "master") {
+    return sorted[0];
+  }
+
   const topScore = threatScore(sorted[0]);
-  const tolerance = strategy === "master" ? 3 : strategy === "expert" ? 4 : 5;
+  const tolerance = strategy === "expert" ? 4 : 5;
   const candidates = sorted.filter((player) => topScore - threatScore(player) <= tolerance).slice(0, 3);
   return randomItem(candidates.length > 0 ? candidates : sorted.slice(0, 1), random);
 }

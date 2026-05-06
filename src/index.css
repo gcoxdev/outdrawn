@@ -441,6 +441,7 @@ p {
 .player-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  align-items: start;
   gap: 8px;
   padding: 8px;
 }
@@ -448,6 +449,7 @@ p {
 .player-panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-self: start;
   gap: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -557,14 +559,17 @@ p {
 .hand-rail {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  align-items: start;
   gap: 8px;
 }
 
 .card-view {
   --card-accent: #d99d45;
   display: grid;
+  align-self: start;
   grid-template-rows: auto minmax(42px, 0.75fr) auto 1fr auto;
   width: 100%;
+  height: auto;
   aspect-ratio: 2.5 / 3.5;
   min-height: 0;
   border: 2px solid color-mix(in srgb, var(--card-accent), #000 30%);
@@ -581,7 +586,9 @@ p {
 
 .card-back {
   display: grid;
+  align-self: start;
   width: 100%;
+  height: auto;
   aspect-ratio: 2.5 / 3.5;
   min-height: 0;
   place-items: center;

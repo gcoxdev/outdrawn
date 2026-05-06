@@ -16,7 +16,7 @@ export function PlayerPanel({ player, isCurrent }: PlayerPanelProps) {
       <dl>
         <div>
           <dt>Control</dt>
-          <dd>{player.controller.type === "computer" ? player.controller.strategy : "Human"}</dd>
+          <dd>{formatController(player)}</dd>
         </div>
         <div>
           <dt>Hand</dt>
@@ -29,4 +29,12 @@ export function PlayerPanel({ player, isCurrent }: PlayerPanelProps) {
       </dl>
     </article>
   );
+}
+
+function formatController(player: PlayerState): string {
+  if (player.controller.type === "human") {
+    return "Human";
+  }
+
+  return `Computer - ${player.controller.strategy[0].toUpperCase()}${player.controller.strategy.slice(1)}`;
 }

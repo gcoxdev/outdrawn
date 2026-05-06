@@ -154,4 +154,30 @@ Rotated mixed aggregate across 20,000 games after this change:
 | Master | 6,746 | 33.73% |
 | No winner | 152 | 0.76% |
 
-Current read: this is much closer to the desired model. Similar skill levels produce balanced seat results, while mixed skill levels strongly favor expert/master play. Expert currently edges master by a small amount in this sample; that is acceptable for a heuristic bot and can be tuned later by differentiating master resource timing further.
+This was closer to the desired model, but expert still edged master by a small amount.
+
+## 2026-05-06 Master Tuning Update
+
+Additional master-only improvements:
+
+- Master chooses the cheapest weapon that can eliminate a target instead of wasting high-damage weapons on low-health players.
+- Master heals earlier than expert when low, then can still attack if actions remain.
+- Master target selection remains stricter than expert target selection.
+
+Rotated mixed aggregate across 20,000 games after master tuning:
+
+| Strategy | Wins | Win Rate |
+| --- | ---: | ---: |
+| Beginner | 1,830 | 9.15% |
+| Novice | 3,690 | 18.45% |
+| Expert | 7,074 | 35.37% |
+| Master | 7,274 | 36.37% |
+| No winner | 165 | 0.83% |
+
+Master-vs-master seat check after tuning:
+
+| Player 1 | Player 2 | Player 3 | Player 4 | No Winner |
+| ---: | ---: | ---: | ---: | ---: |
+| 1,192 | 1,285 | 1,187 | 1,294 | 42 |
+
+Current read: master now has the highest mixed-skill win rate while same-skill master games remain reasonably seat-balanced. The expert/master gap is intentionally modest because both are strong strategies, but master now leads as expected.

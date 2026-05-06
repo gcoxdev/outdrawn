@@ -79,13 +79,12 @@ export const mainDeckCards: Card[] = [
     target: "onePlayer",
     rarity: "uncommon",
     damage: 6,
-    cooldownTurns: 1,
     supplyCost: 2,
-    icons: ["damage", "cooldown", "target"],
-    shortText: "Deal 6 damage. Cannot be used next turn.",
-    rulesText: "Deal 6 damage to one player. After use, this weapon cannot be used on your next turn.",
+    icons: ["damage", "target"],
+    shortText: "Deal 6 damage to one player.",
+    rulesText: "Deal 6 damage to one player, then discard this card.",
     flavorText: "Close enough is good enough.",
-    tags: ["weapon", "burst", "cooldown", "single-target"]
+    tags: ["weapon", "burst", "single-target"]
   },
   {
     id: "weapon_sniper_rifle",
