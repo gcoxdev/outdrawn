@@ -28,10 +28,6 @@ export function resolveAttack(
     return { state, messages: [] };
   }
 
-  if (attacker.weaponCooldowns[weapon.instanceId] > 0) {
-    return { state, messages: [`${weaponDefinition.name} is on cooldown.`] };
-  }
-
   const baseDamage =
     options.baseDamageOverride ??
     Math.min(
@@ -90,8 +86,7 @@ export function resolveAttack(
         eliminated: attackerHealth === 0,
         attackedThisRound: true,
         actedThisRound: true,
-        actionsRemaining: options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1),
-        weaponCooldowns: player.weaponCooldowns
+        actionsRemaining: options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1)
       };
     }
 

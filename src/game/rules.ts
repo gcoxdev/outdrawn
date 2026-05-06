@@ -18,20 +18,7 @@ export function getCardDefinitionById(definitionId: string) {
 }
 
 export function getCardFromPlayer(player: PlayerState, cardInstanceId: CardInstanceId) {
-  const handCard = player.hand.find((card) => card.instanceId === cardInstanceId);
-  if (handCard) {
-    return handCard;
-  }
-
-  if (player.equippedWeapon?.instanceId === cardInstanceId) {
-    return player.equippedWeapon;
-  }
-
-  if (player.equippedDefense?.instanceId === cardInstanceId) {
-    return player.equippedDefense;
-  }
-
-  return undefined;
+  return player.hand.find((card) => card.instanceId === cardInstanceId);
 }
 
 export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {

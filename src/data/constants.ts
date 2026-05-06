@@ -14,6 +14,8 @@ export type GameSettings = {
   actionsPerTurn: number;
   openingDamageCapRounds: number;
   openingDamageCap: number;
+  debugHandSnapshots: boolean;
+  passDeviceMode: boolean;
 };
 
 export const defaultGameSettings: GameSettings = {
@@ -23,5 +25,7 @@ export const defaultGameSettings: GameSettings = {
   maxHandSize: MAX_HAND_SIZE,
   actionsPerTurn: ACTIONS_PER_TURN,
   openingDamageCapRounds: OPENING_DAMAGE_CAP_ROUNDS,
-  openingDamageCap: OPENING_DAMAGE_CAP
+  openingDamageCap: OPENING_DAMAGE_CAP,
+  debugHandSnapshots: false,
+  passDeviceMode: false
 };

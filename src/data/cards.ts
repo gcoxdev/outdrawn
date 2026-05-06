@@ -6,7 +6,6 @@ export type CardType = "weapon" | "defense" | "ability" | "healing" | "event";
 export type CardTiming =
   | "action"
   | "reaction"
-  | "equip"
   | "immediate"
   | "thisRound"
   | "ongoing"
@@ -39,11 +38,9 @@ export type Card = {
   actionsCost?: number;
   supplyCost?: number;
 
-  isEquip?: boolean;
   isReaction?: boolean;
   isLethalDefense?: boolean;
   ignoresArmor?: boolean;
-  cooldownTurns?: number;
 
   icons: string[];
   shortText: string;
@@ -185,7 +182,7 @@ export const mainDeckCards: Card[] = [
     shortText: "Reaction. Reduce incoming damage by 2.",
     rulesText: "Reaction defense. Reduce incoming attack damage by 2 unless the damage ignores armor, then discard this card.",
     flavorText: "Not invincible. Just harder to kill.",
-    tags: ["defense", "equip", "armor", "persistent"]
+    tags: ["defense", "reaction", "armor"]
   },
   {
     id: "defense_shield_plate",
@@ -379,7 +376,7 @@ export const mainDeckCards: Card[] = [
     shortText: "Recover the strongest weapon from discard.",
     rulesText: "Take the highest-damage weapon from the discard pile and add it to your hand.",
     flavorText: "The empty click was only a pause.",
-    tags: ["ability", "weapon-support", "cooldown"]
+    tags: ["ability", "weapon-support", "discard-recovery"]
   },
   {
     id: "ability_sabotage",

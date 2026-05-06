@@ -22,10 +22,14 @@ function log(state: GameState, message: string): GameState {
         id: `log_${state.log.length + 1}_${Date.now()}`,
         round: state.round,
         message,
-        handSnapshots: getHandSnapshots(state)
+        handSnapshots: shouldCaptureHandSnapshots(state) ? getHandSnapshots(state) : []
       }
     ]
   };
+}
+
+function shouldCaptureHandSnapshots(state: GameState): boolean {
+  return import.meta.env.DEV && state.settings.debugHandSnapshots;
 }
 
 function getHandSnapshots(state: GameState): GameState["log"][number]["handSnapshots"] {
@@ -86,8 +90,7 @@ function advanceTurn(state: GameState): GameState {
     const resetForRound = nextRound
       ? {
           actedThisRound: false,
-          attackedThisRound: false,
-          weaponCooldowns: decrementCooldowns(player.weaponCooldowns)
+          attackedThisRound: false
         }
       : {};
 
@@ -282,14 +285,6 @@ function findNextLivingIndex(players: PlayerState[], startIndex: number): number
   }
 
   return startIndex;
-}
-
-function decrementCooldowns(cooldowns: Record<string, number>): Record<string, number> {
-  return Object.fromEntries(
-    Object.entries(cooldowns)
-      .map(([id, turns]) => [id, turns - 1] as const)
-      .filter(([, turns]) => turns > 0)
-  );
 }
 
 function currentPlayerOverHandLimit(state: GameState): boolean {

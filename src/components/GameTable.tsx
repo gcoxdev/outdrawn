@@ -1,8 +1,10 @@
+import { Eye } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { allCards } from "../data/cards";
 import type { GameAction } from "../game/actions";
 import { getCurrentPlayer } from "../game/rules";
 import { getDecisionPlayerId } from "../game/simulator";
-import type { CardInstance, GameState } from "../game/types";
+import type { CardInstance, GameState, PlayerId } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
 import { CardBack, CardView } from "./CardView";
 import { GameLog } from "./GameLog";
@@ -19,8 +21,13 @@ type GameTableProps = {
   dispatch: (action: GameAction) => void;
 };
 
+type MobileTab = "hand" | "actions" | "players" | "log";
+
 export function GameTable({ state, dispatch }: GameTableProps) {
+  const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("hand");
+  const [revealedDecisionKey, setRevealedDecisionKey] = useState<string | null>(null);
   const currentPlayer = getCurrentPlayer(state);
+  const decisionPlayerId = getDecisionPlayerId(state);
   const displayPlayer =
     state.players.find((player) => player.id === state.pendingReaction?.defenderId) ??
     state.players.find((player) => player.id === state.pendingRedirect?.defenderId) ??
@@ -31,16 +38,28 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
-  const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === getDecisionPlayerId(state);
+  const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === decisionPlayerId;
   const onlyComputersRemain = state.players.every((player) => player.eliminated || player.controller.type === "computer");
-  const shouldRevealDisplayHand = displayPlayer.controller.type === "human" || onlyComputersRemain;
-  const canSelectDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision && state.phase !== "gameOver";
+  const decisionKey = useMemo(() => getPrivacyDecisionKey(state, decisionPlayerId), [state, decisionPlayerId]);
+  const privacyGateActive =
+    state.settings.passDeviceMode &&
+    state.phase === "action" &&
+    displayPlayer.id === decisionPlayerId &&
+    displayPlayer.controller.type === "human" &&
+    !onlyComputersRemain &&
+    revealedDecisionKey !== decisionKey;
+  const shouldRevealDisplayHand = (displayPlayer.controller.type === "human" && !privacyGateActive) || onlyComputersRemain;
+  const canSelectDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision && !privacyGateActive && state.phase !== "gameOver";
   const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
   const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
   const winner = state.players.find((player) => player.id === state.winnerId);
 
+  useEffect(() => {
+    setActiveMobileTab("hand");
+  }, [decisionKey]);
+
   return (
-    <main className="game-table">
+    <main className={`game-table mobile-tab-${activeMobileTab}`}>
       {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
       <GameMenu settings={state.settings} dispatch={dispatch} />
       <header className="status-bar">
@@ -72,14 +91,22 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         </div>
       </header>
 
-      <section className="player-strip">
+      <nav className="mobile-board-tabs" aria-label="Board sections">
+        {(["hand", "actions", "players", "log"] as MobileTab[]).map((tab) => (
+          <button className={activeMobileTab === tab ? "is-active" : ""} key={tab} type="button" onClick={() => setActiveMobileTab(tab)}>
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      <section className="player-strip board-panel board-panel-players">
         {state.players.map((player) => (
           <PlayerPanel key={player.id} player={player} isCurrent={player.id === currentPlayer.id} />
         ))}
       </section>
 
       <section className="board-grid">
-        <section className="current-board">
+        <section className="current-board board-panel board-panel-hand">
           <div className="board-heading">
             <div>
               <p className="eyebrow">
@@ -130,15 +157,53 @@ export function GameTable({ state, dispatch }: GameTableProps) {
           </div>
         </section>
 
-        <ActionPanel
-          state={state}
-          currentPlayer={currentPlayer}
-          selectedCard={selectedDefinition ? selectedCard : null}
-          isComputerDecision={isComputerDecision}
-          dispatch={dispatch}
-        />
-        <GameLog entries={state.log} />
+        <div className="board-panel board-panel-actions">
+          <ActionPanel
+            state={state}
+            currentPlayer={currentPlayer}
+            selectedCard={selectedDefinition ? selectedCard : null}
+            isComputerDecision={isComputerDecision || privacyGateActive}
+            dispatch={dispatch}
+          />
+        </div>
+        <div className="board-panel board-panel-log">
+          <GameLog entries={state.log} />
+        </div>
       </section>
+
+      {privacyGateActive && (
+        <section className="pass-device-gate" role="dialog" aria-modal="true" aria-label={`Pass device to ${displayPlayer.name}`}>
+          <div className="pass-device-gate__panel">
+            <p className="eyebrow">Private turn</p>
+            <h2>Pass to {displayPlayer.name}</h2>
+            <p>Cards and actions are hidden until this player is ready.</p>
+            <button type="button" onClick={() => setRevealedDecisionKey(decisionKey)}>
+              <Eye size={18} />
+              Reveal Hand
+            </button>
+          </div>
+        </section>
+      )}
     </main>
   );
+}
+
+function getPrivacyDecisionKey(state: GameState, decisionPlayerId: PlayerId): string {
+  const pendingKind = state.pendingReaction
+    ? "reaction"
+    : state.pendingRedirect
+      ? "redirect"
+      : state.pendingAttackCost
+        ? "attack-cost"
+        : state.pendingDiscard
+          ? "discard"
+          : state.pendingSearch
+            ? "search"
+            : state.pendingSupplyDrop
+              ? "supply"
+              : state.pendingMarketSearch
+                ? "market"
+                : "turn";
+
+  return `${state.round}:${state.currentPlayerIndex}:${decisionPlayerId}:${pendingKind}`;
 }

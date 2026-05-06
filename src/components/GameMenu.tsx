@@ -4,9 +4,12 @@ import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/ca
 import type { GameSettings } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
-import rulesText from "../../last_hand_standing_rules_v_0.md?raw";
+import rulesText from "../../docs/current-rules.md?raw";
 
 type MenuTab = "settings" | "rules" | "cards";
+type NumericSettingKey = {
+  [Key in keyof GameSettings]: GameSettings[Key] extends number ? Key : never;
+}[keyof GameSettings];
 
 type GameMenuProps = {
   settings: GameSettings;
@@ -14,7 +17,7 @@ type GameMenuProps = {
 };
 
 const settingFields: Array<{
-  key: keyof GameSettings;
+  key: NumericSettingKey;
   label: string;
   min: number;
   max: number;
@@ -40,7 +43,7 @@ export function GameMenu({ settings, dispatch }: GameMenuProps) {
     []
   );
 
-  function updateSetting(key: keyof GameSettings, value: number) {
+  function updateSetting(key: NumericSettingKey, value: number) {
     const nextSettings = {
       ...settings,
       [key]: value
@@ -52,6 +55,10 @@ export function GameMenu({ settings, dispatch }: GameMenuProps) {
     };
 
     dispatch({ type: "UPDATE_SETTINGS", settings: normalized });
+  }
+
+  function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode", value: boolean) {
+    dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
   return (
@@ -102,6 +109,24 @@ export function GameMenu({ settings, dispatch }: GameMenuProps) {
                     />
                   </label>
                 ))}
+                <label className="setting-control setting-toggle">
+                  <span>Pass device mode</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.passDeviceMode}
+                    onChange={(event) => updateBooleanSetting("passDeviceMode", event.target.checked)}
+                  />
+                </label>
+                {import.meta.env.DEV && (
+                  <label className="setting-control setting-toggle">
+                    <span>Debug hand snapshots</span>
+                    <input
+                      type="checkbox"
+                      checked={settings.debugHandSnapshots}
+                      onChange={(event) => updateBooleanSetting("debugHandSnapshots", event.target.checked)}
+                    />
+                  </label>
+                )}
                 <p className="menu-note">Settings are used when starting a new game. Max cards also affects the current discard-down check.</p>
               </div>
             )}

@@ -26,13 +26,10 @@ export function createNewGame(
       controller: setup.controller,
       health: settings.startingHealth,
       hand: draw.drawn,
-      equippedWeapon: null,
-      equippedDefense: null,
       eliminated: false,
       attackedThisRound: false,
       actedThisRound: false,
-      actionsRemaining: settings.actionsPerTurn,
-      weaponCooldowns: {}
+      actionsRemaining: settings.actionsPerTurn
     };
   });
   const firstPlayerIndex = Math.floor(random() * players.length);
@@ -67,11 +64,14 @@ export function createNewGame(
         id: "log_setup",
         round: 1,
         message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`,
-        handSnapshots: players.map((player) => ({
-          playerId: player.id,
-          playerName: player.name,
-          cards: player.hand.map((card) => ({ ...card }))
-        }))
+        handSnapshots:
+          import.meta.env.DEV && settings.debugHandSnapshots
+            ? players.map((player) => ({
+                playerId: player.id,
+                playerName: player.name,
+                cards: player.hand.map((card) => ({ ...card }))
+              }))
+            : []
       }
     ],
     winnerId: null

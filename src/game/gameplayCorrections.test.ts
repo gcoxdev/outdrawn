@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultGameSettings } from "../data/constants";
 import { mainDeckCards } from "../data/cards";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
@@ -74,8 +75,18 @@ describe("gameplay corrections", () => {
     expect(state.discardPile.filter((card) => card.definitionId === "weapon_pistol")).toHaveLength(1);
   });
 
-  it("records hand snapshots on log entries for debugging", () => {
+  it("does not record hand snapshots by default", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const current = state.players[state.currentPlayerIndex];
+
+    state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });
+
+    const latest = state.log.at(-1)!;
+    expect(latest.handSnapshots).toHaveLength(0);
+  });
+
+  it("records hand snapshots on log entries only when debug snapshots are enabled", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: true });
     const current = state.players[state.currentPlayerIndex];
 
     state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });

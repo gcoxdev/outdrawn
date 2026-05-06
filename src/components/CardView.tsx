@@ -2,7 +2,6 @@ import {
   Activity,
   BadgeAlert,
   Bomb,
-  Clock,
   Crosshair,
   HeartPulse,
   Shield,
@@ -35,7 +34,6 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     card.splashDamage ? { label: card.splashDamage, icon: Bomb, title: "Splash" } : null,
     card.block ? { label: card.block, icon: ShieldCheck, title: "Block" } : null,
     card.heal ? { label: card.heal, icon: HeartPulse, title: "Heal" } : null,
-    card.cooldownTurns ? { label: card.cooldownTurns, icon: Clock, title: "Cooldown" } : null,
     card.isReaction ? { label: "R", icon: Activity, title: "Reaction" } : null
   ].filter(Boolean);
 

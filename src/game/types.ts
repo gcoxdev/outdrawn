@@ -30,13 +30,10 @@ export type PlayerState = {
   controller: PlayerController;
   health: number;
   hand: CardInstance[];
-  equippedWeapon: CardInstance | null;
-  equippedDefense: CardInstance | null;
   eliminated: boolean;
   attackedThisRound: boolean;
   actedThisRound: boolean;
   actionsRemaining: number;
-  weaponCooldowns: Record<CardInstanceId, number>;
 };
 
 export type ActiveEvent = {

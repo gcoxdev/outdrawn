@@ -14,7 +14,7 @@ function cardInstance(definitionId: string) {
   return card;
 }
 
-describe("game reducer turns and equipment", () => {
+describe("game reducer turns and combat", () => {
   it("draws a card and spends one action", () => {
     const state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = getCurrentPlayer(state);

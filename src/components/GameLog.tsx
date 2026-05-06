@@ -15,21 +15,23 @@ export function GameLog({ entries }: { entries: LogEntry[] }) {
                 <span>R{entry.round}</span>
                 {entry.message}
               </div>
-              <details className="log-hands">
-                <summary>Hands at this moment</summary>
-                <div className="log-hands__grid">
-                  {entry.handSnapshots.map((snapshot) => (
-                    <section className="log-hand" key={snapshot.playerId}>
-                      <h3>{snapshot.playerName}</h3>
-                      <p>
-                        {snapshot.cards.length > 0
-                          ? snapshot.cards.map((card) => getCardDefinitionById(card.definitionId)?.name ?? "Unknown").join(", ")
-                          : "No cards"}
-                      </p>
-                    </section>
-                  ))}
-                </div>
-              </details>
+              {entry.handSnapshots.length > 0 && (
+                <details className="log-hands">
+                  <summary>Hands at this moment</summary>
+                  <div className="log-hands__grid">
+                    {entry.handSnapshots.map((snapshot) => (
+                      <section className="log-hand" key={snapshot.playerId}>
+                        <h3>{snapshot.playerName}</h3>
+                        <p>
+                          {snapshot.cards.length > 0
+                            ? snapshot.cards.map((card) => getCardDefinitionById(card.definitionId)?.name ?? "Unknown").join(", ")
+                            : "No cards"}
+                        </p>
+                      </section>
+                    ))}
+                  </div>
+                </details>
+              )}
             </li>
           ))}
       </ol>
