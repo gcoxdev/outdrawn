@@ -126,7 +126,16 @@ export function simulateGames(count: number, seed = 123456, strategies: Strategy
 export function simulateGame(seed: number, strategies: StrategyLevel[] = defaultStrategies): SimulationResult {
   const normalizedStrategies = normalizeStrategies(strategies);
   const random = createRng(seed);
-  let state = createNewGame(playerNames, random);
+  let state = createNewGame(
+    playerNames.map((name, index) => ({
+      name,
+      controller: {
+        type: "computer",
+        strategy: normalizedStrategies[index]
+      } as const
+    })),
+    random
+  );
   const metrics: SimulationMetrics = {
     turns: 0,
     attackDamage: 0,
@@ -404,7 +413,12 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
     }
 
     if (definition.id === "ability_disarm") {
-      const target = livingTargets.find((candidate) => candidate.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon"));
+      const target = chooseAbilityTarget(
+        livingTargets.filter((candidate) => candidate.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon")),
+        "highestThreat",
+        strategy,
+        random
+      );
       if (target) {
         return { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: card.instanceId, targetPlayerId: target.id };
       }
@@ -440,13 +454,17 @@ function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyL
     return null;
   }
 
-  const target = state.players
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  const damagePotential =
+    (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) +
+    (state.attackBonuses[player.id] ?? 0);
+  const validTargets = state.players
     .filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
     .filter((candidate) => {
       const intimidationSources = state.intimidations[player.id] ?? [];
       return !intimidationSources.includes(candidate.id) || player.hand.some((card) => card.instanceId !== weapon.instanceId);
-    })
-    .sort((left, right) => targetScore(left, strategy) - targetScore(right, strategy))[0];
+    });
+  const target = chooseAttackTarget(validTargets, strategy, random, damagePotential);
 
   if (!target) {
     return null;
@@ -578,7 +596,7 @@ function chooseRedirectTarget(
     return randomItem(targets, random);
   }
 
-  return targets.sort((left, right) => targetScore(left, strategy) - targetScore(right, strategy))[0];
+  return chooseThreatTarget(targets, strategy, random);
 }
 
 function chooseSupplyDropCard(cards: CardInstance[], strategy: StrategyLevel, random: () => number): CardInstance | null {
@@ -591,7 +609,7 @@ function chooseSupplyDropCard(cards: CardInstance[], strategy: StrategyLevel, ra
 
 function chooseAbilityTarget(
   players: PlayerState[],
-  purpose: "highestHealth" | "largestHand" | "bestAttackTarget",
+  purpose: "highestHealth" | "largestHand" | "bestAttackTarget" | "highestThreat",
   strategy: StrategyLevel,
   random: () => number
 ): PlayerState | undefined {
@@ -608,7 +626,11 @@ function chooseAbilityTarget(
   }
 
   if (purpose === "bestAttackTarget") {
-    return [...players].sort((left, right) => targetScore(left, strategy) - targetScore(right, strategy))[0];
+    return chooseAttackTarget(players, strategy, random, 0);
+  }
+
+  if (purpose === "highestThreat") {
+    return chooseThreatTarget(players, strategy, random);
   }
 
   return [...players].sort((left, right) => right.hand.length - left.hand.length || left.health - right.health)[0];
@@ -655,16 +677,47 @@ function pickLowestCards(cards: CardInstance[], count: number, strategy: Strateg
   return sortByCardValue(cards).slice(0, count);
 }
 
-function targetScore(player: PlayerState, strategy: StrategyLevel): number {
-  if (strategy === "master") {
-    return player.health - player.hand.length * 0.5;
+function chooseAttackTarget(players: PlayerState[], strategy: StrategyLevel, random: () => number, damagePotential: number): PlayerState | undefined {
+  if (players.length === 0) {
+    return undefined;
   }
 
-  if (strategy === "expert") {
-    return player.health - player.hand.length * 0.25;
+  if (strategy === "beginner") {
+    return randomItem(players, random);
   }
 
-  return player.health;
+  const killable = players.filter((player) => damagePotential > 0 && player.health <= damagePotential);
+  if (killable.length > 0) {
+    return [...killable].sort((left, right) => threatScore(right) - threatScore(left))[0];
+  }
+
+  if (strategy === "novice") {
+    const shuffled = shuffle(players, random);
+    return shuffled.sort((left, right) => left.health - right.health)[0];
+  }
+
+  return chooseThreatTarget(players, strategy, random);
+}
+
+function chooseThreatTarget(players: PlayerState[], strategy: StrategyLevel, random: () => number): PlayerState {
+  const sorted = [...players].sort((left, right) => threatScore(right) - threatScore(left));
+  const topScore = threatScore(sorted[0]);
+  const tolerance = strategy === "master" ? 3 : strategy === "expert" ? 4 : 5;
+  const candidates = sorted.filter((player) => topScore - threatScore(player) <= tolerance).slice(0, 3);
+  return randomItem(candidates.length > 0 ? candidates : sorted.slice(0, 1), random);
+}
+
+function threatScore(player: PlayerState): number {
+  const weaponPressure = player.hand.reduce((total, card) => {
+    const definition = getCardDefinitionById(card.definitionId);
+    return definition?.type === "weapon" ? total + (definition.damage ?? 0) + (definition.splashDamage ?? 0) : total;
+  }, 0);
+  const defensePressure = player.hand.filter((card) => {
+    const definition = getCardDefinitionById(card.definitionId);
+    return definition?.type === "defense" || definition?.isLethalDefense;
+  }).length;
+
+  return player.health * 0.35 + player.hand.length * 0.8 + weaponPressure * 0.55 + defensePressure * 1.2;
 }
 
 function randomItem<T>(items: T[], random: () => number): T {

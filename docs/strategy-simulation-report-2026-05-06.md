@@ -122,3 +122,36 @@ The first advanced policy overvalued healing and resource cards. The updated pol
 ## Current Conclusion
 
 The game is mechanically stable under 45,000 fresh simulated games from this pass: 25,000 same-level games plus 20,000 rotated mixed games, with no stalls. Balance still favors damage. The main unresolved design question is not damage quantity; it is seat/target bias and whether exact simultaneous-collapse ties should remain possible.
+
+## 2026-05-06 Targeting Update
+
+The original target policy was too deterministic: most non-beginner bots attacked the lowest-health valid target. That created dogpiles and amplified seat order. I tested a round-robin-style idea conceptually, but did not implement it because it would hide the bias by forcing table distribution rather than modeling plausible player choice. It would also make skill level less meaningful.
+
+Implemented replacement:
+
+- Attackers take available eliminations.
+- Otherwise, beginner picks randomly.
+- Novice still tends to pressure weaker players.
+- Competent, expert, and master target higher board threat using health, hand size, weapon pressure, and defense pressure.
+- Target selection has controlled randomness among close threat candidates so equal boards do not preserve seat order.
+- Opponent skill level is not counted as visible threat. A first attempt did that and caused high-skill bots to be dogpiled, which made beginner overperform.
+
+Fresh same-level simulations after this change:
+
+| Strategy | Player 1 | Player 2 | Player 3 | Player 4 | No Winner |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Beginner | 1,254 | 1,239 | 1,253 | 1,230 | 24 |
+| Competent | 1,211 | 1,255 | 1,227 | 1,263 | 44 |
+| Master | 1,216 | 1,257 | 1,273 | 1,207 | 47 |
+
+Rotated mixed aggregate across 20,000 games after this change:
+
+| Strategy | Wins | Win Rate |
+| --- | ---: | ---: |
+| Beginner | 2,094 | 10.47% |
+| Novice | 3,832 | 19.16% |
+| Expert | 7,176 | 35.88% |
+| Master | 6,746 | 33.73% |
+| No winner | 152 | 0.76% |
+
+Current read: this is much closer to the desired model. Similar skill levels produce balanced seat results, while mixed skill levels strongly favor expert/master play. Expert currently edges master by a small amount in this sample; that is acceptable for a heuristic bot and can be tuned later by differentiating master resource timing further.

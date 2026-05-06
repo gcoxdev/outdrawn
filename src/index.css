@@ -351,6 +351,7 @@ p {
 
 .setup-player {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.9fr);
   gap: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -389,9 +390,9 @@ p {
 
 .game-table {
   display: grid;
-  gap: 16px;
+  gap: 10px;
   min-height: 100vh;
-  padding: 16px;
+  padding: 10px;
 }
 
 .status-bar,
@@ -408,13 +409,13 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 10px 14px;
 }
 
 .status-bar h1 {
   margin-bottom: 0;
-  font-size: clamp(1.4rem, 3vw, 2.4rem);
+  font-size: clamp(1.15rem, 2.4vw, 1.85rem);
 }
 
 .status-bar__meta {
@@ -439,17 +440,18 @@ p {
 
 .player-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-  padding: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: 8px;
+  padding: 8px;
 }
 
 .player-panel {
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  padding: 12px;
+  padding: 8px;
   background: rgba(255, 255, 255, 0.035);
 }
 
@@ -463,23 +465,29 @@ p {
 
 .player-panel h3 {
   margin-bottom: 2px;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
 }
 
 .player-panel p {
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
 .player-panel strong {
   color: var(--green);
-  font-size: 1.3rem;
+  font-size: 1rem;
+  text-align: right;
 }
 
 .player-panel dl {
+  grid-column: 1 / -1;
   display: grid;
-  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
   margin: 0;
+  font-size: 0.72rem;
 }
 
 .player-panel dl div {
@@ -499,15 +507,15 @@ p {
 
 .board-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px) minmax(260px, 340px);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 330px) minmax(240px, 300px);
+  gap: 10px;
   align-items: start;
 }
 
 .current-board,
 .action-panel,
 .game-log {
-  padding: 14px;
+  padding: 10px;
 }
 
 .board-heading {
@@ -519,7 +527,7 @@ p {
 
 .board-heading strong {
   color: var(--green);
-  font-size: 1.8rem;
+  font-size: 1.3rem;
 }
 
 .equipment-row {
@@ -548,20 +556,20 @@ p {
 
 .hand-rail {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 8px;
 }
 
 .card-view {
   --card-accent: #d99d45;
   display: grid;
-  grid-template-rows: auto minmax(58px, 0.9fr) auto 1fr auto;
+  grid-template-rows: auto minmax(42px, 0.75fr) auto 1fr auto;
   width: 100%;
   aspect-ratio: 2.5 / 3.5;
   min-height: 0;
   border: 2px solid color-mix(in srgb, var(--card-accent), #000 30%);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background:
     linear-gradient(160deg, color-mix(in srgb, var(--card-accent), #111 72%), #151411 68%),
     #151411;
@@ -625,7 +633,7 @@ p {
 
 .card-board {
   max-width: 150px;
-  min-height: 154px;
+  min-height: 138px;
 }
 
 .card-detail {
@@ -663,7 +671,7 @@ p {
 .card-view__art {
   display: grid;
   place-items: center;
-  margin: 8px 0;
+  margin: 6px 0;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   background:
@@ -678,9 +686,9 @@ p {
 }
 
 .card-view__text {
-  margin: 8px 0;
+  margin: 6px 0;
   color: #e8dfd0;
-  font-size: clamp(0.68rem, 1.4vw, 0.78rem);
+  font-size: clamp(0.62rem, 1.1vw, 0.72rem);
   line-height: 1.22;
 }
 
@@ -920,12 +928,28 @@ p {
 
 @media (max-width: 720px) {
   .game-table {
-    padding: 10px;
+    padding: 6px;
+  }
+
+  .setup-player {
+    grid-template-columns: 1fr;
   }
 
   .status-bar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .status-bar__meta {
+    gap: 5px;
+  }
+
+  .player-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .player-panel dl {
+    grid-template-columns: 1fr;
   }
 
   .equipment-row {

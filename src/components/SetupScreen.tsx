@@ -11,26 +11,27 @@ type SetupScreenProps = {
 };
 
 const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "expert", "master"];
+type ControlChoice = "human" | `computer:${StrategyLevel}`;
 
 export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
   const [playerCount, setPlayerCount] = useState(3);
   const [names, setNames] = useState(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn"]);
-  const [controllers, setControllers] = useState<Array<"human" | "computer">>(["human", "computer", "computer", "computer", "computer", "computer"]);
-  const [strategies, setStrategies] = useState<StrategyLevel[]>(["competent", "competent", "competent", "competent", "competent", "competent"]);
+  const [controls, setControls] = useState<ControlChoice[]>([
+    "human",
+    "computer:competent",
+    "computer:competent",
+    "computer:competent",
+    "computer:competent",
+    "computer:competent"
+  ]);
   const activeNames = useMemo(() => names.slice(0, playerCount), [names, playerCount]);
   const activePlayers = useMemo<PlayerSetup[]>(
     () =>
       activeNames.map((name, index) => ({
         name,
-        controller:
-          controllers[index] === "computer"
-            ? {
-                type: "computer",
-                strategy: strategies[index]
-              }
-            : { type: "human" }
+        controller: controlToController(controls[index])
       })),
-    [activeNames, controllers, strategies]
+    [activeNames, controls]
   );
 
   return (
@@ -67,33 +68,17 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
               <label className="field">
                 <span>Control</span>
                 <select
-                  value={controllers[index]}
+                  value={controls[index]}
                   onChange={(event) =>
-                    setControllers((current) =>
-                      current.map((controller, controllerIndex) =>
-                        controllerIndex === index ? (event.target.value as "human" | "computer") : controller
-                      )
+                    setControls((current) =>
+                      current.map((control, controlIndex) => (controlIndex === index ? (event.target.value as ControlChoice) : control))
                     )
                   }
                 >
                   <option value="human">Human</option>
-                  <option value="computer">Computer</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Level</span>
-                <select
-                  disabled={controllers[index] !== "computer"}
-                  value={strategies[index]}
-                  onChange={(event) =>
-                    setStrategies((current) =>
-                      current.map((strategy, strategyIndex) => (strategyIndex === index ? (event.target.value as StrategyLevel) : strategy))
-                    )
-                  }
-                >
                   {strategyLevels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
+                    <option key={level} value={`computer:${level}`}>
+                      Computer - {labelStrategy(level)}
                     </option>
                   ))}
                 </select>
@@ -107,4 +92,19 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
       </section>
     </main>
   );
+}
+
+function controlToController(control: ControlChoice): PlayerSetup["controller"] {
+  if (control === "human") {
+    return { type: "human" };
+  }
+
+  return {
+    type: "computer",
+    strategy: control.replace("computer:", "") as StrategyLevel
+  };
+}
+
+function labelStrategy(strategy: StrategyLevel): string {
+  return strategy[0].toUpperCase() + strategy.slice(1);
 }
