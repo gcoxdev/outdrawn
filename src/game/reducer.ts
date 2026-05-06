@@ -87,6 +87,7 @@ function advanceTurn(state: GameState): GameState {
   advanced.smokeProtectedPlayerIds = advanced.smokeProtectedPlayerIds.filter(
     (playerId) => playerId !== advanced.players[currentPlayerIndex].id
   );
+  advanced.intimidations = clearIntimidationsAgainst(advanced.intimidations, advanced.players[currentPlayerIndex].id);
 
   return log(
     advanced,
@@ -149,7 +150,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = getPlayer(state, action.playerId);
       const card = player?.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
 
-      if (!player || !card || state.pendingReaction) {
+      if (!player || !card || state.pendingReaction || state.pendingRedirect || state.pendingAttackCost) {
         return state;
       }
 
@@ -268,6 +269,85 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       return resolveAbility(state, player, card, definition.id, target);
     }
+    case "RESOLVE_PENDING_REDIRECT": {
+      const pending = state.pendingRedirect;
+      const defender = pending ? getPlayer(state, pending.defenderId) : undefined;
+      const attacker = pending ? getPlayer(state, pending.attackerId) : undefined;
+      const target = getPlayer(state, action.targetPlayerId);
+
+      if (
+        !pending ||
+        !defender ||
+        !attacker ||
+        !target ||
+        action.defenderId !== defender.id ||
+        target.eliminated ||
+        target.id === attacker.id ||
+        target.id === defender.id
+      ) {
+        return state;
+      }
+
+      const stateBeforeRedirect = {
+        ...state,
+        pendingRedirect: null,
+        players: state.players.map((player) =>
+          player.id === defender.id
+            ? {
+                ...player,
+                hand: player.hand.filter((cardInstance) => cardInstance.instanceId !== pending.decoy.instanceId)
+              }
+            : player
+        )
+      };
+      const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy);
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+    }
+    case "RESOLVE_PENDING_ATTACK_COST": {
+      const pending = state.pendingAttackCost;
+      const attacker = pending ? getPlayer(state, pending.attackerId) : undefined;
+      const target = pending ? getPlayer(state, pending.targetPlayerId) : undefined;
+      const weapon = attacker?.hand.find((card) => card.instanceId === pending?.weaponInstanceId);
+      const costCard = attacker?.hand.find((card) => card.instanceId === action.cardInstanceId);
+
+      if (
+        !pending ||
+        !attacker ||
+        !target ||
+        !weapon ||
+        !costCard ||
+        action.attackerId !== attacker.id ||
+        costCard.instanceId === weapon.instanceId
+      ) {
+        return state;
+      }
+
+      const paidState = {
+        ...state,
+        pendingAttackCost: null,
+        discardPile: [...state.discardPile, costCard],
+        players: state.players.map((player) =>
+          player.id === attacker.id
+            ? {
+                ...player,
+                hand: player.hand.filter((card) => card.instanceId !== costCard.instanceId)
+              }
+            : player
+        )
+      };
+      const updatedAttacker = getPlayer(paidState, attacker.id);
+      const updatedTarget = getPlayer(paidState, target.id);
+
+      if (!updatedAttacker || !updatedTarget) {
+        return state;
+      }
+
+      const result = createPendingReaction(paidState, updatedAttacker, updatedTarget, weapon);
+      return result.messages.reduce(
+        (nextState, message) => log(nextState, message),
+        log(result.state, `${attacker.name} discarded a card to attack through Intimidate.`)
+      );
+    }
     case "ATTACK": {
       if (!canPlayerAct(state, action.attackerId)) {
         return state;
@@ -279,6 +359,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const weaponDefinition = weapon ? getCardDefinitionById(weapon.definitionId) : undefined;
 
       if (
+        state.pendingRedirect ||
+        state.pendingAttackCost ||
         !target ||
         target.eliminated ||
         target.id === attacker.id ||
@@ -287,6 +369,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         weaponDefinition?.type !== "weapon"
       ) {
         return state;
+      }
+
+      const intimidatingPlayers = state.intimidations[attacker.id] ?? [];
+      if (intimidatingPlayers.includes(target.id)) {
+        const availableCostCards = attacker.hand.filter((card) => card.instanceId !== weapon.instanceId);
+        if (availableCostCards.length === 0) {
+          return log(state, `${attacker.name} must discard 1 card to attack ${target.name}, but has no extra cards.`);
+        }
+
+        return log(
+          {
+            ...state,
+            pendingAttackCost: {
+              attackerId: attacker.id,
+              targetPlayerId: target.id,
+              weaponInstanceId: weapon.instanceId,
+              sourcePlayerId: target.id
+            }
+          },
+          `${attacker.name} must discard 1 card to attack ${target.name}.`
+        );
       }
 
       const result = createPendingReaction(state, attacker, target, weapon);
@@ -305,13 +408,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         !attacker ||
         action.defenderId !== defender.id ||
         !reaction ||
-        reactionDefinition?.type !== "defense"
+        (reactionDefinition?.type !== "defense" && !reactionDefinition?.isLethalDefense)
       ) {
         return state;
       }
 
-      if (reactionDefinition.id === "defense_fake_death" && pending.baseDamage < defender.health) {
+      if (reactionDefinition.isLethalDefense && pending.baseDamage < defender.health) {
         return state;
+      }
+
+      if (reactionDefinition.id === "defense_decoy") {
+        return log(
+          {
+            ...state,
+            pendingReaction: null,
+            pendingRedirect: {
+              ...pending,
+              decoy: reaction
+            }
+          },
+          `${defender.name} played Decoy and must choose a new target.`
+        );
       }
 
       const result = resolveAttack(state, attacker, defender, pending.weapon, reaction);
@@ -445,6 +562,27 @@ function resolveAbility(
     message = `${player.name} searched and must keep 1 of ${searchDraw.drawn.length} cards.`;
   }
 
+  if (definitionId === "ability_reload") {
+    const weapon = getHighestDamageWeapon(nextState.discardPile);
+    if (!weapon) {
+      return log(nextState, `${player.name} played Reload, but there were no weapons in the discard pile.`);
+    }
+
+    nextState = {
+      ...nextState,
+      discardPile: nextState.discardPile.filter((discardedCard) => discardedCard.instanceId !== weapon.instanceId),
+      players: nextState.players.map((candidate) =>
+        candidate.id === player.id
+          ? {
+              ...candidate,
+              hand: [...candidate.hand, weapon]
+            }
+          : candidate
+      )
+    };
+    message = `${player.name} reloaded ${getCardDefinitionById(weapon.definitionId)?.name ?? "a weapon"} from the discard pile.`;
+  }
+
   if (definitionId === "ability_disarm" && target) {
     const weapon = getHighestDamageWeapon(target.hand);
     if (!weapon) {
@@ -490,7 +628,26 @@ function resolveAbility(
     message = `${player.name} marked ${target.name}. Attacks against them get +1 damage this round.`;
   }
 
+  if (definitionId === "ability_intimidate" && target) {
+    nextState = {
+      ...nextState,
+      intimidations: {
+        ...nextState.intimidations,
+        [target.id]: Array.from(new Set([...(nextState.intimidations[target.id] ?? []), player.id]))
+      }
+    };
+    message = `${player.name} intimidated ${target.name}. ${target.name} must discard 1 card to attack them before their next turn.`;
+  }
+
   return log(nextState, message);
+}
+
+function clearIntimidationsAgainst(intimidations: Record<string, string[]>, sourcePlayerId: string): Record<string, string[]> {
+  return Object.fromEntries(
+    Object.entries(intimidations)
+      .map(([targetId, sourceIds]) => [targetId, sourceIds.filter((id) => id !== sourcePlayerId)] as const)
+      .filter(([, sourceIds]) => sourceIds.length > 0)
+  );
 }
 
 function getHighestDamageWeapon(hand: CardInstance[]): CardInstance | null {

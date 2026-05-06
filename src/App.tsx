@@ -18,12 +18,15 @@ const initialState: GameState = {
   eventDiscardPile: [],
   activeEvent: null,
   pendingReaction: null,
+  pendingRedirect: null,
+  pendingAttackCost: null,
   pendingDiscard: null,
   pendingSearch: null,
   selectedCardId: null,
   attackBonuses: {},
   markedTargets: {},
   smokeProtectedPlayerIds: [],
+  intimidations: {},
   log: [],
   winnerId: null
 };

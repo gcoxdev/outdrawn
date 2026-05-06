@@ -170,21 +170,21 @@ export const mainDeckCards: Card[] = [
     tags: ["weapon", "multi-hit", "single-target"]
   },
 
-  // Defense — 16 cards
+  // Defense — 18 cards
   {
     id: "defense_armor_vest",
     name: "Armor Vest",
     type: "defense",
     count: 3,
-    timing: "equip",
+    timing: "reaction",
     target: "self",
     rarity: "common",
     block: 2,
     supplyCost: 2,
-    isEquip: true,
+    isReaction: true,
     icons: ["armor", "block"],
-    shortText: "Equip. Reduce incoming damage by 2.",
-    rulesText: "Equip as your defense item. Reduce all incoming attack and splash damage by 2 unless the damage ignores armor.",
+    shortText: "Reaction. Reduce incoming damage by 2.",
+    rulesText: "Reaction defense. Reduce incoming attack damage by 2 unless the damage ignores armor, then discard this card.",
     flavorText: "Not invincible. Just harder to kill.",
     tags: ["defense", "equip", "armor", "persistent"]
   },
@@ -303,7 +303,7 @@ export const mainDeckCards: Card[] = [
     tags: ["defense", "lethal", "survival"]
   },
 
-  // Abilities — 22 cards
+  // Abilities — 21 cards
   {
     id: "ability_ambush",
     name: "Ambush",
@@ -377,8 +377,8 @@ export const mainDeckCards: Card[] = [
     rarity: "uncommon",
     supplyCost: 2,
     icons: ["reuse", "weapon"],
-    shortText: "Use a weapon even if unavailable this turn.",
-    rulesText: "You may use a weapon this turn even if it would normally be unavailable because of a cooldown effect.",
+    shortText: "Recover the strongest weapon from discard.",
+    rulesText: "Take the highest-damage weapon from the discard pile and add it to your hand.",
     flavorText: "The empty click was only a pause.",
     tags: ["ability", "weapon-support", "cooldown"]
   },

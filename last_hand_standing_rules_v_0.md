@@ -1,4 +1,4 @@
-# Last Hand Standing — Rules v0.3
+# Last Hand Standing — Rules v0.4 Prototype
 
 A fast, tactical battle‑royale card game for 3–6 players where the goal is to be the last surviving player.
 
@@ -27,9 +27,6 @@ Each player starts with:
 - **Health:** 20
 - **Starting Hand:** 5 cards
 - **Max Hand Size:** 7 cards
-- **Max Equipped Weapon:** 1
-- **Max Equipped Defense:** 1
-
 Shuffle the main deck and event deck separately.
 
 ---
@@ -65,31 +62,31 @@ When a player is eliminated, everyone sees what they had. This creates table kno
 
 # Main Deck Composition
 
-The starter main deck has **76 cards**.
+The starter main deck currently has **77 cards**.
 
 ---
 
-## Weapons — 24 cards
+## Weapons — 29 cards
 
-- **Pistol (x6):** Deal 3 damage.
-- **Shotgun (x4):** Deal 6 damage. After use, it cannot be used on your next turn.
+- **Pistol (x8):** Deal 3 damage.
+- **Shotgun (x5):** Deal 6 damage. After use, it cannot be used on your next turn.
 - **Sniper Rifle (x3):** Deal 8 damage. You must declare the target before any attack modifiers are played.
 - **Knife (x3):** Deal 2 damage. If this eliminates a player, you may keep 1 extra loot card from them this turn.
-- **Grenade (x3):** Deal 4 damage to one target and 2 splash damage to the next living player on each side of that target in turn order.
-- **Crossbow (x2):** Deal 4 damage. Ignores equipped Armor Vest.
+- **Grenade (x4):** Deal 4 damage to one target and 2 splash damage to nearby non-attacking players in turn order.
+- **Crossbow (x3):** Deal 4 damage. Ignores Armor Vest.
 - **SMG (x3):** Deal 2 damage twice to the same target. Each hit resolves separately.
 
 ---
 
-## Defense — 20 cards
+## Defense — 18 cards
 
-Defense cards are divided into equipped defense and reaction defense.
+Defense cards are played from hand as reactions. There is no weapon or defense equipment in the current web prototype.
 
 Unless a card says otherwise, a player may only use **1 reaction defense card per attack**.
 
-- **Armor Vest (x4):** Equipped defense. Reduce all incoming damage by 2.
+- **Armor Vest (x3):** Reaction defense. Reduce incoming attack damage by 2 unless the damage ignores armor, then discard.
 - **Shield Plate (x4):** Reaction defense. Block 4 damage, then discard.
-- **Dodge (x3):** Reaction defense. Cancel damage to you from one attack.
+- **Dodge (x2):** Reaction defense. Cancel damage to you from one attack.
 - **Counterattack (x2):** Reaction defense. After taking damage from an attack, deal 3 damage back to the attacker.
 - **Smoke Bomb (x2):** Reaction defense. Cancel damage to you from one attack. Until your next turn, you cannot be targeted except by splash or event damage.
 - **Decoy (x2):** Reaction defense. Redirect an attack targeting you to another valid player. Does not redirect event damage.
@@ -98,13 +95,13 @@ Unless a card says otherwise, a player may only use **1 reaction defense card pe
 
 ---
 
-## Abilities — 22 cards
+## Abilities — 21 cards
 
-- **Ambush (x3):** Your next attack this turn deals +3 damage.
-- **Disarm (x3):** Choose a player. They discard their equipped weapon.
+- **Ambush (x2):** Your next attack this turn deals +3 damage.
+- **Disarm (x3):** Choose a player. They discard their highest-damage weapon from hand.
 - **Steal (x3):** Take 1 random card from another player’s hand.
 - **Search (x3):** Draw 3 cards, keep 1, discard the rest.
-- **Reload (x2):** You may use a weapon this turn even if it would normally be unavailable.
+- **Reload (x2):** Take the highest-damage weapon from the discard pile and add it to your hand.
 - **Sabotage (x2):** Choose a player. They discard 2 cards of their choice.
 - **Mark Target (x2):** Choose a player. Attacks against that player deal +1 damage until the end of the round.
 - **Intimidate (x2):** Choose a player. Until your next turn, that player cannot attack you unless they discard 1 card first.
@@ -112,13 +109,13 @@ Unless a card says otherwise, a player may only use **1 reaction defense card pe
 
 ---
 
-## Healing — 10 cards
+## Healing — 9 cards
 
 You cannot play a healing card at full health unless it has a non-healing effect.
 
 - **Bandage (x4):** Heal 3.
 - **Medkit (x3):** Heal 6. Costs both actions.
-- **Painkillers (x2):** Heal 2 and draw 1 card.
+- **Painkillers (x1):** Heal 2 and draw 1 card.
 - **Second Wind (x1):** When you would be eliminated, survive at 1 health and discard your hand.
 
 ---
@@ -139,7 +136,7 @@ To avoid confusion, event cards should not imply the game is literally ending un
 - **Supply Drop (x2):** Reveal 3 main-deck cards. Starting with the lowest-health player and proceeding upward, each player may either pass or claim one revealed card by paying health equal to that card’s supply cost. Unclaimed cards are discarded.
 - **Bounty (x2):** The highest-health player is marked this round. Whenever another player damages them, that attacker draws 1 card.
 - **High Ground (x2):** The first attack each player makes this round deals +1 damage.
-- **Low Ammo (x2):** Each player must discard one weapon from hand or equipped area. Players who cannot discard a weapon take 3 damage.
+- **Low Ammo (x2):** Each player must discard one weapon from hand. Players who cannot discard a weapon take 3 damage.
 - **No Cover (x2):** Reaction defense cards block or reduce 1 less damage this round. Dodge, Smoke Bomb, Decoy, Fake Death, and Second Wind are unaffected.
 - **Critical Condition (x2):** Players at 10 or less health take 1 damage. Players below 5 health take 2 damage instead.
 - **Black Market (x2):** This round, players may spend 1 action and discard 2 cards to search the deck for 1 card, reveal it, add it to hand, then shuffle the deck.
@@ -202,7 +199,6 @@ Available actions:
 - Attack
 - Play ability
 - Heal
-- Equip
 - Draw 1 card
 - Discard 2 cards to draw 1 card
 - Pass
@@ -240,7 +236,7 @@ Defense against splash:
 
 - A defense card only protects the player who played it.
 - If the primary target plays Dodge, they avoid their own damage, but splash damage still happens to other affected players.
-- Armor Vest reduces splash damage unless the card says otherwise.
+- Splash damage cannot currently be blocked by reaction defense in the web prototype.
 
 ---
 
@@ -248,7 +244,7 @@ Defense against splash:
 
 When a player is eliminated by another player:
 
-1. Reveal all eliminated player’s hand and equipped cards to everyone.
+1. Reveal all eliminated player’s hand to everyone.
 2. The eliminator adds any number of those cards to their hand.
 3. The eliminator must immediately discard down to 7 cards.
 4. All unclaimed cards are discarded.
@@ -334,7 +330,7 @@ Create a card design system for the web prototype:
 
 - Card size and layout
 - Type colors
-- Icons for damage, block, heal, draw, discard, equip, reaction, collapse
+- Icons for damage, block, heal, draw, discard, reaction, collapse
 - Rules text style
 - Rarity or set markers if needed later
 - Mobile-friendly and desktop-friendly layout
@@ -403,9 +399,9 @@ Sniper Rifle remained disproportionately strong due to high burst damage.
 
 ### Fix
 
-Modify:
+Current prototype adjustment:
 
-- **Sniper Rifle:** Deal 7 damage (down from 8).
+- **Sniper Rifle:** Remains 8 damage, but Opening Protection caps single-attack damage at 6 during Rounds 1–2.
 
 ---
 
@@ -497,5 +493,3 @@ This version is now stable enough to proceed into:
 # Next Step
 
 Proceed to **card design system (layout, icons, visual hierarchy)**.
-
-

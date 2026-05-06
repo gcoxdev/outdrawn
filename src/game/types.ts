@@ -43,6 +43,17 @@ export type PendingReaction = {
   baseDamage: number;
 };
 
+export type PendingRedirect = PendingReaction & {
+  decoy: CardInstance;
+};
+
+export type PendingAttackCost = {
+  attackerId: PlayerId;
+  targetPlayerId: PlayerId;
+  weaponInstanceId: CardInstanceId;
+  sourcePlayerId: PlayerId;
+};
+
 export type PendingDiscard = {
   sourcePlayerId: PlayerId;
   playerId: PlayerId;
@@ -70,12 +81,15 @@ export type GameState = {
   eventDiscardPile: CardInstance[];
   activeEvent: ActiveEvent | null;
   pendingReaction: PendingReaction | null;
+  pendingRedirect: PendingRedirect | null;
+  pendingAttackCost: PendingAttackCost | null;
   pendingDiscard: PendingDiscard | null;
   pendingSearch: PendingSearch | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   markedTargets: Record<PlayerId, number>;
   smokeProtectedPlayerIds: PlayerId[];
+  intimidations: Record<PlayerId, PlayerId[]>;
   log: LogEntry[];
   winnerId: PlayerId | null;
 };

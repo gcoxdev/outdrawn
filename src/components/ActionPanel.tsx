@@ -18,18 +18,28 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
     (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
   );
   const canAct =
-    state.phase === "action" && !state.pendingReaction && !state.pendingDiscard && !state.pendingSearch && currentPlayer.actionsRemaining > 0;
+    state.phase === "action" &&
+    !state.pendingReaction &&
+    !state.pendingRedirect &&
+    !state.pendingAttackCost &&
+    !state.pendingDiscard &&
+    !state.pendingSearch &&
+    currentPlayer.actionsRemaining > 0;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
+  const pendingRedirectDefender = state.pendingRedirect ? getPlayer(state, state.pendingRedirect.defenderId) : undefined;
+  const pendingRedirectAttacker = state.pendingRedirect ? getPlayer(state, state.pendingRedirect.attackerId) : undefined;
+  const pendingAttackCostPlayer = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.attackerId) : undefined;
+  const pendingAttackCostTarget = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.targetPlayerId) : undefined;
   const pendingDiscardPlayer = state.pendingDiscard ? getPlayer(state, state.pendingDiscard.playerId) : undefined;
   const reactionCards =
     pendingDefender?.hand.filter((card) => {
       const definition = getCardDefinitionById(card.definitionId);
-      if (definition?.type !== "defense") {
+      if (definition?.type !== "defense" && !definition?.isLethalDefense) {
         return false;
       }
 
-      if (definition.id === "defense_fake_death") {
+      if (definition.isLethalDefense) {
         return Boolean(state.pendingReaction && state.pendingReaction.baseDamage >= pendingDefender.health);
       }
 
@@ -69,6 +79,75 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
           })}
         </div>
         <button onClick={() => dispatch({ type: "SKIP_REACTION", defenderId: pendingDefender.id })}>Take Hit</button>
+      </section>
+    );
+  }
+
+  if (state.pendingRedirect && pendingRedirectDefender && pendingRedirectAttacker) {
+    const weaponDefinition = getCardDefinitionById(state.pendingRedirect.weapon.definitionId);
+    const redirectTargets = state.players.filter(
+      (player) => !player.eliminated && player.id !== pendingRedirectAttacker.id && player.id !== pendingRedirectDefender.id
+    );
+
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Decoy</p>
+          <h2>{pendingRedirectDefender.name}, redirect the attack</h2>
+          <p>
+            Choose a new target for {pendingRedirectAttacker.name}'s {weaponDefinition?.name ?? "attack"}.
+          </p>
+        </div>
+        <div className="target-list">
+          {redirectTargets.map((target) => (
+            <button
+              key={target.id}
+              onClick={() =>
+                dispatch({
+                  type: "RESOLVE_PENDING_REDIRECT",
+                  defenderId: pendingRedirectDefender.id,
+                  targetPlayerId: target.id
+                })
+              }
+            >
+              {target.name}
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (state.pendingAttackCost && pendingAttackCostPlayer && pendingAttackCostTarget) {
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Intimidate</p>
+          <h2>{pendingAttackCostPlayer.name}, discard 1 card</h2>
+          <p>Choose a card to discard before attacking {pendingAttackCostTarget.name}. The weapon being played cannot pay this cost.</p>
+        </div>
+        <div className="pending-discard-list">
+          {pendingAttackCostPlayer.hand.map((card) => {
+            const definition = getCardDefinitionById(card.definitionId);
+            const isAttackWeapon = card.instanceId === state.pendingAttackCost!.weaponInstanceId;
+            return definition ? (
+              <button
+                className="reaction-card-button"
+                disabled={isAttackWeapon}
+                key={card.instanceId}
+                onClick={() =>
+                  dispatch({
+                    type: "RESOLVE_PENDING_ATTACK_COST",
+                    attackerId: pendingAttackCostPlayer.id,
+                    cardInstanceId: card.instanceId
+                  })
+                }
+              >
+                <CardView card={definition} mode="board" />
+              </button>
+            ) : null;
+          })}
+        </div>
       </section>
     );
   }
@@ -201,7 +280,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
             )}
             {selectedDefinition.type === "ability" && selectedDefinition.target !== "onePlayer" && (
               <button
-                disabled={!canAct || !["ability_ambush", "ability_adrenaline", "ability_search"].includes(selectedDefinition.id)}
+                disabled={!canAct || !["ability_ambush", "ability_adrenaline", "ability_search", "ability_reload"].includes(selectedDefinition.id)}
                 onClick={() =>
                   dispatch({
                     type: "PLAY_ABILITY",
@@ -261,7 +340,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
         <div className="attack-box">
           <h2>Ability Target</h2>
           <p>
-            {["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
+            {["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(selectedDefinition.id)
               ? `Choose a target for ${selectedDefinition.name}.`
               : "This ability is not implemented yet."}
           </p>
@@ -271,7 +350,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
                 disabled={
                   !canAct ||
                   !selectedCard ||
-                  !["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
+                  !["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(
+                    selectedDefinition.id
+                  )
                 }
                 key={target.id}
                 onClick={() =>

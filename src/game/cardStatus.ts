@@ -13,23 +13,27 @@ const implementedCardIds = new Set([
   "defense_dodge",
   "defense_counterattack",
   "defense_smoke_bomb",
+  "defense_decoy",
   "defense_brace",
   "defense_fake_death",
   "ability_ambush",
   "ability_disarm",
   "ability_steal",
   "ability_search",
+  "ability_reload",
   "ability_sabotage",
   "ability_mark_target",
+  "ability_intimidate",
   "ability_adrenaline",
   "healing_bandage",
   "healing_medkit",
-  "healing_painkillers"
+  "healing_painkillers",
+  "healing_second_wind"
 ]);
 
 export function getCardImplementationStatus(card: Card): "implemented" | "partial" | "pending" {
   if (implementedCardIds.has(card.id)) {
-    if (card.id === "weapon_grenade" || card.id === "weapon_smg") {
+    if (card.id === "weapon_smg") {
       return "partial";
     }
     return "implemented";

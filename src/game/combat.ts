@@ -33,6 +33,7 @@ export function resolveAttack(
   const damage = reactionResult.damage;
   const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
+  const splashTargets = weaponDefinition.id === "weapon_grenade" ? getGrenadeSplashTargets(state.players, attacker.id, target.id) : [];
   const counterDamage = reactionResult.counterDamage;
   const targetHandAfterReaction = reactionResult.discardsDefenderHand
     ? []
@@ -62,6 +63,10 @@ export function resolveAttack(
     messages.push(`${target.name} was eliminated.`);
   }
 
+  splashTargets.forEach((splashTarget) => {
+    messages.push(`${splashTarget.name} took ${weaponDefinition.splashDamage ?? 0} splash damage.`);
+  });
+
   const players = state.players.map((player) => {
     if (player.id === attacker.id) {
       const attackerHealth = Math.max(0, player.health - counterDamage);
@@ -86,6 +91,16 @@ export function resolveAttack(
       };
     }
 
+    const splashTarget = splashTargets.find((candidate) => candidate.id === player.id);
+    if (splashTarget) {
+      const splashHealth = Math.max(0, player.health - (weaponDefinition.splashDamage ?? 0));
+      return {
+        ...player,
+        health: splashHealth,
+        eliminated: splashHealth === 0
+      };
+    }
+
     return player;
   });
   const nextState = { ...state, players };
@@ -101,6 +116,7 @@ export function resolveAttack(
     state: {
       ...nextState,
       pendingReaction: null,
+      pendingRedirect: null,
       attackBonuses: omitKey(nextState.attackBonuses, attacker.id),
       smokeProtectedPlayerIds:
         reactionDefinition?.id === "defense_smoke_bomb"
@@ -164,6 +180,15 @@ function resolveReactionDamage(
     };
   }
 
+  if (reactionDefinition.id === "healing_second_wind" && baseDamage >= defenderHealth) {
+    return {
+      ...baseResult,
+      survivesLethal: true,
+      discardsDefenderHand: true,
+      message: "{defender} caught a second wind and survived at 1 health."
+    };
+  }
+
   if (reactionDefinition.id === "defense_armor_vest" && weaponDefinition.ignoresArmor) {
     return { ...baseResult, message: "Armor Vest did not stop the piercing hit." };
   }
@@ -178,6 +203,37 @@ function resolveReactionDamage(
   }
 
   return baseResult;
+}
+
+function getGrenadeSplashTargets(players: PlayerState[], attackerId: string, targetId: string): PlayerState[] {
+  const livingPlayers = players.filter((player) => !player.eliminated);
+  if (livingPlayers.length <= 2) {
+    return [];
+  }
+
+  const targetIndex = players.findIndex((player) => player.id === targetId);
+  const clockwise = findNearestSplashTarget(players, targetIndex, 1, attackerId, targetId);
+  const counterClockwise = findNearestSplashTarget(players, targetIndex, -1, attackerId, targetId);
+  const targets = [clockwise, counterClockwise].filter((player): player is PlayerState => Boolean(player));
+  return targets.filter((player, index) => targets.findIndex((target) => target.id === player.id) === index);
+}
+
+function findNearestSplashTarget(
+  players: PlayerState[],
+  targetIndex: number,
+  direction: 1 | -1,
+  attackerId: string,
+  targetId: string
+): PlayerState | null {
+  for (let offset = 1; offset < players.length; offset += 1) {
+    const index = (targetIndex + offset * direction + players.length) % players.length;
+    const candidate = players[index];
+    if (!candidate.eliminated && candidate.id !== attackerId && candidate.id !== targetId) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 export function createPendingReaction(

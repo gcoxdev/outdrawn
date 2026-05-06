@@ -11,6 +11,8 @@ export type GameAction =
   | { type: "PLAY_ABILITY"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
   | { type: "RESOLVE_PENDING_DISCARD"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
   | { type: "RESOLVE_PENDING_SEARCH"; playerId: PlayerId; keepCardInstanceId: CardInstanceId }
+  | { type: "RESOLVE_PENDING_REDIRECT"; defenderId: PlayerId; targetPlayerId: PlayerId }
+  | { type: "RESOLVE_PENDING_ATTACK_COST"; attackerId: PlayerId; cardInstanceId: CardInstanceId }
   | {
       type: "ATTACK";
       attackerId: PlayerId;
