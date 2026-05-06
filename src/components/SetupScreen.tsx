@@ -1,16 +1,22 @@
 import { useMemo, useState } from "react";
+import type { GameSettings } from "../data/constants";
+import type { GameAction } from "../game/actions";
+import { GameMenu } from "./GameMenu";
 
 type SetupScreenProps = {
+  settings: GameSettings;
+  dispatch: (action: GameAction) => void;
   onStart: (names: string[]) => void;
 };
 
-export function SetupScreen({ onStart }: SetupScreenProps) {
+export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
   const [playerCount, setPlayerCount] = useState(3);
   const [names, setNames] = useState(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn"]);
   const activeNames = useMemo(() => names.slice(0, playerCount), [names, playerCount]);
 
   return (
     <main className="setup-screen">
+      <GameMenu settings={settings} dispatch={dispatch} />
       <section className="setup-screen__panel">
         <p className="eyebrow">Hot-seat prototype</p>
         <h1>Last Hand Standing</h1>

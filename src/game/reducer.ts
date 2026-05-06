@@ -1,5 +1,4 @@
 import { allCards } from "../data/cards";
-import { ACTIONS_PER_TURN, MAX_HAND_SIZE } from "../data/constants";
 import { drawCards } from "./deck";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
@@ -73,7 +72,7 @@ function advanceTurn(state: GameState): GameState {
     return {
       ...player,
       ...resetForRound,
-      actionsRemaining: index === currentPlayerIndex ? ACTIONS_PER_TURN : player.actionsRemaining
+      actionsRemaining: index === currentPlayerIndex ? state.settings.actionsPerTurn : player.actionsRemaining
     };
   });
 
@@ -113,13 +112,15 @@ function decrementCooldowns(cooldowns: Record<string, number>): Record<string, n
 }
 
 function currentPlayerOverHandLimit(state: GameState): boolean {
-  return getCurrentPlayer(state).hand.length > MAX_HAND_SIZE;
+  return getCurrentPlayer(state).hand.length > state.settings.maxHandSize;
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "START_GAME":
-      return createNewGame(action.playerNames);
+      return createNewGame(action.playerNames, Math.random, action.settings ?? state.settings);
+    case "UPDATE_SETTINGS":
+      return { ...state, settings: action.settings };
     case "SELECT_CARD":
       return { ...state, selectedCardId: action.cardInstanceId };
     case "DRAW_CARD": {
@@ -245,7 +246,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       if (currentPlayerOverHandLimit(state)) {
-        return log(state, `${getCurrentPlayer(state).name} must discard down to ${MAX_HAND_SIZE} cards before ending turn.`);
+        return log(state, `${getCurrentPlayer(state).name} must discard down to ${state.settings.maxHandSize} cards before ending turn.`);
       }
 
       const ended = updatePlayer(state, action.playerId, (player) => ({

@@ -5,6 +5,7 @@ import type { CardInstance, GameState } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
 import { CardView } from "./CardView";
 import { GameLog } from "./GameLog";
+import { GameMenu } from "./GameMenu";
 import { PlayerPanel } from "./PlayerPanel";
 
 function definitionFor(card: CardInstance | null) {
@@ -27,6 +28,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
 
   return (
     <main className="game-table">
+      <GameMenu settings={state.settings} dispatch={dispatch} />
       <header className="status-bar">
         <div>
           <p className="eyebrow">Round {state.round}</p>

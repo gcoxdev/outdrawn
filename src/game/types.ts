@@ -1,4 +1,5 @@
 import type { Card, CardTiming } from "../data/cards";
+import type { GameSettings } from "../data/constants";
 
 export type PlayerId = string;
 export type CardInstanceId = string;
@@ -46,6 +47,7 @@ export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
   phase: GamePhase;
+  settings: GameSettings;
   round: number;
   players: PlayerState[];
   currentPlayerIndex: number;

@@ -1,5 +1,4 @@
 import { allCards } from "../data/cards";
-import { MAX_HEALTH, OPENING_DAMAGE_CAP, OPENING_DAMAGE_CAP_ROUNDS } from "../data/constants";
 import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState } from "./types";
 import { getCardDefinitionById, getWinner } from "./rules";
 
@@ -26,7 +25,7 @@ export function resolveAttack(
 
   const baseDamage = Math.min(
     weaponDefinition.damage ?? 0,
-    state.round <= OPENING_DAMAGE_CAP_ROUNDS ? OPENING_DAMAGE_CAP : Number.POSITIVE_INFINITY
+    state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
   );
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
   const reactionResult = resolveReactionDamage(baseDamage, weaponDefinition, reactionDefinition);
@@ -140,7 +139,7 @@ export function createPendingReaction(
 
   const baseDamage = Math.min(
     weaponDefinition.damage ?? 0,
-    state.round <= OPENING_DAMAGE_CAP_ROUNDS ? OPENING_DAMAGE_CAP : Number.POSITIVE_INFINITY
+    state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
   );
   const pendingReaction: PendingReaction = {
     attackerId: attacker.id,
@@ -167,7 +166,7 @@ export function resolveHealing(
   const heal = definition.heal ?? 0;
   const draw = definition.draw ?? 0;
   const actionsCost = definition.actionsCost ?? 1;
-  const nextHealth = Math.min(MAX_HEALTH, player.health + heal);
+  const nextHealth = Math.min(state.settings.maxHealth, player.health + heal);
   const drawn = state.mainDeck.slice(0, draw);
   const deck = state.mainDeck.slice(draw);
   const messages = [`${player.name} played ${definition.name} and healed ${nextHealth - player.health}.`];
