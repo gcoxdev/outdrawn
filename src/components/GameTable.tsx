@@ -1,7 +1,8 @@
 import { Eye } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { allCards } from "../data/cards";
 import type { GameAction } from "../game/actions";
+import { getPassDeviceContext } from "../game/privacy";
 import { getCurrentPlayer } from "../game/rules";
 import { getDecisionPlayerId } from "../game/simulator";
 import type { CardInstance, GameState, PlayerId } from "../game/types";
@@ -25,9 +26,10 @@ type MobileTab = "hand" | "actions" | "players" | "log";
 
 export function GameTable({ state, dispatch }: GameTableProps) {
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("hand");
-  const [revealedDecisionKey, setRevealedDecisionKey] = useState<string | null>(null);
+  const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
+  const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
   const displayPlayer =
     state.players.find((player) => player.id === state.pendingReaction?.defenderId) ??
     state.players.find((player) => player.id === state.pendingRedirect?.defenderId) ??
@@ -40,14 +42,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === decisionPlayerId;
   const onlyComputersRemain = state.players.every((player) => player.eliminated || player.controller.type === "computer");
-  const decisionKey = useMemo(() => getPrivacyDecisionKey(state, decisionPlayerId), [state, decisionPlayerId]);
-  const privacyGateActive =
-    state.settings.passDeviceMode &&
-    state.phase === "action" &&
-    displayPlayer.id === decisionPlayerId &&
-    displayPlayer.controller.type === "human" &&
-    !onlyComputersRemain &&
-    revealedDecisionKey !== decisionKey;
+  const privacyGateActive = Boolean(passDeviceContext);
   const shouldRevealDisplayHand = (displayPlayer.controller.type === "human" && !privacyGateActive) || onlyComputersRemain;
   const canSelectDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision && !privacyGateActive && state.phase !== "gameOver";
   const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
@@ -56,12 +51,11 @@ export function GameTable({ state, dispatch }: GameTableProps) {
 
   useEffect(() => {
     setActiveMobileTab("hand");
-  }, [decisionKey]);
+  }, [decisionPlayerId]);
 
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
       {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
-      <GameMenu settings={state.settings} dispatch={dispatch} />
       <header className="status-bar">
         <div>
           <p className="eyebrow">Round {state.round}</p>
@@ -167,17 +161,19 @@ export function GameTable({ state, dispatch }: GameTableProps) {
           />
         </div>
         <div className="board-panel board-panel-log">
+          <GameMenu settings={state.settings} dispatch={dispatch} placement="inline" />
           <GameLog entries={state.log} />
         </div>
       </section>
 
       {privacyGateActive && (
-        <section className="pass-device-gate" role="dialog" aria-modal="true" aria-label={`Pass device to ${displayPlayer.name}`}>
+        <section className="pass-device-gate" role="dialog" aria-modal="true" aria-label={`Pass device to ${passDeviceContext!.playerName}`}>
           <div className="pass-device-gate__panel">
             <p className="eyebrow">Private turn</p>
-            <h2>Pass to {displayPlayer.name}</h2>
+            <h2>Pass to {passDeviceContext!.playerName}</h2>
+            <p>{passDeviceContext!.reason}</p>
             <p>Cards and actions are hidden until this player is ready.</p>
-            <button type="button" onClick={() => setRevealedDecisionKey(decisionKey)}>
+            <button type="button" onClick={() => setLastRevealedHumanId(passDeviceContext!.playerId)}>
               <Eye size={18} />
               Reveal Hand
             </button>
@@ -186,24 +182,4 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       )}
     </main>
   );
-}
-
-function getPrivacyDecisionKey(state: GameState, decisionPlayerId: PlayerId): string {
-  const pendingKind = state.pendingReaction
-    ? "reaction"
-    : state.pendingRedirect
-      ? "redirect"
-      : state.pendingAttackCost
-        ? "attack-cost"
-        : state.pendingDiscard
-          ? "discard"
-          : state.pendingSearch
-            ? "search"
-            : state.pendingSupplyDrop
-              ? "supply"
-              : state.pendingMarketSearch
-                ? "market"
-                : "turn";
-
-  return `${state.round}:${state.currentPlayerIndex}:${decisionPlayerId}:${pendingKind}`;
 }

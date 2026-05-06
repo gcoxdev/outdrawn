@@ -69,6 +69,7 @@ export function createNewGame(
             ? players.map((player) => ({
                 playerId: player.id,
                 playerName: player.name,
+                health: player.health,
                 cards: player.hand.map((card) => ({ ...card }))
               }))
             : []

@@ -48,6 +48,7 @@ export type LogEntry = {
   handSnapshots: Array<{
     playerId: PlayerId;
     playerName: string;
+    health: number;
     cards: CardInstance[];
   }>;
 };

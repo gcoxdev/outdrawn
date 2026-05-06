@@ -36,6 +36,7 @@ function getHandSnapshots(state: GameState): GameState["log"][number]["handSnaps
   return state.players.map((player) => ({
     playerId: player.id,
     playerName: player.name,
+    health: player.health,
     cards: player.hand.map((card) => ({ ...card }))
   }));
 }

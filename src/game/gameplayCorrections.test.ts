@@ -93,7 +93,9 @@ describe("gameplay corrections", () => {
 
     const latest = state.log.at(-1)!;
     expect(latest.handSnapshots).toHaveLength(3);
-    expect(latest.handSnapshots.find((snapshot) => snapshot.playerId === current.id)?.cards).toHaveLength(current.hand.length);
+    const currentSnapshot = latest.handSnapshots.find((snapshot) => snapshot.playerId === current.id);
+    expect(currentSnapshot?.cards).toHaveLength(current.hand.length);
+    expect(currentSnapshot?.health).toBe(current.health);
   });
 
   it("Smoke Bomb prevents targeting until that player's next turn", () => {

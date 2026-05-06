@@ -14,6 +14,7 @@ type NumericSettingKey = {
 type GameMenuProps = {
   settings: GameSettings;
   dispatch: (action: GameAction) => void;
+  placement?: "floating" | "inline";
 };
 
 const settingFields: Array<{
@@ -31,7 +32,7 @@ const settingFields: Array<{
   { key: "openingDamageCap", label: "Opening damage cap", min: 1, max: 20 }
 ];
 
-export function GameMenu({ settings, dispatch }: GameMenuProps) {
+export function GameMenu({ settings, dispatch, placement = "floating" }: GameMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
   const cardsByType = useMemo(
@@ -63,7 +64,12 @@ export function GameMenu({ settings, dispatch }: GameMenuProps) {
 
   return (
     <>
-      <button className="menu-trigger" type="button" onClick={() => setIsOpen(true)} aria-label="Open menu">
+      <button
+        className={`menu-trigger ${placement === "inline" ? "menu-trigger--inline" : ""}`}
+        type="button"
+        onClick={() => setIsOpen(true)}
+        aria-label="Open menu"
+      >
         <Menu size={18} />
         Menu
       </button>

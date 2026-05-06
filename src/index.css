@@ -58,6 +58,15 @@ button {
   text-transform: uppercase;
 }
 
+.menu-trigger--inline {
+  position: static;
+  top: auto;
+  right: auto;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 .menu-overlay {
   position: fixed;
   inset: 0;
@@ -844,9 +853,19 @@ p {
 }
 
 .log-hand h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 4px;
   color: var(--text);
   font-size: 0.8rem;
+}
+
+.log-hand h3 span {
+  margin-right: 0;
+  color: var(--green);
+  font-size: 0.72rem;
 }
 
 .log-hand p {

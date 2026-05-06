@@ -21,7 +21,10 @@ export function GameLog({ entries }: { entries: LogEntry[] }) {
                   <div className="log-hands__grid">
                     {entry.handSnapshots.map((snapshot) => (
                       <section className="log-hand" key={snapshot.playerId}>
-                        <h3>{snapshot.playerName}</h3>
+                        <h3>
+                          {snapshot.playerName}
+                          <span>{snapshot.health} HP</span>
+                        </h3>
                         <p>
                           {snapshot.cards.length > 0
                             ? snapshot.cards.map((card) => getCardDefinitionById(card.definitionId)?.name ?? "Unknown").join(", ")
