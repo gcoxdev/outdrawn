@@ -157,4 +157,83 @@ describe("event cards", () => {
     expect(state.players.find((player) => player.id === attacker.id)!.hand.map((card) => card.instanceId)).toEqual([reward.instanceId]);
     expect(state.mainDeck).toHaveLength(0);
   });
+
+  it("Pressure Zone damages players who did not attack when the event expires", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    state = {
+      ...state,
+      activeEvent: { card: event("event_pressure_zone"), timing: "thisRound" },
+      players: state.players.map((player, index) => ({ ...player, attackedThisRound: index === 0 }))
+    };
+
+    state = endCurrentRound(state);
+
+    expect(state.players.map((player) => player.health)).toEqual([20, 19, 19]);
+  });
+
+  it("Supply Drop reveals three cards and lets players claim or pass in low-health order", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const supplyDrop = event("event_supply_drop");
+    const pistol = main("weapon_pistol");
+    const shield = main("defense_shield_plate");
+    const search = main("ability_search");
+    state = {
+      ...state,
+      eventDeck: [supplyDrop],
+      mainDeck: [pistol, shield, search],
+      players: state.players.map((player, index) => ({ ...player, health: [12, 8, 16][index], hand: [] }))
+    };
+
+    state = endCurrentRound(state);
+    expect(state.pendingSupplyDrop?.playerOrder).toEqual(["player_2", "player_1", "player_3"]);
+    expect(state.pendingSupplyDrop?.revealedCards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shield.instanceId, search.instanceId]);
+
+    state = gameReducer(state, { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: "player_2", cardInstanceId: shield.instanceId });
+    state = gameReducer(state, { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: "player_1", cardInstanceId: null });
+    state = gameReducer(state, { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: "player_3", cardInstanceId: pistol.instanceId });
+
+    expect(state.pendingSupplyDrop).toBeNull();
+    expect(state.players.find((player) => player.id === "player_2")!.hand.map((card) => card.instanceId)).toEqual([shield.instanceId]);
+    expect(state.players.find((player) => player.id === "player_3")!.hand.map((card) => card.instanceId)).toEqual([pistol.instanceId]);
+    expect(state.discardPile.map((card) => card.instanceId)).toContain(search.instanceId);
+  });
+
+  it("Black Market lets a player discard two cards and choose one revealed deck card", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    const firstDiscard = main("weapon_pistol");
+    const secondDiscard = main("weapon_knife");
+    const pistol = main("weapon_pistol");
+    const shotgun = main("weapon_shotgun");
+    const shield = main("defense_shield_plate");
+    state = {
+      ...state,
+      activeEvent: { card: event("event_black_market"), timing: "thisRound" },
+      mainDeck: [pistol, shotgun, shield],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "START_BLACK_MARKET",
+      playerId: player.id,
+      cardInstanceIds: [firstDiscard.instanceId, secondDiscard.instanceId]
+    });
+    expect(state.pendingMarketSearch?.playerId).toBe(player.id);
+    expect(state.pendingMarketSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shotgun.instanceId, shield.instanceId]);
+
+    state = gameReducer(state, {
+      type: "RESOLVE_MARKET_SEARCH",
+      playerId: player.id,
+      keepCardInstanceId: shotgun.instanceId
+    });
+
+    const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
+    expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([shotgun.instanceId]);
+    expect(updatedPlayer.actionsRemaining).toBe(1);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(
+      expect.arrayContaining([firstDiscard.instanceId, secondDiscard.instanceId, pistol.instanceId, shield.instanceId])
+    );
+  });
 });

@@ -25,6 +25,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingAttackCost?.attackerId) ??
     state.players.find((player) => player.id === state.pendingDiscard?.playerId) ??
     state.players.find((player) => player.id === state.pendingSearch?.playerId) ??
+    state.players.find((player) => player.id === state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex]) ??
+    state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const selectedDefinition = definitionFor(selectedCard);
@@ -46,9 +48,13 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                   ? `${displayPlayer.name}'s redirect`
                   : state.pendingAttackCost
                     ? `${displayPlayer.name}'s attack cost`
-                : state.pendingDiscard
-                  ? `${displayPlayer.name}'s discard`
-                : `${currentPlayer.name}'s turn`}
+                    : state.pendingDiscard
+                      ? `${displayPlayer.name}'s discard`
+                      : state.pendingSupplyDrop
+                        ? `${displayPlayer.name}'s supply pick`
+                        : state.pendingMarketSearch
+                          ? `${displayPlayer.name}'s market pick`
+                          : `${currentPlayer.name}'s turn`}
           </h1>
         </div>
         <div className="status-bar__meta">
@@ -80,7 +86,11 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                       ? "Discarding Hand"
                       : state.pendingSearch
                         ? "Searching Hand"
-                        : "Current Player"}
+                        : state.pendingSupplyDrop
+                          ? "Supply Drop"
+                          : state.pendingMarketSearch
+                            ? "Black Market"
+                            : "Current Player"}
               </p>
               <h2>{displayPlayer.name}</h2>
             </div>

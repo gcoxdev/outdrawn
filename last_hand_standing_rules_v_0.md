@@ -133,13 +133,13 @@ To avoid confusion, event cards should not imply the game is literally ending un
 ## Event Cards — 16 cards
 
 - **Pressure Zone (x2):** This round, players who do not attack take +1 collapse damage.
-- **Supply Drop (x2):** Reveal 3 main-deck cards. Starting with the lowest-health player and proceeding upward, each player may either pass or claim one revealed card by paying health equal to that card’s supply cost. Unclaimed cards are discarded.
+- **Supply Drop (x2):** Reveal 3 main-deck cards. Starting with the lowest-health player and proceeding upward, each player may claim one revealed card for free or pass. Unclaimed cards are discarded.
 - **Bounty (x2):** The highest-health player is marked this round. Whenever another player damages them, that attacker draws 1 card.
 - **High Ground (x2):** The first attack each player makes this round deals +1 damage.
 - **Low Ammo (x2):** Each player must discard one weapon from hand. Players who cannot discard a weapon take 3 damage.
 - **No Cover (x2):** Reaction defense cards block or reduce 1 less damage this round. Dodge, Smoke Bomb, Decoy, Fake Death, and Second Wind are unaffected.
 - **Critical Condition (x2):** Players at 10 or less health take 1 damage. Players below 5 health take 2 damage instead.
-- **Black Market (x2):** This round, players may spend 1 action and discard 2 cards to search the deck for 1 card, reveal it, add it to hand, then shuffle the deck.
+- **Black Market (x2):** This round, players may spend 1 action and discard 2 cards to reveal 3 cards, keep 1, and discard the rest.
 
 ---
 
@@ -177,17 +177,14 @@ The starter deck currently uses immediate and this-round events only.
 
 Currently implemented event cards:
 
+- **Pressure Zone:** Active this round. Players who did not attack take 1 damage when the event expires.
+- **Supply Drop:** Immediate. Reveal 3 cards; players choose in lowest-health order; unclaimed cards are discarded.
 - **High Ground:** Active this round. Each player's first attack this round deals +1 damage.
 - **Low Ammo:** Immediate. Each player discards their highest-damage weapon from hand or takes 3 damage.
 - **Bounty:** Active this round. Damaging the highest-health player draws 1 card.
 - **No Cover:** Active this round. Block/reduction reactions prevent 1 less damage.
 - **Critical Condition:** Immediate. Players at 10 or less health take 1 damage; players below 5 health take 2.
-
-Pending event cards:
-
-- **Pressure Zone**
-- **Supply Drop**
-- **Black Market**
+- **Black Market:** Active this round. Spend 1 action and discard 2 cards to reveal 3, keep 1, and discard the rest.
 
 ## 2. Draw Phase
 

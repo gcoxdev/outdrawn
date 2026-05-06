@@ -99,13 +99,14 @@ function advanceTurn(state: GameState): GameState {
 }
 
 function resolveRoundTransition(state: GameState): GameState {
-  const stateWithoutExpiredEvent = state.activeEvent
+  const stateWithExpiredEventEffect = state.activeEvent?.card.definitionId === "event_pressure_zone" ? applyPressureZone(state) : state;
+  const stateWithoutExpiredEvent = stateWithExpiredEventEffect.activeEvent
     ? {
-        ...state,
+        ...stateWithExpiredEventEffect,
         activeEvent: null,
-        eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
+        eventDiscardPile: [...stateWithExpiredEventEffect.eventDiscardPile, stateWithExpiredEventEffect.activeEvent.card]
       }
-    : state;
+    : stateWithExpiredEventEffect;
   const [eventCard, ...eventDeck] = stateWithoutExpiredEvent.eventDeck;
   const eventDefinition = eventCard ? getCardDefinitionById(eventCard.definitionId) : undefined;
 
@@ -140,6 +141,23 @@ function resolveRoundTransition(state: GameState): GameState {
 }
 
 function applyImmediateEvent(state: GameState, eventId: string): GameState {
+  if (eventId === "event_supply_drop") {
+    const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, 3);
+    return {
+      ...state,
+      mainDeck: reveal.mainDeck,
+      discardPile: reveal.discardPile,
+      pendingSupplyDrop: {
+        playerOrder: [...state.players]
+          .filter((player) => !player.eliminated)
+          .sort((left, right) => left.health - right.health)
+          .map((player) => player.id),
+        currentIndex: 0,
+        revealedCards: reveal.drawn
+      }
+    };
+  }
+
   if (eventId === "event_low_ammo") {
     const discardedWeapons: CardInstance[] = [];
     const players = state.players.map((player) => {
@@ -191,6 +209,24 @@ function applyImmediateEvent(state: GameState, eventId: string): GameState {
   }
 
   return state;
+}
+
+function applyPressureZone(state: GameState): GameState {
+  return {
+    ...state,
+    players: state.players.map((player) => {
+      if (player.eliminated || player.attackedThisRound) {
+        return player;
+      }
+
+      const health = Math.max(0, player.health - 1);
+      return {
+        ...player,
+        health,
+        eliminated: health === 0
+      };
+    })
+  };
 }
 
 function findNextLivingIndex(players: PlayerState[], startIndex: number): number {
@@ -324,6 +360,103 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
 
       return log(nextState, `${player.name} kept 1 card from Search and discarded ${discarded.length}.`);
+    }
+    case "RESOLVE_SUPPLY_DROP_PICK": {
+      const pending = state.pendingSupplyDrop;
+      const expectedPlayerId = pending?.playerOrder[pending.currentIndex];
+      const player = expectedPlayerId ? getPlayer(state, expectedPlayerId) : undefined;
+      const picked = action.cardInstanceId ? pending?.revealedCards.find((card) => card.instanceId === action.cardInstanceId) : null;
+
+      if (!pending || !player || action.playerId !== expectedPlayerId || (action.cardInstanceId && !picked)) {
+        return state;
+      }
+
+      const revealedCards = picked ? pending.revealedCards.filter((card) => card.instanceId !== picked.instanceId) : pending.revealedCards;
+      const nextIndex = pending.currentIndex + 1;
+      const finished = nextIndex >= pending.playerOrder.length || revealedCards.length === 0;
+      const nextState = {
+        ...state,
+        pendingSupplyDrop: finished
+          ? null
+          : {
+              ...pending,
+              currentIndex: nextIndex,
+              revealedCards
+            },
+        discardPile: finished ? [...state.discardPile, ...revealedCards] : state.discardPile,
+        players: state.players.map((candidate) =>
+          candidate.id === player.id && picked
+            ? {
+                ...candidate,
+                hand: [...candidate.hand, picked]
+              }
+            : candidate
+        )
+      };
+
+      return log(nextState, picked ? `${player.name} claimed a Supply Drop card.` : `${player.name} passed on Supply Drop.`);
+    }
+    case "START_BLACK_MARKET": {
+      if (!canPlayerAct(state, action.playerId) || state.activeEvent?.card.definitionId !== "event_black_market") {
+        return state;
+      }
+
+      const player = getCurrentPlayer(state);
+      const selectedIds = action.cardInstanceIds.slice(0, 2);
+      const selected = player.hand.filter((card) => selectedIds.includes(card.instanceId));
+
+      if (selected.length !== 2 || new Set(selectedIds).size !== 2) {
+        return state;
+      }
+
+      const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, 3);
+      const nextState = {
+        ...state,
+        mainDeck: reveal.mainDeck,
+        discardPile: [...reveal.discardPile, ...selected],
+        pendingMarketSearch: {
+          playerId: player.id,
+          cards: reveal.drawn
+        },
+        players: state.players.map((candidate) =>
+          candidate.id === player.id
+            ? {
+                ...candidate,
+                hand: candidate.hand.filter((card) => !selectedIds.includes(card.instanceId)),
+                actionsRemaining: Math.max(0, candidate.actionsRemaining - 1),
+                actedThisRound: true
+              }
+            : candidate
+        )
+      };
+
+      return log(nextState, `${player.name} used the Black Market and must choose 1 card.`);
+    }
+    case "RESOLVE_MARKET_SEARCH": {
+      const pending = state.pendingMarketSearch;
+      const player = pending ? getPlayer(state, pending.playerId) : undefined;
+      const kept = pending?.cards.find((card) => card.instanceId === action.keepCardInstanceId);
+
+      if (!pending || !player || action.playerId !== player.id || !kept) {
+        return state;
+      }
+
+      const discarded = pending.cards.filter((card) => card.instanceId !== kept.instanceId);
+      const nextState = {
+        ...state,
+        pendingMarketSearch: null,
+        discardPile: [...state.discardPile, ...discarded],
+        players: state.players.map((candidate) =>
+          candidate.id === player.id
+            ? {
+                ...candidate,
+                hand: [...candidate.hand, kept]
+              }
+            : candidate
+        )
+      };
+
+      return log(nextState, `${player.name} bought 1 Black Market card and discarded ${discarded.length}.`);
     }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {

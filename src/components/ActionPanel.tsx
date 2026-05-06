@@ -13,6 +13,7 @@ type ActionPanelProps = {
 
 export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: ActionPanelProps) {
   const [discardSelection, setDiscardSelection] = useState<string[]>([]);
+  const [marketSelection, setMarketSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
   const livingTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
@@ -24,6 +25,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
     !state.pendingAttackCost &&
     !state.pendingDiscard &&
     !state.pendingSearch &&
+    !state.pendingSupplyDrop &&
+    !state.pendingMarketSearch &&
     currentPlayer.actionsRemaining > 0;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
@@ -32,6 +35,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
   const pendingAttackCostPlayer = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.attackerId) : undefined;
   const pendingAttackCostTarget = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.targetPlayerId) : undefined;
   const pendingDiscardPlayer = state.pendingDiscard ? getPlayer(state, state.pendingDiscard.playerId) : undefined;
+  const pendingSupplyDropPlayer = state.pendingSupplyDrop
+    ? getPlayer(state, state.pendingSupplyDrop.playerOrder[state.pendingSupplyDrop.currentIndex])
+    : undefined;
+  const pendingMarketPlayer = state.pendingMarketSearch ? getPlayer(state, state.pendingMarketSearch.playerId) : undefined;
   const reactionCards =
     pendingDefender?.hand.filter((card) => {
       const definition = getCardDefinitionById(card.definitionId);
@@ -240,6 +247,81 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
     );
   }
 
+  if (state.pendingSupplyDrop && pendingSupplyDropPlayer) {
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Supply Drop</p>
+          <h2>{pendingSupplyDropPlayer.name}, claim 1 card or pass</h2>
+          <p>Choose one revealed card to add to your hand. Unclaimed cards are discarded after everyone has had a choice.</p>
+        </div>
+        <div className="pending-discard-list">
+          {state.pendingSupplyDrop.revealedCards.map((card) => {
+            const definition = getCardDefinitionById(card.definitionId);
+            return definition ? (
+              <button
+                className="reaction-card-button"
+                key={card.instanceId}
+                onClick={() =>
+                  dispatch({
+                    type: "RESOLVE_SUPPLY_DROP_PICK",
+                    playerId: pendingSupplyDropPlayer.id,
+                    cardInstanceId: card.instanceId
+                  })
+                }
+              >
+                <CardView card={definition} mode="board" />
+              </button>
+            ) : null;
+          })}
+        </div>
+        <button
+          onClick={() =>
+            dispatch({
+              type: "RESOLVE_SUPPLY_DROP_PICK",
+              playerId: pendingSupplyDropPlayer.id,
+              cardInstanceId: null
+            })
+          }
+        >
+          Pass
+        </button>
+      </section>
+    );
+  }
+
+  if (state.pendingMarketSearch && pendingMarketPlayer) {
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Black Market</p>
+          <h2>{pendingMarketPlayer.name}, keep 1 card</h2>
+          <p>Choose one revealed card to add to your hand. The rest go to discard.</p>
+        </div>
+        <div className="pending-discard-list">
+          {state.pendingMarketSearch.cards.map((card) => {
+            const definition = getCardDefinitionById(card.definitionId);
+            return definition ? (
+              <button
+                className="reaction-card-button"
+                key={card.instanceId}
+                onClick={() =>
+                  dispatch({
+                    type: "RESOLVE_MARKET_SEARCH",
+                    playerId: pendingMarketPlayer.id,
+                    keepCardInstanceId: card.instanceId
+                  })
+                }
+              >
+                <CardView card={definition} mode="board" />
+              </button>
+            ) : null;
+          })}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="action-panel">
       <div className="action-panel__commands">
@@ -369,6 +451,53 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
               </button>
             ))}
           </div>
+        </div>
+      )}
+      {state.activeEvent?.card.definitionId === "event_black_market" && (
+        <div className="attack-box">
+          <h2>Black Market</h2>
+          <p>Select 2 cards from your hand, spend 1 action, and keep 1 of 3 revealed cards.</p>
+          <div className="pending-discard-list">
+            {currentPlayer.hand.map((card) => {
+              const definition = getCardDefinitionById(card.definitionId);
+              const isSelected = marketSelection.includes(card.instanceId);
+              return definition ? (
+                <button
+                  className={`reaction-card-button${isSelected ? " is-selected" : ""}`}
+                  disabled={!canAct}
+                  key={card.instanceId}
+                  onClick={() =>
+                    setMarketSelection((current) => {
+                      if (current.includes(card.instanceId)) {
+                        return current.filter((id) => id !== card.instanceId);
+                      }
+
+                      if (current.length >= 2) {
+                        return [...current.slice(1), card.instanceId];
+                      }
+
+                      return [...current, card.instanceId];
+                    })
+                  }
+                >
+                  <CardView card={definition} mode="board" isSelected={isSelected} />
+                </button>
+              ) : null;
+            })}
+          </div>
+          <button
+            disabled={!canAct || marketSelection.length !== 2 || state.mainDeck.length + state.discardPile.length === 0}
+            onClick={() => {
+              dispatch({
+                type: "START_BLACK_MARKET",
+                playerId: currentPlayer.id,
+                cardInstanceIds: marketSelection
+              });
+              setMarketSelection([]);
+            }}
+          >
+            Search Market
+          </button>
         </div>
       )}
     </section>

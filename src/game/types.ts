@@ -66,6 +66,17 @@ export type PendingSearch = {
   cards: CardInstance[];
 };
 
+export type PendingSupplyDrop = {
+  playerOrder: PlayerId[];
+  currentIndex: number;
+  revealedCards: CardInstance[];
+};
+
+export type PendingMarketSearch = {
+  playerId: PlayerId;
+  cards: CardInstance[];
+};
+
 export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
@@ -85,6 +96,8 @@ export type GameState = {
   pendingAttackCost: PendingAttackCost | null;
   pendingDiscard: PendingDiscard | null;
   pendingSearch: PendingSearch | null;
+  pendingSupplyDrop: PendingSupplyDrop | null;
+  pendingMarketSearch: PendingMarketSearch | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   markedTargets: Record<PlayerId, number>;

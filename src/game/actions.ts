@@ -13,6 +13,9 @@ export type GameAction =
   | { type: "RESOLVE_PENDING_SEARCH"; playerId: PlayerId; keepCardInstanceId: CardInstanceId }
   | { type: "RESOLVE_PENDING_REDIRECT"; defenderId: PlayerId; targetPlayerId: PlayerId }
   | { type: "RESOLVE_PENDING_ATTACK_COST"; attackerId: PlayerId; cardInstanceId: CardInstanceId }
+  | { type: "RESOLVE_SUPPLY_DROP_PICK"; playerId: PlayerId; cardInstanceId: CardInstanceId | null }
+  | { type: "START_BLACK_MARKET"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
+  | { type: "RESOLVE_MARKET_SEARCH"; playerId: PlayerId; keepCardInstanceId: CardInstanceId }
   | {
       type: "ATTACK";
       attackerId: PlayerId;

@@ -22,6 +22,8 @@ const initialState: GameState = {
   pendingAttackCost: null,
   pendingDiscard: null,
   pendingSearch: null,
+  pendingSupplyDrop: null,
+  pendingMarketSearch: null,
   selectedCardId: null,
   attackBonuses: {},
   markedTargets: {},
