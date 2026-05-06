@@ -19,6 +19,8 @@ const initialState: GameState = {
   activeEvent: null,
   pendingReaction: null,
   selectedCardId: null,
+  attackBonuses: {},
+  markedTargets: {},
   log: [],
   winnerId: null
 };

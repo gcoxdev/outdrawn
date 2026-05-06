@@ -59,6 +59,8 @@ export type GameState = {
   activeEvent: ActiveEvent | null;
   pendingReaction: PendingReaction | null;
   selectedCardId: CardInstanceId | null;
+  attackBonuses: Record<PlayerId, number>;
+  markedTargets: Record<PlayerId, number>;
   log: LogEntry[];
   winnerId: PlayerId | null;
 };

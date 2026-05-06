@@ -1,4 +1,3 @@
-import { MAX_HAND_SIZE } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardDefinitionById, getPlayer } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
@@ -17,7 +16,19 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
   const canAct = state.phase === "action" && !state.pendingReaction && currentPlayer.actionsRemaining > 0;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
-  const reactionCards = pendingDefender?.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "defense") ?? [];
+  const reactionCards =
+    pendingDefender?.hand.filter((card) => {
+      const definition = getCardDefinitionById(card.definitionId);
+      if (definition?.type !== "defense") {
+        return false;
+      }
+
+      if (definition.id === "defense_fake_death") {
+        return Boolean(state.pendingReaction && state.pendingReaction.baseDamage >= pendingDefender.health);
+      }
+
+      return true;
+    }) ?? [];
 
   if (state.pendingReaction && pendingDefender && pendingAttacker) {
     const weaponDefinition = getCardDefinitionById(state.pendingReaction.weapon.definitionId);
@@ -66,7 +77,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
           Pass
         </button>
         <button
-          disabled={currentPlayer.hand.length > MAX_HAND_SIZE}
+          disabled={currentPlayer.hand.length > state.settings.maxHandSize}
           onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
         >
           End Turn
@@ -83,6 +94,20 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
                 onClick={() =>
                   dispatch({
                     type: "PLAY_HEALING",
+                    playerId: currentPlayer.id,
+                    cardInstanceId: selectedCard.instanceId
+                  })
+                }
+              >
+                Play
+              </button>
+            )}
+            {selectedDefinition.type === "ability" && selectedDefinition.target !== "onePlayer" && (
+              <button
+                disabled={!canAct || !["ability_ambush", "ability_adrenaline"].includes(selectedDefinition.id)}
+                onClick={() =>
+                  dispatch({
+                    type: "PLAY_ABILITY",
                     playerId: currentPlayer.id,
                     cardInstanceId: selectedCard.instanceId
                   })
@@ -108,7 +133,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
       ) : (
         <div className="empty-selection">
           <h2>Select a card</h2>
-          <p>Play weapons directly from hand, play simple healing, or discard down to {MAX_HAND_SIZE} cards.</p>
+          <p>Play weapons directly from hand, play simple healing, use implemented abilities, or discard down to {state.settings.maxHandSize} cards.</p>
         </div>
       )}
 
@@ -135,6 +160,39 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
           ))}
         </div>
       </div>
+      {selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer" && (
+        <div className="attack-box">
+          <h2>Ability Target</h2>
+          <p>
+            {["ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
+              ? `Choose a target for ${selectedDefinition.name}.`
+              : "This ability is not implemented yet."}
+          </p>
+          <div className="target-list">
+            {livingTargets.map((target) => (
+              <button
+                disabled={
+                  !canAct ||
+                  !selectedCard ||
+                  !["ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
+                }
+                key={target.id}
+                onClick={() =>
+                  selectedCard &&
+                  dispatch({
+                    type: "PLAY_ABILITY",
+                    playerId: currentPlayer.id,
+                    cardInstanceId: selectedCard.instanceId,
+                    targetPlayerId: target.id
+                  })
+                }
+              >
+                {target.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

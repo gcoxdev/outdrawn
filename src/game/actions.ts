@@ -8,6 +8,7 @@ export type GameAction =
   | { type: "DRAW_CARD"; playerId: PlayerId }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
   | { type: "PLAY_HEALING"; playerId: PlayerId; cardInstanceId: CardInstanceId }
+  | { type: "PLAY_ABILITY"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
   | {
       type: "ATTACK";
       attackerId: PlayerId;

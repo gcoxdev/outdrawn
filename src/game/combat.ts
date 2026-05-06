@@ -24,14 +24,15 @@ export function resolveAttack(
   }
 
   const baseDamage = Math.min(
-    weaponDefinition.damage ?? 0,
+    (weaponDefinition.damage ?? 0) + (state.attackBonuses[attacker.id] ?? 0) + (state.markedTargets[target.id] ?? 0),
     state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
   );
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
-  const reactionResult = resolveReactionDamage(baseDamage, weaponDefinition, reactionDefinition);
+  const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition);
   const damage = reactionResult.damage;
-  const nextHealth = Math.max(0, target.health - damage);
+  const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
+  const counterDamage = reactionResult.counterDamage;
   let winnerId = state.winnerId;
   let phase = state.phase;
   const messages = [
@@ -46,15 +47,22 @@ export function resolveAttack(
     messages.push(reactionResult.message.replace("{defender}", target.name));
   }
 
+  if (counterDamage > 0) {
+    messages.push(`${target.name} counterattacked ${attacker.name} for ${counterDamage} damage.`);
+  }
+
   if (eliminated) {
     messages.push(`${target.name} was eliminated.`);
   }
 
   const players = state.players.map((player) => {
     if (player.id === attacker.id) {
+      const attackerHealth = Math.max(0, player.health - counterDamage);
       return {
         ...player,
         hand: player.hand.filter((card) => card.instanceId !== weapon.instanceId),
+        health: attackerHealth,
+        eliminated: attackerHealth === 0,
         attackedThisRound: true,
         actedThisRound: true,
         actionsRemaining: Math.max(0, player.actionsRemaining - 1),
@@ -65,7 +73,11 @@ export function resolveAttack(
     if (player.id === target.id) {
       return {
         ...player,
-        hand: reaction ? player.hand.filter((card) => card.instanceId !== reaction.instanceId) : player.hand,
+        hand: reactionResult.discardsDefenderHand
+          ? []
+          : reaction
+            ? player.hand.filter((card) => card.instanceId !== reaction.instanceId)
+            : player.hand,
         health: nextHealth,
         eliminated
       };
@@ -86,7 +98,13 @@ export function resolveAttack(
     state: {
       ...nextState,
       pendingReaction: null,
-      discardPile: reaction ? [...nextState.discardPile, weapon, reaction] : [...nextState.discardPile, weapon],
+      attackBonuses: omitKey(nextState.attackBonuses, attacker.id),
+      discardPile: [
+        ...nextState.discardPile,
+        weapon,
+        ...(reaction ? [reaction] : []),
+        ...(reactionResult.discardsDefenderHand ? target.hand.filter((card) => card.instanceId !== reaction?.instanceId) : [])
+      ],
       phase,
       winnerId
     },
@@ -96,34 +114,63 @@ export function resolveAttack(
 
 function resolveReactionDamage(
   baseDamage: number,
+  defenderHealth: number,
   weaponDefinition: CardDefinition,
   reactionDefinition: CardDefinition | undefined
-): { damage: number; message: string | null } {
+): {
+  damage: number;
+  counterDamage: number;
+  survivesLethal: boolean;
+  discardsDefenderHand: boolean;
+  message: string | null;
+} {
+  const baseResult = {
+    damage: baseDamage,
+    counterDamage: 0,
+    survivesLethal: false,
+    discardsDefenderHand: false,
+    message: null
+  };
+
   if (!reactionDefinition) {
-    return { damage: baseDamage, message: null };
+    return baseResult;
   }
 
   if (reactionDefinition.id === "defense_dodge" || reactionDefinition.id === "defense_smoke_bomb") {
-    return { damage: 0, message: "{defender} avoided the attack." };
+    return { ...baseResult, damage: 0, message: "{defender} avoided the attack." };
   }
 
   if (reactionDefinition.id === "defense_brace") {
-    return { damage: Math.floor(baseDamage / 2), message: "{defender} braced for impact." };
+    return { ...baseResult, damage: Math.floor(baseDamage / 2), message: "{defender} braced for impact." };
+  }
+
+  if (reactionDefinition.id === "defense_counterattack") {
+    return { ...baseResult, counterDamage: reactionDefinition.damage ?? 3 };
+  }
+
+  if (reactionDefinition.id === "defense_fake_death" && baseDamage >= defenderHealth) {
+    return {
+      ...baseResult,
+      survivesLethal: true,
+      discardsDefenderHand: true,
+      message: "{defender} faked death and survived at 1 health."
+    };
   }
 
   if (reactionDefinition.id === "defense_armor_vest" && weaponDefinition.ignoresArmor) {
-    return { damage: baseDamage, message: "Armor Vest did not stop the piercing hit." };
+    return { ...baseResult, message: "Armor Vest did not stop the piercing hit." };
   }
 
   const block = reactionDefinition.block ?? 0;
   if (block > 0) {
     return {
+      ...baseResult,
       damage: Math.max(0, baseDamage - block),
       message: `{defender} blocked ${block} damage.`
     };
   }
 
-  return { damage: baseDamage, message: null };
+  return baseResult;
 }
 
 export function createPendingReaction(
@@ -138,7 +185,7 @@ export function createPendingReaction(
   }
 
   const baseDamage = Math.min(
-    weaponDefinition.damage ?? 0,
+    (weaponDefinition.damage ?? 0) + (state.attackBonuses[attacker.id] ?? 0) + (state.markedTargets[target.id] ?? 0),
     state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
   );
   const pendingReaction: PendingReaction = {
@@ -155,6 +202,12 @@ export function createPendingReaction(
     },
     messages: [`${attacker.name} played ${weaponDefinition.name} targeting ${target.name}.`]
   };
+}
+
+function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
 }
 
 export function resolveHealing(

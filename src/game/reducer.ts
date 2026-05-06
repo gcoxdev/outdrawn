@@ -81,7 +81,8 @@ function advanceTurn(state: GameState): GameState {
     round: nextRound ? state.round + 1 : state.round,
     players,
     firstPlayerIndex,
-    currentPlayerIndex
+    currentPlayerIndex,
+    markedTargets: nextRound ? {} : state.markedTargets
   };
 
   return log(
@@ -175,12 +176,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      if ((definition.heal ?? 0) > 0 && player.health >= 20 && !definition.draw) {
+      if ((definition.heal ?? 0) > 0 && player.health >= state.settings.maxHealth && !definition.draw) {
         return state;
       }
 
       const result = resolveHealing(state, player, card, definition);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+    }
+    case "PLAY_ABILITY": {
+      if (!canPlayerAct(state, action.playerId)) {
+        return state;
+      }
+
+      const player = getCurrentPlayer(state);
+      const card = player.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
+      const definition = card ? getCardDefinitionById(card.definitionId) : undefined;
+      const target = action.targetPlayerId ? getPlayer(state, action.targetPlayerId) : undefined;
+
+      if (!card || !definition || definition.type !== "ability") {
+        return state;
+      }
+
+      if (definition.target === "onePlayer" && (!target || target.eliminated || target.id === player.id)) {
+        return state;
+      }
+
+      return resolveAbility(state, player, card, definition.id, target);
     }
     case "ATTACK": {
       if (!canPlayerAct(state, action.attackerId)) {
@@ -214,6 +235,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         !reaction ||
         reactionDefinition?.type !== "defense"
       ) {
+        return state;
+      }
+
+      if (reactionDefinition.id === "defense_fake_death" && pending.baseDamage < defender.health) {
         return state;
       }
 
@@ -267,3 +292,99 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 }
 
 export const cardDefinitions = allCards;
+
+function resolveAbility(
+  state: GameState,
+  player: PlayerState,
+  card: { instanceId: string; definitionId: string },
+  definitionId: string,
+  target: PlayerState | undefined
+): GameState {
+  const abilityName = getCardDefinitionById(definitionId)?.name ?? "Ability";
+  const basePlayer = {
+    ...player,
+    hand: player.hand.filter((handCard) => handCard.instanceId !== card.instanceId),
+    actionsRemaining: Math.max(0, player.actionsRemaining - 1),
+    actedThisRound: true
+  };
+  let nextState: GameState = {
+    ...state,
+    discardPile: [...state.discardPile, card],
+    selectedCardId: state.selectedCardId === card.instanceId ? null : state.selectedCardId,
+    players: state.players.map((candidate) => (candidate.id === player.id ? basePlayer : candidate))
+  };
+  let message = `${player.name} played ${abilityName}.`;
+
+  if (definitionId === "ability_ambush") {
+    nextState = {
+      ...nextState,
+      attackBonuses: {
+        ...nextState.attackBonuses,
+        [player.id]: (nextState.attackBonuses[player.id] ?? 0) + 3
+      }
+    };
+    message = `${player.name} played Ambush. Their next attack gets +3 damage.`;
+  }
+
+  if (definitionId === "ability_adrenaline") {
+    nextState = updatePlayer(nextState, player.id, (currentPlayer) => ({
+      ...currentPlayer,
+      health: Math.max(0, currentPlayer.health - 2),
+      actionsRemaining: currentPlayer.actionsRemaining + 1
+    }));
+    message = `${player.name} played Adrenaline, gained an action, and lost 2 health.`;
+  }
+
+  if (definitionId === "ability_steal" && target) {
+    const stolen = target.hand[0];
+    if (!stolen) {
+      return log(nextState, `${player.name} played Steal, but ${target.name} had no cards.`);
+    }
+
+    nextState = {
+      ...nextState,
+      players: nextState.players.map((candidate) => {
+        if (candidate.id === player.id) {
+          return { ...candidate, hand: [...candidate.hand, stolen] };
+        }
+
+        if (candidate.id === target.id) {
+          return { ...candidate, hand: candidate.hand.filter((handCard) => handCard.instanceId !== stolen.instanceId) };
+        }
+
+        return candidate;
+      })
+    };
+    message = `${player.name} stole 1 card from ${target.name}.`;
+  }
+
+  if (definitionId === "ability_sabotage" && target) {
+    const discarded = target.hand.slice(0, 2);
+    nextState = {
+      ...nextState,
+      discardPile: [...nextState.discardPile, ...discarded],
+      players: nextState.players.map((candidate) =>
+        candidate.id === target.id
+          ? {
+              ...candidate,
+              hand: candidate.hand.slice(discarded.length)
+            }
+          : candidate
+      )
+    };
+    message = `${player.name} sabotaged ${target.name}, discarding ${discarded.length} cards.`;
+  }
+
+  if (definitionId === "ability_mark_target" && target) {
+    nextState = {
+      ...nextState,
+      markedTargets: {
+        ...nextState.markedTargets,
+        [target.id]: (nextState.markedTargets[target.id] ?? 0) + 1
+      }
+    };
+    message = `${player.name} marked ${target.name}. Attacks against them get +1 damage this round.`;
+  }
+
+  return log(nextState, message);
+}

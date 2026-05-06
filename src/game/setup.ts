@@ -50,6 +50,8 @@ export function createNewGame(
     activeEvent: null,
     pendingReaction: null,
     selectedCardId: null,
+    attackBonuses: {},
+    markedTargets: {},
     log: [
       {
         id: "log_setup",
