@@ -183,6 +183,26 @@ describe("event cards", () => {
     expect(state.players.map((player) => player.health)).toEqual([19, 19, 19]);
   });
 
+  it("simultaneous collapse elimination breaks ties by pre-collapse health then hand size", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const [knife] = [main("weapon_knife")];
+    state = {
+      ...state,
+      round: 8,
+      players: state.players.map((player, index) => ({
+        ...player,
+        health: 2,
+        hand: index === 1 ? [knife] : [],
+        actedThisRound: true
+      }))
+    };
+
+    state = gameReducer(state, { type: "END_TURN", playerId: state.players[state.currentPlayerIndex].id });
+
+    expect(state.phase).toBe("gameOver");
+    expect(state.winnerId).toBe("player_2");
+  });
+
   it("Supply Drop reveals three cards and lets players claim or pass in low-health order", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const supplyDrop = event("event_supply_drop");
@@ -208,6 +228,34 @@ describe("event cards", () => {
     expect(state.players.find((player) => player.id === "player_2")!.hand.map((card) => card.instanceId)).toEqual([shield.instanceId]);
     expect(state.players.find((player) => player.id === "player_3")!.hand.map((card) => card.instanceId)).toEqual([pistol.instanceId]);
     expect(state.discardPile.map((card) => card.instanceId)).toContain(search.instanceId);
+  });
+
+  it("Supply Drop forces immediate discard-down when a player claims over max hand size", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const supplyDrop = event("event_supply_drop");
+    const reward = main("weapon_pistol");
+    const fillerCards = [
+      main("weapon_knife"),
+      main("weapon_knife"),
+      main("weapon_knife"),
+      main("weapon_knife"),
+      main("weapon_knife"),
+      main("weapon_knife"),
+      main("weapon_knife")
+    ];
+    state = {
+      ...state,
+      eventDeck: [supplyDrop],
+      mainDeck: [reward],
+      players: state.players.map((player, index) => ({ ...player, health: [8, 12, 16][index], hand: index === 0 ? fillerCards : [] }))
+    };
+
+    state = endCurrentRound(state);
+    state = gameReducer(state, { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: "player_1", cardInstanceId: reward.instanceId });
+
+    expect(state.pendingDiscard?.playerId).toBe("player_1");
+    expect(state.pendingDiscard?.count).toBe(1);
+    expect(state.pendingDiscard?.reason).toBe("hand limit");
   });
 
   it("Black Market lets a player discard two cards and choose one revealed deck card", () => {

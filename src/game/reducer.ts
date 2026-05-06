@@ -60,10 +60,11 @@ function advanceTurn(state: GameState): GameState {
   const livingAfterTransition = transitionState.players.filter((player) => !player.eliminated);
   const postTransitionWinner = getWinner(transitionState);
   if (livingAfterTransition.length <= 1) {
+    const tiebreaker = postTransitionWinner ?? breakEliminationTie(state.players);
     return {
       ...transitionState,
       phase: "gameOver",
-      winnerId: postTransitionWinner?.id ?? null
+      winnerId: tiebreaker?.id ?? null
     };
   }
 
@@ -393,7 +394,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         )
       };
 
-      return log(nextState, `${player.name} kept 1 card from Search and discarded ${discarded.length}.`);
+      return log(enforceHandLimit(nextState, player.id), `${player.name} kept 1 card from Search and discarded ${discarded.length}.`);
     }
     case "RESOLVE_SUPPLY_DROP_PICK": {
       const pending = state.pendingSupplyDrop;
@@ -408,7 +409,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const revealedCards = picked ? pending.revealedCards.filter((card) => card.instanceId !== picked.instanceId) : pending.revealedCards;
       const nextIndex = pending.currentIndex + 1;
       const finished = nextIndex >= pending.playerOrder.length || revealedCards.length === 0;
-      const nextState = {
+      let nextState = {
         ...state,
         pendingSupplyDrop: finished
           ? null
@@ -427,6 +428,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             : candidate
         )
       };
+      if (picked) {
+        nextState = enforceHandLimit(nextState, player.id);
+      }
 
       return log(nextState, picked ? `${player.name} claimed a Supply Drop card.` : `${player.name} passed on Supply Drop.`);
     }
@@ -490,7 +494,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         )
       };
 
-      return log(nextState, `${player.name} bought 1 Black Market card and discarded ${discarded.length}.`);
+      return log(enforceHandLimit(nextState, player.id), `${player.name} bought 1 Black Market card and discarded ${discarded.length}.`);
     }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {
@@ -998,6 +1002,34 @@ function clearIntimidationsAgainst(intimidations: Record<string, string[]>, sour
       .map(([targetId, sourceIds]) => [targetId, sourceIds.filter((id) => id !== sourcePlayerId)] as const)
       .filter(([, sourceIds]) => sourceIds.length > 0)
   );
+}
+
+function enforceHandLimit(state: GameState, playerId: string): GameState {
+  const player = getPlayer(state, playerId);
+  if (!player || player.hand.length <= state.settings.maxHandSize || state.pendingDiscard) {
+    return state;
+  }
+
+  return {
+    ...state,
+    pendingDiscard: {
+      sourcePlayerId: playerId,
+      playerId,
+      count: player.hand.length - state.settings.maxHandSize,
+      reason: "hand limit"
+    }
+  };
+}
+
+function breakEliminationTie(players: PlayerState[]): PlayerState | null {
+  const candidates = [...players].sort((left, right) => right.health - left.health || right.hand.length - left.hand.length);
+  const winner = candidates[0];
+  if (!winner) {
+    return null;
+  }
+
+  const tied = candidates.filter((player) => player.health === winner.health && player.hand.length === winner.hand.length);
+  return tied.length === 1 ? winner : null;
 }
 
 function getHighestDamageWeapon(hand: CardInstance[]): CardInstance | null {
