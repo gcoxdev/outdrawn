@@ -26,39 +26,33 @@ describe("game reducer turns and equipment", () => {
     expect(next.mainDeck).toHaveLength(state.mainDeck.length - 1);
   });
 
-  it("equips weapon and defense cards from hand", () => {
+  it("starts an attack by playing a weapon from hand", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = getCurrentPlayer(state);
     const weapon = cardInstance("weapon_pistol");
-    const defense = cardInstance("defense_armor_vest");
     state = {
       ...state,
       players: state.players.map((candidate) =>
         candidate.id === player.id
           ? {
               ...candidate,
-              hand: [weapon, defense],
+              hand: [weapon],
               actionsRemaining: 2
             }
           : candidate
       )
     };
 
-    const withWeapon = gameReducer(state, {
-      type: "EQUIP_CARD",
-      playerId: player.id,
-      cardInstanceId: weapon.instanceId
+    const target = state.players.find((candidate) => candidate.id !== player.id)!;
+    const next = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: player.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: weapon.instanceId
     });
-    const withDefense = gameReducer(withWeapon, {
-      type: "EQUIP_CARD",
-      playerId: player.id,
-      cardInstanceId: defense.instanceId
-    });
-    const nextPlayer = getCurrentPlayer(withDefense);
 
-    expect(nextPlayer.equippedWeapon?.definitionId).toBe(weapon.definitionId);
-    expect(nextPlayer.equippedDefense?.definitionId).toBe("defense_armor_vest");
-    expect(nextPlayer.actionsRemaining).toBe(0);
+    expect(next.pendingReaction?.weapon.instanceId).toBe(weapon.instanceId);
+    expect(next.pendingReaction?.defenderId).toBe(target.id);
   });
 
   it("advances turns and starts a new round after all living players act", () => {

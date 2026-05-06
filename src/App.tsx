@@ -15,6 +15,7 @@ const initialState: GameState = {
   discardPile: [],
   eventDiscardPile: [],
   activeEvent: null,
+  pendingReaction: null,
   selectedCardId: null,
   log: [],
   winnerId: null

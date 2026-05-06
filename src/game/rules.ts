@@ -36,7 +36,13 @@ export function getCardFromPlayer(player: PlayerState, cardInstanceId: CardInsta
 
 export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
   const player = getCurrentPlayer(state);
-  return state.phase === "action" && player.id === playerId && !player.eliminated && player.actionsRemaining > 0;
+  return (
+    state.phase === "action" &&
+    !state.pendingReaction &&
+    player.id === playerId &&
+    !player.eliminated &&
+    player.actionsRemaining > 0
+  );
 }
 
 export function isGameOver(state: GameState): boolean {

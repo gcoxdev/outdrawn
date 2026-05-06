@@ -43,6 +43,7 @@ export function createNewGame(playerNames: string[], random: () => number = Math
     discardPile: [],
     eventDiscardPile: [],
     activeEvent: null,
+    pendingReaction: null,
     selectedCardId: null,
     log: [
       {

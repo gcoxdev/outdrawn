@@ -35,6 +35,13 @@ export type LogEntry = {
   message: string;
 };
 
+export type PendingReaction = {
+  attackerId: PlayerId;
+  defenderId: PlayerId;
+  weapon: CardInstance;
+  baseDamage: number;
+};
+
 export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
@@ -48,6 +55,7 @@ export type GameState = {
   discardPile: CardInstance[];
   eventDiscardPile: CardInstance[];
   activeEvent: ActiveEvent | null;
+  pendingReaction: PendingReaction | null;
   selectedCardId: CardInstanceId | null;
   log: LogEntry[];
   winnerId: PlayerId | null;

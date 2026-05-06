@@ -18,10 +18,11 @@ type GameTableProps = {
 
 export function GameTable({ state, dispatch }: GameTableProps) {
   const currentPlayer = getCurrentPlayer(state);
-  const selectedCard = currentPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
+  const displayPlayer = state.pendingReaction
+    ? (state.players.find((player) => player.id === state.pendingReaction?.defenderId) ?? currentPlayer)
+    : currentPlayer;
+  const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const selectedDefinition = definitionFor(selectedCard);
-  const weaponDefinition = definitionFor(currentPlayer.equippedWeapon);
-  const defenseDefinition = definitionFor(currentPlayer.equippedDefense);
   const winner = state.players.find((player) => player.id === state.winnerId);
 
   return (
@@ -29,7 +30,13 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       <header className="status-bar">
         <div>
           <p className="eyebrow">Round {state.round}</p>
-          <h1>{state.phase === "gameOver" ? `${winner?.name ?? "Nobody"} wins` : `${currentPlayer.name}'s turn`}</h1>
+          <h1>
+            {state.phase === "gameOver"
+              ? `${winner?.name ?? "Nobody"} wins`
+              : state.pendingReaction
+                ? `${displayPlayer.name}'s reaction`
+                : `${currentPlayer.name}'s turn`}
+          </h1>
         </div>
         <div className="status-bar__meta">
           <span>{state.mainDeck.length} deck</span>
@@ -48,23 +55,13 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         <section className="current-board">
           <div className="board-heading">
             <div>
-              <p className="eyebrow">Current Player</p>
-              <h2>{currentPlayer.name}</h2>
+              <p className="eyebrow">{state.pendingReaction ? "Defender Hand" : "Current Player"}</p>
+              <h2>{displayPlayer.name}</h2>
             </div>
-            <strong>{currentPlayer.health} HP</strong>
-          </div>
-          <div className="equipment-row">
-            <div>
-              <h3>Weapon</h3>
-              {weaponDefinition ? <CardView card={weaponDefinition} mode="board" /> : <div className="empty-slot">No weapon</div>}
-            </div>
-            <div>
-              <h3>Defense</h3>
-              {defenseDefinition ? <CardView card={defenseDefinition} mode="board" /> : <div className="empty-slot">No defense</div>}
-            </div>
+            <strong>{displayPlayer.health} HP</strong>
           </div>
           <div className="hand-rail">
-            {currentPlayer.hand.map((card) => {
+            {displayPlayer.hand.map((card) => {
               const definition = definitionFor(card);
               return definition ? (
                 <CardView

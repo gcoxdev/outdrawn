@@ -365,6 +365,8 @@ p {
   font-size: clamp(0.82rem, 1.8vw, 1rem);
   font-weight: 900;
   line-height: 1;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .card-view__type {
@@ -411,6 +413,33 @@ p {
 .action-panel {
   display: grid;
   gap: 14px;
+}
+
+.reaction-panel h2 {
+  margin-bottom: 6px;
+}
+
+.reaction-panel p {
+  color: var(--muted);
+}
+
+.reaction-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.reaction-card-button {
+  display: block;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.reaction-card-button:hover {
+  background: transparent;
 }
 
 .action-panel__commands,

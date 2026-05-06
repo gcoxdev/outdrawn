@@ -1,14 +1,13 @@
 import { allCards } from "../data/cards";
-import { ACTIONS_PER_TURN } from "../data/constants";
+import { ACTIONS_PER_TURN, MAX_HAND_SIZE } from "../data/constants";
 import { drawCards } from "./deck";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
-import type { CardInstance, GameState, PlayerState } from "./types";
-import { resolveAttack, resolveHealing } from "./combat";
+import type { GameState, PlayerState } from "./types";
+import { createPendingReaction, resolveAttack, resolveHealing } from "./combat";
 import {
   canPlayerAct,
   getCardDefinitionById,
-  getCardFromPlayer,
   getCurrentPlayer,
   getPlayer,
   getWinner
@@ -41,13 +40,6 @@ function spendAction(state: GameState, playerId: string): GameState {
     actionsRemaining: Math.max(0, player.actionsRemaining - 1),
     actedThisRound: true
   }));
-}
-
-function removeFromHand(player: PlayerState, card: CardInstance): PlayerState {
-  return {
-    ...player,
-    hand: player.hand.filter((handCard) => handCard.instanceId !== card.instanceId)
-  };
 }
 
 function advanceTurn(state: GameState): GameState {
@@ -120,6 +112,10 @@ function decrementCooldowns(cooldowns: Record<string, number>): Record<string, n
   );
 }
 
+function currentPlayerOverHandLimit(state: GameState): boolean {
+  return getCurrentPlayer(state).hand.length > MAX_HAND_SIZE;
+}
+
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "START_GAME":
@@ -143,41 +139,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       nextState = spendAction(nextState, action.playerId);
       return log(nextState, `${getCurrentPlayer(state).name} drew 1 card.`);
     }
-    case "EQUIP_CARD": {
-      if (!canPlayerAct(state, action.playerId)) {
+    case "DISCARD_CARD": {
+      const player = getPlayer(state, action.playerId);
+      const card = player?.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
+
+      if (!player || !card || state.pendingReaction) {
         return state;
       }
 
-      const player = getCurrentPlayer(state);
-      const card = player.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
-      const definition = card ? getCardDefinitionById(card.definitionId) : undefined;
+      const nextState = updatePlayer(state, action.playerId, (currentPlayer) => ({
+        ...currentPlayer,
+        hand: currentPlayer.hand.filter((handCard) => handCard.instanceId !== card.instanceId)
+      }));
 
-      if (!card || !definition || (definition.type !== "weapon" && !definition.isEquip)) {
-        return state;
-      }
-
-      let replaced: CardInstance | null = null;
-      let nextState = updatePlayer(state, action.playerId, (currentPlayer) => {
-        const withoutCard = removeFromHand(currentPlayer, card);
-
-        if (definition.type === "weapon") {
-          replaced = withoutCard.equippedWeapon;
-          return {
-            ...withoutCard,
-            equippedWeapon: card,
-            hand: replaced ? [...withoutCard.hand, replaced] : withoutCard.hand
-          };
-        }
-
-        replaced = withoutCard.equippedDefense;
-        return {
-          ...withoutCard,
-          equippedDefense: card,
-          hand: replaced ? [...withoutCard.hand, replaced] : withoutCard.hand
-        };
-      });
-      nextState = spendAction(nextState, action.playerId);
-      return log(nextState, `${player.name} equipped ${definition.name}.`);
+      return log(
+        {
+          ...nextState,
+          discardPile: [...nextState.discardPile, card],
+          selectedCardId: state.selectedCardId === card.instanceId ? null : state.selectedCardId
+        },
+        `${player.name} discarded ${getCardDefinitionById(card.definitionId)?.name ?? "a card"}.`
+      );
     }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {
@@ -206,17 +188,47 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       const attacker = getCurrentPlayer(state);
       const target = getPlayer(state, action.targetPlayerId);
-      const weapon = getCardFromPlayer(attacker, action.weaponInstanceId);
+      const weapon = attacker.hand.find((card) => card.instanceId === action.weaponInstanceId);
+      const weaponDefinition = weapon ? getCardDefinitionById(weapon.definitionId) : undefined;
 
-      if (!target || target.eliminated || target.id === attacker.id || !weapon) {
+      if (!target || target.eliminated || target.id === attacker.id || !weapon || weaponDefinition?.type !== "weapon") {
         return state;
       }
 
-      if (attacker.equippedWeapon?.instanceId !== weapon.instanceId) {
+      const result = createPendingReaction(state, attacker, target, weapon);
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+    }
+    case "PLAY_REACTION": {
+      const pending = state.pendingReaction;
+      const defender = pending ? getPlayer(state, pending.defenderId) : undefined;
+      const attacker = pending ? getPlayer(state, pending.attackerId) : undefined;
+      const reaction = defender?.hand.find((card) => card.instanceId === action.reactionCardInstanceId);
+      const reactionDefinition = reaction ? getCardDefinitionById(reaction.definitionId) : undefined;
+
+      if (
+        !pending ||
+        !defender ||
+        !attacker ||
+        action.defenderId !== defender.id ||
+        !reaction ||
+        reactionDefinition?.type !== "defense"
+      ) {
         return state;
       }
 
-      const result = resolveAttack(state, attacker, target, weapon);
+      const result = resolveAttack(state, attacker, defender, pending.weapon, reaction);
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+    }
+    case "SKIP_REACTION": {
+      const pending = state.pendingReaction;
+      const defender = pending ? getPlayer(state, pending.defenderId) : undefined;
+      const attacker = pending ? getPlayer(state, pending.attackerId) : undefined;
+
+      if (!pending || !defender || !attacker || action.defenderId !== defender.id) {
+        return state;
+      }
+
+      const result = resolveAttack(state, attacker, defender, pending.weapon, null);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
     case "PASS_ACTION": {
@@ -230,6 +242,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "END_TURN": {
       if (getCurrentPlayer(state).id !== action.playerId) {
         return state;
+      }
+
+      if (currentPlayerOverHandLimit(state)) {
+        return log(state, `${getCurrentPlayer(state).name} must discard down to ${MAX_HAND_SIZE} cards before ending turn.`);
       }
 
       const ended = updatePlayer(state, action.playerId, (player) => ({

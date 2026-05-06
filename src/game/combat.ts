@@ -1,6 +1,6 @@
 import { allCards } from "../data/cards";
 import { MAX_HEALTH, OPENING_DAMAGE_CAP, OPENING_DAMAGE_CAP_ROUNDS } from "../data/constants";
-import type { CardDefinition, CardInstance, GameState, PlayerState } from "./types";
+import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState } from "./types";
 import { getCardDefinitionById, getWinner } from "./rules";
 
 export type AttackResult = {
@@ -12,7 +12,8 @@ export function resolveAttack(
   state: GameState,
   attacker: PlayerState,
   target: PlayerState,
-  weapon: CardInstance
+  weapon: CardInstance,
+  reaction: CardInstance | null
 ): AttackResult {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (!weaponDefinition || weaponDefinition.type !== "weapon") {
@@ -27,10 +28,9 @@ export function resolveAttack(
     weaponDefinition.damage ?? 0,
     state.round <= OPENING_DAMAGE_CAP_ROUNDS ? OPENING_DAMAGE_CAP : Number.POSITIVE_INFINITY
   );
-  const armorDefinition = getCardDefinitionById(target.equippedDefense?.definitionId ?? "");
-  const armorBlock =
-    armorDefinition?.id === "defense_armor_vest" && !weaponDefinition.ignoresArmor ? (armorDefinition.block ?? 0) : 0;
-  const damage = Math.max(0, baseDamage - armorBlock);
+  const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
+  const reactionResult = resolveReactionDamage(baseDamage, weaponDefinition, reactionDefinition);
+  const damage = reactionResult.damage;
   const nextHealth = Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
   let winnerId = state.winnerId;
@@ -39,8 +39,12 @@ export function resolveAttack(
     `${attacker.name} attacked ${target.name} with ${weaponDefinition.name} for ${damage} damage.`
   ];
 
-  if (armorBlock > 0) {
-    messages.push(`${target.name}'s Armor Vest blocked ${armorBlock}.`);
+  if (reaction && reactionDefinition) {
+    messages.push(`${target.name} played ${reactionDefinition.name}.`);
+  }
+
+  if (reactionResult.message) {
+    messages.push(reactionResult.message.replace("{defender}", target.name));
   }
 
   if (eliminated) {
@@ -51,21 +55,18 @@ export function resolveAttack(
     if (player.id === attacker.id) {
       return {
         ...player,
+        hand: player.hand.filter((card) => card.instanceId !== weapon.instanceId),
         attackedThisRound: true,
         actedThisRound: true,
         actionsRemaining: Math.max(0, player.actionsRemaining - 1),
-        weaponCooldowns: weaponDefinition.cooldownTurns
-          ? {
-              ...player.weaponCooldowns,
-              [weapon.instanceId]: weaponDefinition.cooldownTurns
-            }
-          : player.weaponCooldowns
+        weaponCooldowns: player.weaponCooldowns
       };
     }
 
     if (player.id === target.id) {
       return {
         ...player,
+        hand: reaction ? player.hand.filter((card) => card.instanceId !== reaction.instanceId) : player.hand,
         health: nextHealth,
         eliminated
       };
@@ -85,10 +86,75 @@ export function resolveAttack(
   return {
     state: {
       ...nextState,
+      pendingReaction: null,
+      discardPile: reaction ? [...nextState.discardPile, weapon, reaction] : [...nextState.discardPile, weapon],
       phase,
       winnerId
     },
     messages
+  };
+}
+
+function resolveReactionDamage(
+  baseDamage: number,
+  weaponDefinition: CardDefinition,
+  reactionDefinition: CardDefinition | undefined
+): { damage: number; message: string | null } {
+  if (!reactionDefinition) {
+    return { damage: baseDamage, message: null };
+  }
+
+  if (reactionDefinition.id === "defense_dodge" || reactionDefinition.id === "defense_smoke_bomb") {
+    return { damage: 0, message: "{defender} avoided the attack." };
+  }
+
+  if (reactionDefinition.id === "defense_brace") {
+    return { damage: Math.floor(baseDamage / 2), message: "{defender} braced for impact." };
+  }
+
+  if (reactionDefinition.id === "defense_armor_vest" && weaponDefinition.ignoresArmor) {
+    return { damage: baseDamage, message: "Armor Vest did not stop the piercing hit." };
+  }
+
+  const block = reactionDefinition.block ?? 0;
+  if (block > 0) {
+    return {
+      damage: Math.max(0, baseDamage - block),
+      message: `{defender} blocked ${block} damage.`
+    };
+  }
+
+  return { damage: baseDamage, message: null };
+}
+
+export function createPendingReaction(
+  state: GameState,
+  attacker: PlayerState,
+  target: PlayerState,
+  weapon: CardInstance
+): AttackResult {
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  if (!weaponDefinition || weaponDefinition.type !== "weapon") {
+    return { state, messages: [] };
+  }
+
+  const baseDamage = Math.min(
+    weaponDefinition.damage ?? 0,
+    state.round <= OPENING_DAMAGE_CAP_ROUNDS ? OPENING_DAMAGE_CAP : Number.POSITIVE_INFINITY
+  );
+  const pendingReaction: PendingReaction = {
+    attackerId: attacker.id,
+    defenderId: target.id,
+    weapon,
+    baseDamage
+  };
+
+  return {
+    state: {
+      ...state,
+      pendingReaction
+    },
+    messages: [`${attacker.name} played ${weaponDefinition.name} targeting ${target.name}.`]
   };
 }
 

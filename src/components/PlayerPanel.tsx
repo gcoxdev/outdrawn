@@ -1,9 +1,4 @@
-import { allCards } from "../data/cards";
 import type { PlayerState } from "../game/types";
-
-function cardName(definitionId?: string) {
-  return allCards.find((card) => card.id === definitionId)?.name ?? "Empty";
-}
 
 type PlayerPanelProps = {
   player: PlayerState;
@@ -24,12 +19,8 @@ export function PlayerPanel({ player, isCurrent }: PlayerPanelProps) {
           <dd>{player.hand.length}</dd>
         </div>
         <div>
-          <dt>Weapon</dt>
-          <dd>{cardName(player.equippedWeapon?.definitionId)}</dd>
-        </div>
-        <div>
-          <dt>Defense</dt>
-          <dd>{cardName(player.equippedDefense?.definitionId)}</dd>
+          <dt>Attacked</dt>
+          <dd>{player.attackedThisRound ? "Yes" : "No"}</dd>
         </div>
       </dl>
     </article>
