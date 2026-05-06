@@ -1,9 +1,10 @@
 import { allCards } from "../data/cards";
 import type { GameAction } from "../game/actions";
 import { getCurrentPlayer } from "../game/rules";
+import { getDecisionPlayerId } from "../game/simulator";
 import type { CardInstance, GameState } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
-import { CardView } from "./CardView";
+import { CardBack, CardView } from "./CardView";
 import { GameLog } from "./GameLog";
 import { GameMenu } from "./GameMenu";
 import { PlayerPanel } from "./PlayerPanel";
@@ -29,7 +30,9 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
-  const selectedDefinition = definitionFor(selectedCard);
+  const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === getDecisionPlayerId(state);
+  const shouldRevealDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision;
+  const selectedDefinition = shouldRevealDisplayHand ? definitionFor(selectedCard) : undefined;
   const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
   const winner = state.players.find((player) => player.id === state.winnerId);
 
@@ -97,26 +100,36 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             <strong>{displayPlayer.health} HP</strong>
           </div>
           <div className="hand-rail">
-            {displayPlayer.hand.map((card) => {
-              const definition = definitionFor(card);
-              return definition ? (
-                <CardView
-                  card={definition}
-                  isSelected={state.selectedCardId === card.instanceId}
-                  key={card.instanceId}
-                  onClick={() =>
-                    dispatch({
-                      type: "SELECT_CARD",
-                      cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
-                    })
-                  }
-                />
-              ) : null;
-            })}
+            {shouldRevealDisplayHand ? (
+              displayPlayer.hand.map((card) => {
+                const definition = definitionFor(card);
+                return definition ? (
+                  <CardView
+                    card={definition}
+                    isSelected={state.selectedCardId === card.instanceId}
+                    key={card.instanceId}
+                    onClick={() =>
+                      dispatch({
+                        type: "SELECT_CARD",
+                        cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
+                      })
+                    }
+                  />
+                ) : null;
+              })
+            ) : (
+              displayPlayer.hand.map((card) => <CardBack key={card.instanceId} />)
+            )}
           </div>
         </section>
 
-        <ActionPanel state={state} currentPlayer={currentPlayer} selectedCard={selectedDefinition ? selectedCard : null} dispatch={dispatch} />
+        <ActionPanel
+          state={state}
+          currentPlayer={currentPlayer}
+          selectedCard={selectedDefinition ? selectedCard : null}
+          isComputerDecision={isComputerDecision}
+          dispatch={dispatch}
+        />
         <GameLog entries={state.log} />
       </section>
     </main>

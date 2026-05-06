@@ -1,8 +1,8 @@
 import type { GameSettings } from "../data/constants";
-import type { CardInstanceId, PlayerId } from "./types";
+import type { CardInstanceId, PlayerId, PlayerSetup } from "./types";
 
 export type GameAction =
-  | { type: "START_GAME"; playerNames: string[]; settings?: GameSettings }
+  | { type: "START_GAME"; playerNames: string[]; playerSetups?: PlayerSetup[]; settings?: GameSettings }
   | { type: "UPDATE_SETTINGS"; settings: GameSettings }
   | { type: "SELECT_CARD"; cardInstanceId: CardInstanceId | null }
   | { type: "DRAW_CARD"; playerId: PlayerId }

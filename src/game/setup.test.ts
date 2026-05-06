@@ -24,6 +24,29 @@ describe("game setup", () => {
     expect(state.discardPile).toHaveLength(0);
   });
 
+  it("stores human and computer player controllers", () => {
+    const state = createNewGame(
+      [
+        { name: "Ari", controller: { type: "human" } },
+        { name: "Blake", controller: { type: "computer", strategy: "beginner" } },
+        { name: "Casey", controller: { type: "computer", strategy: "master" } }
+      ],
+      () => 0
+    );
+
+    expect(state.players.map((player) => player.controller)).toEqual([
+      { type: "human" },
+      { type: "computer", strategy: "beginner" },
+      { type: "computer", strategy: "master" }
+    ]);
+  });
+
+  it("defaults legacy name-only players to human controllers", () => {
+    const state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+
+    expect(state.players.every((player) => player.controller.type === "human")).toBe(true);
+  });
+
   it("rejects invalid player counts", () => {
     expect(() => createNewGame(["Ari", "Blake"], () => 0)).toThrow("3 to 6 players");
     expect(() =>

@@ -1,28 +1,29 @@
 import { eventDeckCards, mainDeckCards } from "../data/cards";
 import { defaultGameSettings, type GameSettings } from "../data/constants";
 import { drawCards, expandDeck, shuffleDeck } from "./deck";
-import type { GameState, PlayerState } from "./types";
+import type { GameState, PlayerSetup, PlayerState } from "./types";
 
 export function createNewGame(
-  playerNames: string[],
+  playerInputs: string[] | PlayerSetup[],
   random: () => number = Math.random,
   settings: GameSettings = defaultGameSettings
 ): GameState {
-  const names = playerNames.map((name) => name.trim()).filter(Boolean);
+  const playerSetups = normalizePlayerSetups(playerInputs);
 
-  if (names.length < 3 || names.length > 6) {
+  if (playerSetups.length < 3 || playerSetups.length > 6) {
     throw new Error("Last Hand Standing requires 3 to 6 players.");
   }
 
   let mainDeck = shuffleDeck(expandDeck(mainDeckCards, "main"), random);
   const eventDeck = shuffleDeck(expandDeck(eventDeckCards, "event"), random);
-  const players: PlayerState[] = names.map((name, index) => {
+  const players: PlayerState[] = playerSetups.map((setup, index) => {
     const draw = drawCards(mainDeck, settings.startingHandSize);
     mainDeck = draw.deck;
 
     return {
       id: `player_${index + 1}`,
-      name,
+      name: setup.name,
+      controller: setup.controller,
       health: settings.startingHealth,
       hand: draw.drawn,
       equippedWeapon: null,
@@ -65,9 +66,24 @@ export function createNewGame(
       {
         id: "log_setup",
         round: 1,
-        message: `${names[firstPlayerIndex]} takes the first turn.`
+        message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`
       }
     ],
     winnerId: null
   };
+}
+
+function normalizePlayerSetups(playerInputs: string[] | PlayerSetup[]): PlayerSetup[] {
+  return playerInputs
+    .map((input) => {
+      if (typeof input === "string") {
+        return { name: input.trim(), controller: { type: "human" } as const };
+      }
+
+      return {
+        ...input,
+        name: input.name.trim()
+      };
+    })
+    .filter((setup) => setup.name);
 }

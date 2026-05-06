@@ -80,3 +80,11 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     </button>
   );
 }
+
+export function CardBack() {
+  return (
+    <div className="card-back" aria-label="Hidden card">
+      <div className="card-back__mark">LHS</div>
+    </div>
+  );
+}

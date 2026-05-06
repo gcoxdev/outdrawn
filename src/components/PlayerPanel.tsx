@@ -15,6 +15,10 @@ export function PlayerPanel({ player, isCurrent }: PlayerPanelProps) {
       <strong>{player.health} HP</strong>
       <dl>
         <div>
+          <dt>Control</dt>
+          <dd>{player.controller.type === "computer" ? player.controller.strategy : "Human"}</dd>
+        </div>
+        <div>
           <dt>Hand</dt>
           <dd>{player.hand.length}</dd>
         </div>

@@ -1,4 +1,5 @@
-import { simulateGames, type StrategyLevel } from "../src/game/simulator";
+import { simulateGames } from "../src/game/simulator";
+import type { StrategyLevel } from "../src/game/types";
 
 const games = Number(process.argv[2] ?? 500);
 const seed = Number(process.argv[3] ?? 123456);

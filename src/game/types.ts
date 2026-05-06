@@ -3,6 +3,19 @@ import type { GameSettings } from "../data/constants";
 
 export type PlayerId = string;
 export type CardInstanceId = string;
+export type StrategyLevel = "beginner" | "novice" | "competent" | "expert" | "master";
+
+export type PlayerController =
+  | { type: "human" }
+  | {
+      type: "computer";
+      strategy: StrategyLevel;
+    };
+
+export type PlayerSetup = {
+  name: string;
+  controller: PlayerController;
+};
 
 export type CardDefinition = Card;
 
@@ -14,6 +27,7 @@ export type CardInstance = {
 export type PlayerState = {
   id: PlayerId;
   name: string;
+  controller: PlayerController;
   health: number;
   hand: CardInstance[];
   equippedWeapon: CardInstance | null;

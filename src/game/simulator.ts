@@ -2,10 +2,8 @@ import { mainDeckCards } from "../data/cards";
 import type { GameAction } from "./actions";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
-import type { CardInstance, GameState, PlayerState } from "./types";
+import type { CardInstance, GameState, PlayerState, StrategyLevel } from "./types";
 import { getCardDefinitionById, getCurrentPlayer, getPlayer } from "./rules";
-
-export type StrategyLevel = "beginner" | "novice" | "competent" | "expert" | "master";
 
 export type SimulationSummary = {
   gamesPlayed: number;
@@ -147,7 +145,9 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
 
   while (state.phase !== "gameOver" && safety < 1200) {
     const before = state;
-    const action = chooseAction(state, normalizedStrategies[state.currentPlayerIndex], random);
+    const decisionPlayerId = getDecisionPlayerId(state);
+    const decisionPlayerIndex = state.players.findIndex((player) => player.id === decisionPlayerId);
+    const action = chooseAutomatedAction(state, normalizedStrategies[Math.max(0, decisionPlayerIndex)], random);
     state = dispatchWithMetrics(state, action, metrics);
     safety += 1;
 
@@ -171,7 +171,7 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
   return { state, metrics, stalled };
 }
 
-function chooseAction(state: GameState, strategy: StrategyLevel, random: () => number): GameAction {
+export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel, random: () => number = Math.random): GameAction {
   if (state.pendingReaction) {
     return chooseReaction(state, strategy, random);
   }
@@ -274,6 +274,19 @@ function chooseAction(state: GameState, strategy: StrategyLevel, random: () => n
   }
 
   return { type: "END_TURN", playerId: player.id };
+}
+
+export function getDecisionPlayerId(state: GameState): string {
+  return (
+    state.pendingReaction?.defenderId ??
+    state.pendingRedirect?.defenderId ??
+    state.pendingAttackCost?.attackerId ??
+    state.pendingDiscard?.playerId ??
+    state.pendingSearch?.playerId ??
+    state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
+    state.pendingMarketSearch?.playerId ??
+    getCurrentPlayer(state).id
+  );
 }
 
 function chooseReaction(state: GameState, strategy: StrategyLevel, random: () => number): GameAction {

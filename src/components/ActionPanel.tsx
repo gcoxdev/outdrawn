@@ -8,10 +8,11 @@ type ActionPanelProps = {
   state: GameState;
   currentPlayer: PlayerState;
   selectedCard: CardInstance | null;
+  isComputerDecision: boolean;
   dispatch: (action: GameAction) => void;
 };
 
-export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: ActionPanelProps) {
+export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDecision, dispatch }: ActionPanelProps) {
   const [discardSelection, setDiscardSelection] = useState<string[]>([]);
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
@@ -57,6 +58,26 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
 
       return true;
     }) ?? [];
+
+  if (isComputerDecision) {
+    const decisionPlayer =
+      pendingDefender ??
+      pendingRedirectDefender ??
+      pendingAttackCostPlayer ??
+      pendingDiscardPlayer ??
+      getPlayer(state, state.pendingSearch?.playerId ?? "") ??
+      pendingSupplyDropPlayer ??
+      pendingMarketPlayer ??
+      currentPlayer;
+
+    return (
+      <section className="action-panel ai-thinking-panel">
+        <p className="eyebrow">Computer</p>
+        <h2>{decisionPlayer.name} is choosing</h2>
+        <p>The computer is resolving this decision. Hidden cards stay face down.</p>
+      </section>
+    );
+  }
 
   if (state.pendingReaction && pendingDefender && pendingAttacker) {
     const weaponDefinition = getCardDefinitionById(state.pendingReaction.weapon.definitionId);

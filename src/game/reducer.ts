@@ -290,7 +290,7 @@ function currentPlayerOverHandLimit(state: GameState): boolean {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "START_GAME":
-      return createNewGame(action.playerNames, Math.random, action.settings ?? state.settings);
+      return createNewGame(action.playerSetups ?? action.playerNames, Math.random, action.settings ?? state.settings);
     case "UPDATE_SETTINGS":
       return { ...state, settings: action.settings };
     case "SELECT_CARD":

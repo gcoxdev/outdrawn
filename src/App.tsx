@@ -1,9 +1,10 @@
-import { useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { GameTable } from "./components/GameTable";
 import { SetupScreen } from "./components/SetupScreen";
 import { defaultGameSettings } from "./data/constants";
 import { gameReducer } from "./game/reducer";
-import type { GameState } from "./game/types";
+import { chooseAutomatedAction, getDecisionPlayerId } from "./game/simulator";
+import type { GameState, PlayerSetup } from "./game/types";
 
 const initialState: GameState = {
   phase: "setup",
@@ -36,16 +37,45 @@ const initialState: GameState = {
 
 export default function App() {
   const [state, dispatch] = useReducer(gameReducer, initialState);
+  const aiRandom = useRef(createRng(Date.now()));
+
+  useEffect(() => {
+    if (state.phase !== "action") {
+      return;
+    }
+
+    const decisionPlayer = state.players.find((player) => player.id === getDecisionPlayerId(state));
+    if (!decisionPlayer || decisionPlayer.controller.type !== "computer") {
+      return;
+    }
+
+    const strategy = decisionPlayer.controller.strategy;
+    const timeoutId = window.setTimeout(() => {
+      dispatch(chooseAutomatedAction(state, strategy, aiRandom.current));
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [state]);
 
   if (state.phase === "setup") {
     return (
       <SetupScreen
         settings={state.settings}
         dispatch={dispatch}
-        onStart={(playerNames) => dispatch({ type: "START_GAME", playerNames, settings: state.settings })}
+        onStart={(playerSetups: PlayerSetup[]) =>
+          dispatch({ type: "START_GAME", playerNames: playerSetups.map((player) => player.name), playerSetups, settings: state.settings })
+        }
       />
     );
   }
 
   return <GameTable state={state} dispatch={dispatch} />;
+}
+
+function createRng(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
 }
