@@ -21,10 +21,19 @@ function log(state: GameState, message: string): GameState {
       {
         id: `log_${state.log.length + 1}_${Date.now()}`,
         round: state.round,
-        message
+        message,
+        handSnapshots: getHandSnapshots(state)
       }
     ]
   };
+}
+
+function getHandSnapshots(state: GameState): GameState["log"][number]["handSnapshots"] {
+  return state.players.map((player) => ({
+    playerId: player.id,
+    playerName: player.name,
+    cards: player.hand.map((card) => ({ ...card }))
+  }));
 }
 
 function updatePlayer(state: GameState, playerId: string, updater: (player: PlayerState) => PlayerState): GameState {

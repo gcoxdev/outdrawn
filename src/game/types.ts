@@ -48,6 +48,11 @@ export type LogEntry = {
   id: string;
   round: number;
   message: string;
+  handSnapshots: Array<{
+    playerId: PlayerId;
+    playerName: string;
+    cards: CardInstance[];
+  }>;
 };
 
 export type PendingReaction = {

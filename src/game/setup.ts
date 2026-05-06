@@ -66,7 +66,12 @@ export function createNewGame(
       {
         id: "log_setup",
         round: 1,
-        message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`
+        message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`,
+        handSnapshots: players.map((player) => ({
+          playerId: player.id,
+          playerName: player.name,
+          cards: player.hand.map((card) => ({ ...card }))
+        }))
       }
     ],
     winnerId: null

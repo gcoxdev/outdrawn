@@ -8,6 +8,7 @@ import { CardBack, CardView } from "./CardView";
 import { GameLog } from "./GameLog";
 import { GameMenu } from "./GameMenu";
 import { PlayerPanel } from "./PlayerPanel";
+import { WinnerModal } from "./WinnerModal";
 
 function definitionFor(card: CardInstance | null) {
   return card ? allCards.find((definition) => definition.id === card.definitionId) : undefined;
@@ -31,13 +32,16 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === getDecisionPlayerId(state);
-  const shouldRevealDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision;
-  const selectedDefinition = shouldRevealDisplayHand ? definitionFor(selectedCard) : undefined;
+  const onlyComputersRemain = state.players.every((player) => player.eliminated || player.controller.type === "computer");
+  const shouldRevealDisplayHand = displayPlayer.controller.type === "human" || onlyComputersRemain;
+  const canSelectDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision && state.phase !== "gameOver";
+  const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
   const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
   const winner = state.players.find((player) => player.id === state.winnerId);
 
   return (
     <main className="game-table">
+      {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
       <GameMenu settings={state.settings} dispatch={dispatch} />
       <header className="status-bar">
         <div>
@@ -108,11 +112,14 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                     card={definition}
                     isSelected={state.selectedCardId === card.instanceId}
                     key={card.instanceId}
-                    onClick={() =>
-                      dispatch({
-                        type: "SELECT_CARD",
-                        cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
-                      })
+                    onClick={
+                      canSelectDisplayHand
+                        ? () =>
+                            dispatch({
+                              type: "SELECT_CARD",
+                              cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
+                            })
+                        : undefined
                     }
                   />
                 ) : null;

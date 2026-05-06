@@ -149,7 +149,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["damage", "pierce", "target"],
     shortText: "Deal 4 damage. Ignores Armor Vest.",
-    rulesText: "Deal 4 damage to one player. This damage ignores equipped Armor Vest.",
+    rulesText: "Deal 4 damage to one player. This damage ignores Armor Vest reactions.",
     flavorText: "Old tech. New problem.",
     tags: ["weapon", "piercing", "single-target"]
   },
@@ -331,8 +331,8 @@ export const mainDeckCards: Card[] = [
     discard: 1,
     supplyCost: 2,
     icons: ["discard", "weapon"],
-    shortText: "Target discards their equipped weapon.",
-    rulesText: "Choose one player. They discard their equipped weapon.",
+    shortText: "Target discards their highest-damage weapon from hand.",
+    rulesText: "Choose one player. They discard exactly 1 weapon from hand: the weapon with the highest damage.",
     flavorText: "A threat without a weapon is just noise.",
     tags: ["ability", "control", "weapon-removal"]
   },
@@ -585,7 +585,7 @@ export const eventDeckCards: Card[] = [
     discard: 1,
     icons: ["discard", "weapon", "damage"],
     shortText: "Discard a weapon or take 3 damage.",
-    rulesText: "Each player must discard one weapon from hand or equipped area. Players who cannot discard a weapon take 3 damage.",
+    rulesText: "Each player must discard one weapon from hand. Players who cannot discard a weapon take 3 damage.",
     flavorText: "The loudest guns run dry first.",
     tags: ["event", "weapon-pressure", "damage"]
   },

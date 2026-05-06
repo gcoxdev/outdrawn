@@ -45,6 +45,46 @@ describe("gameplay corrections", () => {
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([disarm.instanceId, shotgun.instanceId]));
   });
 
+  it("Disarm discards only one weapon when the target has multiple matching weapons", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const current = state.players[state.currentPlayerIndex];
+    const target = state.players.find((player) => player.id !== current.id)!;
+    const [disarm] = instances(["ability_disarm"]);
+    const [firstPistol, secondPistol] = instances(["weapon_pistol", "weapon_pistol"]);
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === current.id
+          ? { ...player, hand: [disarm], actionsRemaining: 2 }
+          : player.id === target.id
+            ? { ...player, hand: [firstPistol, secondPistol] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "PLAY_ABILITY",
+      playerId: current.id,
+      cardInstanceId: disarm.instanceId,
+      targetPlayerId: target.id
+    });
+
+    const targetHand = state.players.find((player) => player.id === target.id)!.hand;
+    expect(targetHand).toHaveLength(1);
+    expect(state.discardPile.filter((card) => card.definitionId === "weapon_pistol")).toHaveLength(1);
+  });
+
+  it("records hand snapshots on log entries for debugging", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const current = state.players[state.currentPlayerIndex];
+
+    state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });
+
+    const latest = state.log.at(-1)!;
+    expect(latest.handSnapshots).toHaveLength(3);
+    expect(latest.handSnapshots.find((snapshot) => snapshot.playerId === current.id)?.cards).toHaveLength(current.hand.length);
+  });
+
   it("Smoke Bomb prevents targeting until that player's next turn", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];

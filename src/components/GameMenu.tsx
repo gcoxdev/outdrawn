@@ -1,4 +1,4 @@
-import { Menu, X } from "lucide-react";
+import { Menu, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
 import type { GameSettings } from "../data/constants";
@@ -84,6 +84,12 @@ export function GameMenu({ settings, dispatch }: GameMenuProps) {
 
             {activeTab === "settings" && (
               <div className="menu-section settings-grid">
+                <div className="menu-actions">
+                  <button type="button" onClick={() => dispatch({ type: "RESET_GAME" })}>
+                    <RotateCcw size={16} />
+                    New Game
+                  </button>
+                </div>
                 {settingFields.map((field) => (
                   <label className="setting-control" key={field.key}>
                     <span>{field.label}</span>

@@ -50,10 +50,9 @@ This avoids giving players extra starting cards or revealing hidden hand informa
 # Card Visibility Rules
 
 - **Cards in hand:** Hidden from other players
-- **Equipped cards:** Face-up and visible
+- **Played cards:** Revealed when used, then discarded unless a card says otherwise
 - **Discard pile:** Face-up and visible
 - **Event cards:** Face-up and visible
-- **Played cards:** Revealed when used
 - **Eliminated player’s cards:** Revealed to all players when eliminated
 
 When a player is eliminated, everyone sees what they had. This creates table knowledge and makes the loot choice transparent.
