@@ -51,6 +51,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
         return Boolean(state.pendingReaction && state.pendingReaction.baseDamage >= pendingDefender.health);
       }
 
+      if (definition.id === "defense_decoy") {
+        return state.players.some((player) => !player.eliminated && player.id !== state.pendingReaction?.attackerId && player.id !== pendingDefender.id);
+      }
+
       return true;
     }) ?? [];
 

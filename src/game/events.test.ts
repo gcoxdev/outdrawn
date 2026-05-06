@@ -171,6 +171,18 @@ describe("event cards", () => {
     expect(state.players.map((player) => player.health)).toEqual([20, 19, 19]);
   });
 
+  it("collapse damage starts at the end of round 3", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    state = {
+      ...state,
+      round: 3
+    };
+
+    state = endCurrentRound(state);
+
+    expect(state.players.map((player) => player.health)).toEqual([19, 19, 19]);
+  });
+
   it("Supply Drop reveals three cards and lets players claim or pass in low-health order", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const supplyDrop = event("event_supply_drop");

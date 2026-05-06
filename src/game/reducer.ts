@@ -55,7 +55,18 @@ function advanceTurn(state: GameState): GameState {
 
   const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
   const nextRound = allLivingActed;
-  const transitionState = nextRound ? resolveRoundTransition(state) : state;
+  const collapseState = nextRound ? applyCollapseDamage(state) : state;
+  const transitionState = nextRound ? resolveRoundTransition(collapseState) : state;
+  const livingAfterTransition = transitionState.players.filter((player) => !player.eliminated);
+  const postTransitionWinner = getWinner(transitionState);
+  if (livingAfterTransition.length <= 1) {
+    return {
+      ...transitionState,
+      phase: "gameOver",
+      winnerId: postTransitionWinner?.id ?? null
+    };
+  }
+
   const firstPlayerIndex = nextRound
     ? findNextLivingIndex(transitionState.players, transitionState.firstPlayerIndex)
     : transitionState.firstPlayerIndex;
@@ -220,6 +231,29 @@ function applyPressureZone(state: GameState): GameState {
       }
 
       const health = Math.max(0, player.health - 1);
+      return {
+        ...player,
+        health,
+        eliminated: health === 0
+      };
+    })
+  };
+}
+
+function applyCollapseDamage(state: GameState): GameState {
+  const damage = state.round >= 8 ? 2 : state.round >= 3 ? 1 : 0;
+  if (damage === 0) {
+    return state;
+  }
+
+  return {
+    ...state,
+    players: state.players.map((player) => {
+      if (player.eliminated) {
+        return player;
+      }
+
+      const health = Math.max(0, player.health - damage);
       return {
         ...player,
         health,
@@ -670,6 +704,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       if (reactionDefinition.id === "defense_decoy") {
+        const hasRedirectTarget = state.players.some(
+          (player) => !player.eliminated && player.id !== attacker.id && player.id !== defender.id
+        );
+        if (!hasRedirectTarget) {
+          return state;
+        }
+
         return log(
           {
             ...state,
