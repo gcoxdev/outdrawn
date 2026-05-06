@@ -1,0 +1,50 @@
+import { describe, expect, it } from "vitest";
+import { mainDeckCards } from "../data/cards";
+
+function totalWeaponDamage() {
+  return mainDeckCards
+    .filter((card) => card.type === "weapon")
+    .reduce((total, card) => total + (card.damage ?? 0) * card.count, 0);
+}
+
+function totalDamageSupport() {
+  return mainDeckCards
+    .filter((card) => card.id === "ability_ambush" || card.id === "ability_mark_target")
+    .reduce((total, card) => total + (card.damage ?? 0) * card.count, 0);
+}
+
+function estimatedSurvivalValue() {
+  return mainDeckCards.reduce((total, card) => {
+    if (card.type === "healing") {
+      return total + (card.heal ?? 0) * card.count;
+    }
+
+    if (card.id === "defense_dodge" || card.id === "defense_smoke_bomb") {
+      return total + 4 * card.count;
+    }
+
+    if (card.id === "defense_brace") {
+      return total + 3 * card.count;
+    }
+
+    if (card.id === "defense_fake_death" || card.id === "healing_second_wind") {
+      return total + 5 * card.count;
+    }
+
+    if (card.type === "defense") {
+      return total + (card.block ?? 0) * card.count;
+    }
+
+    return total;
+  }, 0);
+}
+
+describe("starter deck balance", () => {
+  it("leans toward damage without making survival cards irrelevant", () => {
+    const pressure = totalWeaponDamage() + totalDamageSupport();
+    const survival = estimatedSurvivalValue();
+
+    expect(pressure / survival).toBeGreaterThanOrEqual(1.45);
+    expect(pressure / survival).toBeLessThanOrEqual(1.9);
+  });
+});

@@ -14,7 +14,9 @@ type ActionPanelProps = {
 export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: ActionPanelProps) {
   const [discardSelection, setDiscardSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
-  const livingTargets = state.players.filter((player) => !player.eliminated && player.id !== currentPlayer.id);
+  const livingTargets = state.players.filter(
+    (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
+  );
   const canAct = state.phase === "action" && !state.pendingReaction && !state.pendingDiscard && currentPlayer.actionsRemaining > 0;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
@@ -222,7 +224,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
         <div className="attack-box">
           <h2>Ability Target</h2>
           <p>
-            {["ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
+            {["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
               ? `Choose a target for ${selectedDefinition.name}.`
               : "This ability is not implemented yet."}
           </p>
@@ -232,7 +234,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
                 disabled={
                   !canAct ||
                   !selectedCard ||
-                  !["ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
+                  !["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target"].includes(selectedDefinition.id)
                 }
                 key={target.id}
                 onClick={() =>

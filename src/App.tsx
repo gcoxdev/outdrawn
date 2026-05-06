@@ -22,6 +22,7 @@ const initialState: GameState = {
   selectedCardId: null,
   attackBonuses: {},
   markedTargets: {},
+  smokeProtectedPlayerIds: [],
   log: [],
   winnerId: null
 };

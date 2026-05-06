@@ -69,6 +69,7 @@ export type GameState = {
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   markedTargets: Record<PlayerId, number>;
+  smokeProtectedPlayerIds: PlayerId[];
   log: LogEntry[];
   winnerId: PlayerId | null;
 };

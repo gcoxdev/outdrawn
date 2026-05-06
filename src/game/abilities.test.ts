@@ -60,14 +60,14 @@ describe("ability cards", () => {
     expect(state.attackBonuses[current.id]).toBeUndefined();
   });
 
-  it("uses Adrenaline to keep the same action count and lose health", () => {
+  it("uses Adrenaline to gain a net action and lose health", () => {
     let { state, current } = stateWithHands(["ability_adrenaline"]);
     const adrenaline = state.players[state.currentPlayerIndex].hand[0];
 
     state = gameReducer(state, { type: "PLAY_ABILITY", playerId: current.id, cardInstanceId: adrenaline.instanceId });
     const player = state.players.find((candidate) => candidate.id === current.id)!;
 
-    expect(player.actionsRemaining).toBe(2);
+    expect(player.actionsRemaining).toBe(3);
     expect(player.health).toBe(18);
     expect(state.discardPile.some((card) => card.instanceId === adrenaline.instanceId)).toBe(true);
   });

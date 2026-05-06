@@ -53,6 +53,7 @@ export function createNewGame(
     selectedCardId: null,
     attackBonuses: {},
     markedTargets: {},
+    smokeProtectedPlayerIds: [],
     log: [
       {
         id: "log_setup",

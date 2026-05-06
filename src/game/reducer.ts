@@ -1,5 +1,6 @@
 import { allCards } from "../data/cards";
 import { drawCards } from "./deck";
+import type { CardInstance } from "./types";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
@@ -83,6 +84,9 @@ function advanceTurn(state: GameState): GameState {
     currentPlayerIndex,
     markedTargets: nextRound ? {} : state.markedTargets
   };
+  advanced.smokeProtectedPlayerIds = advanced.smokeProtectedPlayerIds.filter(
+    (playerId) => playerId !== advanced.players[currentPlayerIndex].id
+  );
 
   return log(
     advanced,
@@ -124,14 +128,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "SELECT_CARD":
       return { ...state, selectedCardId: action.cardInstanceId };
     case "DRAW_CARD": {
-      if (!canPlayerAct(state, action.playerId) || state.mainDeck.length === 0) {
+      if (!canPlayerAct(state, action.playerId) || (state.mainDeck.length === 0 && state.discardPile.length === 0)) {
         return state;
       }
 
-      const draw = drawCards(state.mainDeck, 1);
+      const deckState = refillDeckIfNeeded(state);
+      const draw = drawCards(deckState.mainDeck, 1);
       let nextState = {
-        ...state,
-        mainDeck: draw.deck
+        ...deckState,
+        mainDeck: draw.deck,
+        discardPile: deckState.discardPile
       };
       nextState = updatePlayer(nextState, action.playerId, (player) => ({
         ...player,
@@ -247,7 +253,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const weapon = attacker.hand.find((card) => card.instanceId === action.weaponInstanceId);
       const weaponDefinition = weapon ? getCardDefinitionById(weapon.definitionId) : undefined;
 
-      if (!target || target.eliminated || target.id === attacker.id || !weapon || weaponDefinition?.type !== "weapon") {
+      if (
+        !target ||
+        target.eliminated ||
+        target.id === attacker.id ||
+        state.smokeProtectedPlayerIds.includes(target.id) ||
+        !weapon ||
+        weaponDefinition?.type !== "weapon"
+      ) {
         return state;
       }
 
@@ -364,7 +377,7 @@ function resolveAbility(
     nextState = updatePlayer(nextState, player.id, (currentPlayer) => ({
       ...currentPlayer,
       health: Math.max(0, currentPlayer.health - 2),
-      actionsRemaining: currentPlayer.actionsRemaining + 1
+      actionsRemaining: currentPlayer.actionsRemaining + 2
     }));
     message = `${player.name} played Adrenaline, gained an action, and lost 2 health.`;
   }
@@ -392,6 +405,27 @@ function resolveAbility(
     message = `${player.name} stole 1 card from ${target.name}.`;
   }
 
+  if (definitionId === "ability_disarm" && target) {
+    const weapon = getHighestDamageWeapon(target.hand);
+    if (!weapon) {
+      return log(nextState, `${player.name} played Disarm, but ${target.name} had no weapon cards.`);
+    }
+
+    nextState = {
+      ...nextState,
+      discardPile: [...nextState.discardPile, weapon],
+      players: nextState.players.map((candidate) =>
+        candidate.id === target.id
+          ? {
+              ...candidate,
+              hand: candidate.hand.filter((card) => card.instanceId !== weapon.instanceId)
+            }
+          : candidate
+      )
+    };
+    message = `${player.name} disarmed ${target.name}, discarding ${getCardDefinitionById(weapon.definitionId)?.name ?? "a weapon"}.`;
+  }
+
   if (definitionId === "ability_sabotage" && target) {
     nextState = {
       ...nextState,
@@ -417,4 +451,26 @@ function resolveAbility(
   }
 
   return log(nextState, message);
+}
+
+function getHighestDamageWeapon(hand: CardInstance[]): CardInstance | null {
+  return hand
+    .filter((card) => getCardDefinitionById(card.definitionId)?.type === "weapon")
+    .sort((left, right) => {
+      const leftDamage = getCardDefinitionById(left.definitionId)?.damage ?? 0;
+      const rightDamage = getCardDefinitionById(right.definitionId)?.damage ?? 0;
+      return rightDamage - leftDamage;
+    })[0] ?? null;
+}
+
+function refillDeckIfNeeded(state: GameState): GameState {
+  if (state.mainDeck.length > 0 || state.discardPile.length === 0) {
+    return state;
+  }
+
+  return {
+    ...state,
+    mainDeck: state.discardPile,
+    discardPile: []
+  };
 }

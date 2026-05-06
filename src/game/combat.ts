@@ -33,6 +33,12 @@ export function resolveAttack(
   const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
   const counterDamage = reactionResult.counterDamage;
+  const targetHandAfterReaction = reactionResult.discardsDefenderHand
+    ? []
+    : reaction
+      ? target.hand.filter((card) => card.instanceId !== reaction.instanceId)
+      : target.hand;
+  const loot = eliminated ? targetHandAfterReaction : [];
   let winnerId = state.winnerId;
   let phase = state.phase;
   const messages = [
@@ -60,7 +66,7 @@ export function resolveAttack(
       const attackerHealth = Math.max(0, player.health - counterDamage);
       return {
         ...player,
-        hand: player.hand.filter((card) => card.instanceId !== weapon.instanceId),
+        hand: [...player.hand.filter((card) => card.instanceId !== weapon.instanceId), ...loot],
         health: attackerHealth,
         eliminated: attackerHealth === 0,
         attackedThisRound: true,
@@ -73,11 +79,7 @@ export function resolveAttack(
     if (player.id === target.id) {
       return {
         ...player,
-        hand: reactionResult.discardsDefenderHand
-          ? []
-          : reaction
-            ? player.hand.filter((card) => card.instanceId !== reaction.instanceId)
-            : player.hand,
+        hand: eliminated ? [] : targetHandAfterReaction,
         health: nextHealth,
         eliminated
       };
@@ -99,6 +101,10 @@ export function resolveAttack(
       ...nextState,
       pendingReaction: null,
       attackBonuses: omitKey(nextState.attackBonuses, attacker.id),
+      smokeProtectedPlayerIds:
+        reactionDefinition?.id === "defense_smoke_bomb"
+          ? Array.from(new Set([...nextState.smokeProtectedPlayerIds, target.id]))
+          : nextState.smokeProtectedPlayerIds,
       discardPile: [
         ...nextState.discardPile,
         weapon,

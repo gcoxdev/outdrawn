@@ -16,6 +16,7 @@ const implementedCardIds = new Set([
   "defense_brace",
   "defense_fake_death",
   "ability_ambush",
+  "ability_disarm",
   "ability_steal",
   "ability_sabotage",
   "ability_mark_target",
