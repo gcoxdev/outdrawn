@@ -91,12 +91,23 @@ describe("ability cards", () => {
   it("uses Sabotage to discard two cards from a target hand", () => {
     let { state, current, target } = stateWithHands(["ability_sabotage"], ["weapon_pistol", "weapon_knife"]);
     const sabotage = state.players[state.currentPlayerIndex].hand[0];
+    const targetCards = state.players.find((player) => player.id === target.id)!.hand;
 
     state = gameReducer(state, {
       type: "PLAY_ABILITY",
       playerId: current.id,
       cardInstanceId: sabotage.instanceId,
       targetPlayerId: target.id
+    });
+
+    expect(state.pendingDiscard?.playerId).toBe(target.id);
+    expect(state.pendingDiscard?.count).toBe(2);
+    expect(state.players.find((player) => player.id === target.id)!.hand).toHaveLength(2);
+
+    state = gameReducer(state, {
+      type: "RESOLVE_PENDING_DISCARD",
+      playerId: target.id,
+      cardInstanceIds: targetCards.map((card) => card.instanceId)
     });
 
     expect(state.players.find((player) => player.id === target.id)!.hand).toHaveLength(0);

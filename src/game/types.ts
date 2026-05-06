@@ -43,6 +43,13 @@ export type PendingReaction = {
   baseDamage: number;
 };
 
+export type PendingDiscard = {
+  sourcePlayerId: PlayerId;
+  playerId: PlayerId;
+  count: number;
+  reason: string;
+};
+
 export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
@@ -58,6 +65,7 @@ export type GameState = {
   eventDiscardPile: CardInstance[];
   activeEvent: ActiveEvent | null;
   pendingReaction: PendingReaction | null;
+  pendingDiscard: PendingDiscard | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   markedTargets: Record<PlayerId, number>;

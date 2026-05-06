@@ -19,9 +19,10 @@ type GameTableProps = {
 
 export function GameTable({ state, dispatch }: GameTableProps) {
   const currentPlayer = getCurrentPlayer(state);
-  const displayPlayer = state.pendingReaction
-    ? (state.players.find((player) => player.id === state.pendingReaction?.defenderId) ?? currentPlayer)
-    : currentPlayer;
+  const displayPlayer =
+    state.players.find((player) => player.id === state.pendingReaction?.defenderId) ??
+    state.players.find((player) => player.id === state.pendingDiscard?.playerId) ??
+    currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const selectedDefinition = definitionFor(selectedCard);
   const winner = state.players.find((player) => player.id === state.winnerId);
@@ -37,6 +38,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               ? `${winner?.name ?? "Nobody"} wins`
               : state.pendingReaction
                 ? `${displayPlayer.name}'s reaction`
+                : state.pendingDiscard
+                  ? `${displayPlayer.name}'s discard`
                 : `${currentPlayer.name}'s turn`}
           </h1>
         </div>
@@ -57,7 +60,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         <section className="current-board">
           <div className="board-heading">
             <div>
-              <p className="eyebrow">{state.pendingReaction ? "Defender Hand" : "Current Player"}</p>
+              <p className="eyebrow">{state.pendingReaction ? "Defender Hand" : state.pendingDiscard ? "Discarding Hand" : "Current Player"}</p>
               <h2>{displayPlayer.name}</h2>
             </div>
             <strong>{displayPlayer.health} HP</strong>

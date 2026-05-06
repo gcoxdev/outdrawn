@@ -9,6 +9,7 @@ export type GameAction =
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
   | { type: "PLAY_HEALING"; playerId: PlayerId; cardInstanceId: CardInstanceId }
   | { type: "PLAY_ABILITY"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
+  | { type: "RESOLVE_PENDING_DISCARD"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
   | {
       type: "ATTACK";
       attackerId: PlayerId;

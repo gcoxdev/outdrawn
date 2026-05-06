@@ -659,6 +659,12 @@ p {
   gap: 10px;
 }
 
+.pending-discard-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
 .reaction-card-button {
   display: block;
   height: auto;

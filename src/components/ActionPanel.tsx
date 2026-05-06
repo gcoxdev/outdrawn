@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { GameAction } from "../game/actions";
 import { getCardDefinitionById, getPlayer } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
@@ -11,11 +12,13 @@ type ActionPanelProps = {
 };
 
 export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: ActionPanelProps) {
+  const [discardSelection, setDiscardSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
   const livingTargets = state.players.filter((player) => !player.eliminated && player.id !== currentPlayer.id);
-  const canAct = state.phase === "action" && !state.pendingReaction && currentPlayer.actionsRemaining > 0;
+  const canAct = state.phase === "action" && !state.pendingReaction && !state.pendingDiscard && currentPlayer.actionsRemaining > 0;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
+  const pendingDiscardPlayer = state.pendingDiscard ? getPlayer(state, state.pendingDiscard.playerId) : undefined;
   const reactionCards =
     pendingDefender?.hand.filter((card) => {
       const definition = getCardDefinitionById(card.definitionId);
@@ -63,6 +66,61 @@ export function ActionPanel({ state, currentPlayer, selectedCard, dispatch }: Ac
           })}
         </div>
         <button onClick={() => dispatch({ type: "SKIP_REACTION", defenderId: pendingDefender.id })}>Take Hit</button>
+      </section>
+    );
+  }
+
+  if (state.pendingDiscard && pendingDiscardPlayer) {
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Discard Choice</p>
+          <h2>{pendingDiscardPlayer.name}, discard {state.pendingDiscard.count}</h2>
+          <p>{state.pendingDiscard.reason} forces you to choose which cards leave your hand.</p>
+        </div>
+        <div className="pending-discard-list">
+          {pendingDiscardPlayer.hand.map((card) => {
+            const definition = getCardDefinitionById(card.definitionId);
+            const isSelected = discardSelection.includes(card.instanceId);
+            return definition ? (
+              <button
+                className={`reaction-card-button${isSelected ? " is-selected" : ""}`}
+                key={card.instanceId}
+                onClick={() =>
+                  setDiscardSelection((current) => {
+                    if (current.includes(card.instanceId)) {
+                      return current.filter((id) => id !== card.instanceId);
+                    }
+
+                    if (current.length >= state.pendingDiscard!.count) {
+                      return [...current.slice(1), card.instanceId];
+                    }
+
+                    return [...current, card.instanceId];
+                  })
+                }
+              >
+                <CardView card={definition} mode="board" isSelected={isSelected} />
+              </button>
+            ) : null;
+          })}
+        </div>
+        <p className="menu-note">
+          Selected {discardSelection.length} of {state.pendingDiscard.count}.
+        </p>
+        <button
+          disabled={discardSelection.length < Math.min(state.pendingDiscard.count, pendingDiscardPlayer.hand.length)}
+          onClick={() => {
+            dispatch({
+              type: "RESOLVE_PENDING_DISCARD",
+              playerId: pendingDiscardPlayer.id,
+              cardInstanceIds: discardSelection
+            });
+            setDiscardSelection([]);
+          }}
+        >
+          Confirm Discard
+        </button>
       </section>
     );
   }

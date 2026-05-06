@@ -18,6 +18,7 @@ const initialState: GameState = {
   eventDiscardPile: [],
   activeEvent: null,
   pendingReaction: null,
+  pendingDiscard: null,
   selectedCardId: null,
   attackBonuses: {},
   markedTargets: {},

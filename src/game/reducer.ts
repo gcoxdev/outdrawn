@@ -57,8 +57,7 @@ function advanceTurn(state: GameState): GameState {
   const firstPlayerIndex = nextRound
     ? findNextLivingIndex(state.players, state.firstPlayerIndex)
     : state.firstPlayerIndex;
-  const startIndex = nextRound ? firstPlayerIndex : state.currentPlayerIndex;
-  const currentPlayerIndex = findNextLivingIndex(state.players, startIndex);
+  const currentPlayerIndex = nextRound ? firstPlayerIndex : findNextLivingIndex(state.players, state.currentPlayerIndex);
 
   const players = state.players.map((player, index) => {
     const resetForRound = nextRound
@@ -162,6 +161,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         },
         `${player.name} discarded ${getCardDefinitionById(card.definitionId)?.name ?? "a card"}.`
       );
+    }
+    case "RESOLVE_PENDING_DISCARD": {
+      const pendingDiscard = state.pendingDiscard;
+      const player = pendingDiscard ? getPlayer(state, pendingDiscard.playerId) : undefined;
+
+      if (!pendingDiscard || !player || action.playerId !== player.id) {
+        return state;
+      }
+
+      const selectedIds = action.cardInstanceIds.slice(0, pendingDiscard.count);
+      if (selectedIds.length < Math.min(pendingDiscard.count, player.hand.length)) {
+        return state;
+      }
+
+      const selected = player.hand.filter((card) => selectedIds.includes(card.instanceId));
+      if (selected.length !== selectedIds.length) {
+        return state;
+      }
+
+      const nextState = {
+        ...state,
+        pendingDiscard: null,
+        discardPile: [...state.discardPile, ...selected],
+        selectedCardId: selected.some((card) => card.instanceId === state.selectedCardId) ? null : state.selectedCardId,
+        players: state.players.map((candidate) =>
+          candidate.id === player.id
+            ? {
+                ...candidate,
+                hand: candidate.hand.filter((card) => !selectedIds.includes(card.instanceId))
+              }
+            : candidate
+        )
+      };
+
+      return log(nextState, `${player.name} discarded ${selected.length} cards for ${pendingDiscard.reason}.`);
     }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {
@@ -359,20 +393,16 @@ function resolveAbility(
   }
 
   if (definitionId === "ability_sabotage" && target) {
-    const discarded = target.hand.slice(0, 2);
     nextState = {
       ...nextState,
-      discardPile: [...nextState.discardPile, ...discarded],
-      players: nextState.players.map((candidate) =>
-        candidate.id === target.id
-          ? {
-              ...candidate,
-              hand: candidate.hand.slice(discarded.length)
-            }
-          : candidate
-      )
+      pendingDiscard: {
+        sourcePlayerId: player.id,
+        playerId: target.id,
+        count: Math.min(2, target.hand.length),
+        reason: "Sabotage"
+      }
     };
-    message = `${player.name} sabotaged ${target.name}, discarding ${discarded.length} cards.`;
+    message = `${player.name} sabotaged ${target.name}. ${target.name} must discard ${Math.min(2, target.hand.length)} cards.`;
   }
 
   if (definitionId === "ability_mark_target" && target) {
