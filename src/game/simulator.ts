@@ -61,11 +61,13 @@ type SimulationResult = {
   stalled: boolean;
 };
 
-const playerNames = ["Ari", "Blake", "Casey", "Devon"];
+const playerNames = ["Ari", "Blake", "Casey", "Devon", "Eli", "Finn"];
 const defaultStrategies: StrategyLevel[] = ["competent", "competent", "competent", "competent"];
 
 export type SimulationOptions = {
   settings?: Partial<GameSettings>;
+  playerCount?: number;
+  playerNames?: string[];
 };
 
 export function simulateGames(
@@ -74,7 +76,8 @@ export function simulateGames(
   strategies: StrategyLevel[] = defaultStrategies,
   options: SimulationOptions = {}
 ): SimulationSummary {
-  const normalizedStrategies = normalizeStrategies(strategies);
+  const simulationPlayerNames = getSimulationPlayerNames(options);
+  const normalizedStrategies = normalizeStrategies(strategies, simulationPlayerNames.length);
   const results = Array.from({ length: count }, (_, index) => simulateGame(seed + index * 9973, normalizedStrategies, options));
   const completed = results.filter((result) => !result.stalled && result.state.phase === "gameOver");
   const allMetrics = results.map((result) => result.metrics);
@@ -134,10 +137,11 @@ export function simulateGames(
 }
 
 export function simulateGame(seed: number, strategies: StrategyLevel[] = defaultStrategies, options: SimulationOptions = {}): SimulationResult {
-  const normalizedStrategies = normalizeStrategies(strategies);
+  const simulationPlayerNames = getSimulationPlayerNames(options);
+  const normalizedStrategies = normalizeStrategies(strategies, simulationPlayerNames.length);
   const random = createRng(seed);
   let state = createNewGame(
-    playerNames.map((name, index) => ({
+    simulationPlayerNames.map((name, index) => ({
       name,
       controller: {
         type: "computer",
@@ -657,8 +661,17 @@ function scoreReaction(card: CardInstance, damage: number, defenderHealth: numbe
   return Math.min(damage, definition.block ?? 0);
 }
 
-function normalizeStrategies(strategies: StrategyLevel[]): StrategyLevel[] {
-  return playerNames.map((_, index) => strategies[index] ?? strategies[strategies.length - 1] ?? "competent");
+function getSimulationPlayerNames(options: SimulationOptions): string[] {
+  if (options.playerNames?.length) {
+    return options.playerNames;
+  }
+
+  const count = options.playerCount ?? defaultStrategies.length;
+  return Array.from({ length: count }, (_, index) => playerNames[index] ?? `Player ${index + 1}`);
+}
+
+function normalizeStrategies(strategies: StrategyLevel[], count: number): StrategyLevel[] {
+  return Array.from({ length: count }, (_, index) => strategies[index] ?? strategies[strategies.length - 1] ?? "competent");
 }
 
 function chooseRedirectTarget(

@@ -28,6 +28,13 @@ describe("game simulator", () => {
     expect(Object.values(summary.winnerStrategies).reduce((total, count) => total + count, 0)).toBe(summary.completedGames);
   });
 
+  it("can simulate different player counts", () => {
+    const summary = simulateGames(10, 8675309, ["competent"], { playerCount: 6 });
+
+    expect(summary.strategies).toEqual(["competent", "competent", "competent", "competent", "competent", "competent"]);
+    expect(Object.keys(summary.winners).some((winner) => winner === "player_6")).toBe(true);
+  });
+
   it("can choose a live game action for a computer-controlled turn", () => {
     const state = createNewGame(
       [
