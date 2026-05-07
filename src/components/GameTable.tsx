@@ -10,7 +10,7 @@ import { ActionPanel } from "./ActionPanel";
 import { CardBack, CardView } from "./CardView";
 import { GameLog } from "./GameLog";
 import { GameMenu } from "./GameMenu";
-import { PlayerPanel } from "./PlayerPanel";
+import { PlayerRoster } from "./PlayerRoster";
 import { WinnerModal } from "./WinnerModal";
 
 function definitionFor(card: CardInstance | null) {
@@ -22,10 +22,10 @@ type GameTableProps = {
   dispatch: (action: GameAction) => void;
 };
 
-type MobileTab = "hand" | "actions" | "players" | "log";
+type MobileTab = "play" | "players" | "log";
 
 export function GameTable({ state, dispatch }: GameTableProps) {
-  const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("hand");
+  const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("play");
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
@@ -48,105 +48,107 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
   const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
   const winner = state.players.find((player) => player.id === state.winnerId);
+  const decisionText = getDecisionText(state, currentPlayer.name, displayPlayer.name, winner?.name);
 
   useEffect(() => {
-    setActiveMobileTab("hand");
+    setActiveMobileTab("play");
   }, [decisionPlayerId]);
 
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
       {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
       <GameMenu settings={state.settings} dispatch={dispatch} />
-      <header className="status-bar">
-        <div>
-          <p className="eyebrow">Round {state.round}</p>
-          <h1>
-            {state.phase === "gameOver"
-              ? `${winner?.name ?? "Nobody"} wins`
-              : state.pendingReaction
-                ? `${displayPlayer.name}'s reaction`
-                : state.pendingRedirect
-                  ? `${displayPlayer.name}'s redirect`
-                  : state.pendingAttackCost
-                    ? `${displayPlayer.name}'s attack cost`
-                    : state.pendingDiscard
-                      ? `${displayPlayer.name}'s discard`
-                      : state.pendingSupplyDrop
-                        ? `${displayPlayer.name}'s supply pick`
-                        : state.pendingMarketSearch
-                          ? `${displayPlayer.name}'s market pick`
-                          : `${currentPlayer.name}'s turn`}
-          </h1>
-        </div>
-      </header>
 
       <nav className="mobile-board-tabs" aria-label="Board sections">
-        {(["hand", "actions", "players", "log"] as MobileTab[]).map((tab) => (
+        {(["play", "players", "log"] as MobileTab[]).map((tab) => (
           <button className={activeMobileTab === tab ? "is-active" : ""} key={tab} type="button" onClick={() => setActiveMobileTab(tab)}>
             {tab}
           </button>
         ))}
       </nav>
 
-      <section className="player-strip board-panel board-panel-players">
-        {state.players.map((player) => (
-          <PlayerPanel key={player.id} player={player} isCurrent={player.id === currentPlayer.id} />
-        ))}
-      </section>
-
-      <section className="board-grid">
-        <section className="current-board board-panel board-panel-hand">
-          <div className="board-heading">
-            <div>
-              <p className="eyebrow">
-                {state.pendingReaction
-                  ? "Defender Hand"
-                  : state.pendingRedirect
-                    ? "Redirecting Hand"
-                    : state.pendingAttackCost
-                      ? "Attack Cost"
-                    : state.pendingDiscard
-                      ? "Discarding Hand"
-                      : state.pendingSearch
-                        ? "Searching Hand"
-                        : state.pendingSupplyDrop
-                          ? "Supply Drop"
-                          : state.pendingMarketSearch
-                            ? "Black Market"
-                            : "Current Player"}
-              </p>
-              <h2>{displayPlayer.name}</h2>
+      <section className="game-shell">
+        <aside className="operations-sidebar board-panel board-panel-players">
+          <div className="sidebar-pane sidebar-pane--players">
+            <PlayerRoster
+              state={state}
+              currentPlayerId={currentPlayer.id}
+              decisionPlayerId={decisionPlayerId}
+              displayPlayerId={displayPlayer.id}
+            />
+          </div>
+          <div className="sidebar-resize-handle" aria-hidden="true" />
+          <div className="sidebar-pane sidebar-pane--log board-panel-log">
+            <div className="log-panel__meta">
+              <span>{state.mainDeck.length} deck</span>
+              <span>{state.discardPile.length} discard</span>
+              <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
+              <span>{state.eventDeck.length} events</span>
             </div>
-            <strong>{displayPlayer.health} HP</strong>
+            <GameLog entries={state.log} />
           </div>
-          <div className="hand-rail">
-            {shouldRevealDisplayHand ? (
-              displayPlayer.hand.map((card) => {
-                const definition = definitionFor(card);
-                return definition ? (
-                  <CardView
-                    card={definition}
-                    isSelected={state.selectedCardId === card.instanceId}
-                    key={card.instanceId}
-                    onClick={
-                      canSelectDisplayHand
-                        ? () =>
-                            dispatch({
-                              type: "SELECT_CARD",
-                              cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
-                            })
-                        : undefined
-                    }
-                  />
-                ) : null;
-              })
-            ) : (
-              displayPlayer.hand.map((card) => <CardBack key={card.instanceId} />)
-            )}
-          </div>
-        </section>
+        </aside>
 
-        <div className="board-panel board-panel-actions">
+        <section className="decision-workspace board-panel board-panel-play">
+          <header className="decision-strip">
+            <div>
+              <p className="eyebrow">Round {state.round}</p>
+              <h1>{decisionText}</h1>
+            </div>
+            <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
+          </header>
+
+          <section className="current-board">
+            <div className="board-heading">
+              <div>
+                <p className="eyebrow">
+                  {state.pendingReaction
+                    ? "Defender Hand"
+                    : state.pendingRedirect
+                      ? "Redirecting Hand"
+                      : state.pendingAttackCost
+                        ? "Attack Cost"
+                        : state.pendingDiscard
+                          ? "Discarding Hand"
+                          : state.pendingSearch
+                            ? "Searching Hand"
+                            : state.pendingSupplyDrop
+                              ? "Supply Drop"
+                              : state.pendingMarketSearch
+                                ? "Black Market"
+                                : "Current Player"}
+                </p>
+                <h2>{displayPlayer.name}</h2>
+              </div>
+              <strong>{displayPlayer.health} HP</strong>
+            </div>
+            <div className="hand-rail">
+              {shouldRevealDisplayHand ? (
+                displayPlayer.hand.map((card) => {
+                  const definition = definitionFor(card);
+                  return definition ? (
+                    <CardView
+                      card={definition}
+                      isSelected={state.selectedCardId === card.instanceId}
+                      key={card.instanceId}
+                      onClick={
+                        canSelectDisplayHand
+                          ? () =>
+                              dispatch({
+                                type: "SELECT_CARD",
+                                cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
+                              })
+                          : undefined
+                      }
+                    />
+                  ) : null;
+                })
+              ) : (
+                displayPlayer.hand.map((card) => <CardBack key={card.instanceId} />)
+              )}
+            </div>
+          </section>
+
           <ActionPanel
             state={state}
             currentPlayer={currentPlayer}
@@ -154,16 +156,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             isComputerDecision={isComputerDecision || privacyGateActive}
             dispatch={dispatch}
           />
-        </div>
-        <div className="board-panel board-panel-log">
-          <div className="log-panel__meta">
-            <span>{state.mainDeck.length} deck</span>
-            <span>{state.discardPile.length} discard</span>
-            <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
-            <span>{state.eventDeck.length} events</span>
-          </div>
-          <GameLog entries={state.log} />
-        </div>
+        </section>
       </section>
 
       {privacyGateActive && (
@@ -182,4 +175,40 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       )}
     </main>
   );
+}
+
+function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {
+  if (state.phase === "gameOver") {
+    return `${winnerName ?? "Nobody"} wins`;
+  }
+
+  if (state.pendingReaction) {
+    return `${displayPlayerName} is defending`;
+  }
+
+  if (state.pendingRedirect) {
+    return `${displayPlayerName} is redirecting`;
+  }
+
+  if (state.pendingAttackCost) {
+    return `${displayPlayerName} must discard to attack`;
+  }
+
+  if (state.pendingDiscard) {
+    return `${displayPlayerName} must discard`;
+  }
+
+  if (state.pendingSupplyDrop) {
+    return `${displayPlayerName} is choosing supply`;
+  }
+
+  if (state.pendingMarketSearch) {
+    return `${displayPlayerName} is choosing market loot`;
+  }
+
+  if (state.pendingSearch) {
+    return `${displayPlayerName} is searching`;
+  }
+
+  return `${currentPlayerName}'s turn`;
 }
