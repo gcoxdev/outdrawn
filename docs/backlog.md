@@ -18,5 +18,5 @@
 - Compare pure round-robin turn order against the current round model with a moving starting player.
 - Decide whether Backfire, Ricochet, splash damage, and other indirect damage should allow ordinary defense reactions.
 - Rebalance Black Market incentives; current cost may be too high for the expected reward.
-- Simulate alternate defaults: 30 starting/max health, 7 starting cards, 10 max cards, and 3 actions per turn.
+- Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.
 - Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.

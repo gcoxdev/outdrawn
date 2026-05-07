@@ -1,4 +1,5 @@
 import { mainDeckCards } from "../data/cards";
+import { defaultGameSettings, type GameSettings } from "../data/constants";
 import type { GameAction } from "./actions";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
@@ -63,9 +64,18 @@ type SimulationResult = {
 const playerNames = ["Ari", "Blake", "Casey", "Devon"];
 const defaultStrategies: StrategyLevel[] = ["competent", "competent", "competent", "competent"];
 
-export function simulateGames(count: number, seed = 123456, strategies: StrategyLevel[] = defaultStrategies): SimulationSummary {
+export type SimulationOptions = {
+  settings?: Partial<GameSettings>;
+};
+
+export function simulateGames(
+  count: number,
+  seed = 123456,
+  strategies: StrategyLevel[] = defaultStrategies,
+  options: SimulationOptions = {}
+): SimulationSummary {
   const normalizedStrategies = normalizeStrategies(strategies);
-  const results = Array.from({ length: count }, (_, index) => simulateGame(seed + index * 9973, normalizedStrategies));
+  const results = Array.from({ length: count }, (_, index) => simulateGame(seed + index * 9973, normalizedStrategies, options));
   const completed = results.filter((result) => !result.stalled && result.state.phase === "gameOver");
   const allMetrics = results.map((result) => result.metrics);
   const turns = allMetrics.map((metrics) => metrics.turns);
@@ -123,7 +133,7 @@ export function simulateGames(count: number, seed = 123456, strategies: Strategy
   };
 }
 
-export function simulateGame(seed: number, strategies: StrategyLevel[] = defaultStrategies): SimulationResult {
+export function simulateGame(seed: number, strategies: StrategyLevel[] = defaultStrategies, options: SimulationOptions = {}): SimulationResult {
   const normalizedStrategies = normalizeStrategies(strategies);
   const random = createRng(seed);
   let state = createNewGame(
@@ -134,7 +144,8 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
         strategy: normalizedStrategies[index]
       } as const
     })),
-    random
+    random,
+    options.settings ? { ...defaultGameSettings, ...options.settings } : undefined
   );
   const metrics: SimulationMetrics = {
     turns: 0,
