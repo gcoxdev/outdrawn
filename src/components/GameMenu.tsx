@@ -167,16 +167,17 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     <div className="catalog-list">
                       {cards.map((card) => {
                         const status = getCardImplementationStatus(card);
+                        const implementationNote = getCardImplementationNote(card);
                         return (
                           <article className="catalog-card" key={card.id}>
                             <div>
                               <strong>{card.name}</strong>
                               <p>{card.shortText}</p>
-                              <small>{getCardImplementationNote(card)}</small>
+                              {implementationNote && <small>{implementationNote}</small>}
                             </div>
                             <div className="catalog-card__meta">
                               <span>x{card.count}</span>
-                              <span className={`status-pill status-${status}`}>{status}</span>
+                              {status !== "implemented" && <span className={`status-pill status-${status}`}>{status}</span>}
                             </div>
                           </article>
                         );

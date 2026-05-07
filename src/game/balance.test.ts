@@ -24,7 +24,7 @@ function estimatedSurvivalValue() {
     }
 
     if (card.id === "defense_backfire") {
-      return total + 5 * card.count;
+      return total + 6 * card.count;
     }
 
     if (card.id === "defense_brace") {

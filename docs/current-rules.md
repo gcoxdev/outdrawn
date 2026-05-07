@@ -87,7 +87,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Counterattack: after taking damage, deal 3 damage back to the attacker.
 - Smoke Bomb: cancel damage and become untargetable until your next turn, except by splash or event damage.
 - Ricochet: redirect the attack to another valid player.
-- Backfire: cancel incoming attack damage and deal 2 damage to the attacker.
+- Backfire: cancel incoming attack damage and deal that much damage to the attacker.
 - Brace: reduce damage by half, rounded down.
 - Fake Death: when an attack would eliminate you, survive at 1 health and discard your hand.
 

@@ -841,7 +841,7 @@ function getDeckBalance() {
       return total + 4 * card.count;
     }
     if (card.id === "defense_backfire") {
-      return total + 5 * card.count;
+      return total + 6 * card.count;
     }
     if (card.id === "defense_fake_death" || card.id === "healing_second_wind") {
       return total + 5 * card.count;

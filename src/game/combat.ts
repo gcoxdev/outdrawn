@@ -208,7 +208,7 @@ function resolveReactionDamage(
     return {
       ...baseResult,
       damage: 0,
-      counterDamage: reactionDefinition.damage ?? 2,
+      counterDamage: baseDamage,
       message: "{defender} caused the attack to backfire."
     };
   }

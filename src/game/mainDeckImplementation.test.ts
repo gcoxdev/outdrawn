@@ -114,7 +114,7 @@ describe("remaining main deck card implementations", () => {
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, ricochet.instanceId]));
   });
 
-  it("Backfire cancels incoming damage and only damages the attacker", () => {
+  it("Backfire cancels incoming damage and mirrors it onto the attacker", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
     const defender = state.players.find((player) => player.id !== attacker.id)!;
@@ -140,7 +140,7 @@ describe("remaining main deck card implementations", () => {
     state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: backfire.instanceId });
 
     expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
-    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(18);
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(17);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, backfire.instanceId]));
   });
 
