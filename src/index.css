@@ -413,7 +413,8 @@ p {
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 10px;
-  min-height: calc(100vh - 20px);
+  height: calc(100vh - 20px);
+  min-height: 0;
 }
 
 .operations-sidebar,
@@ -446,11 +447,21 @@ p {
   gap: 8px;
   padding: 8px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .sidebar-pane {
   min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar-pane--players {
   overflow: auto;
+}
+
+.sidebar-pane--log {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .sidebar-resize-handle {
@@ -863,7 +874,7 @@ p {
 }
 
 .game-log {
-  max-height: 100%;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -1071,10 +1082,6 @@ p {
   .game-shell {
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   }
-
-  .game-log {
-    max-height: 280px;
-  }
 }
 
 @media (max-width: 720px) {
@@ -1114,6 +1121,7 @@ p {
 
   .game-shell {
     display: block;
+    height: auto;
     min-height: 0;
   }
 
@@ -1121,6 +1129,7 @@ p {
   .decision-workspace {
     display: grid;
     min-height: 0;
+    overflow: visible;
   }
 
   .operations-sidebar {
