@@ -687,6 +687,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         );
       }
 
+      if (weaponDefinition.id === "weapon_minigun") {
+        const result = resolveMinigunAttack(state, attacker, weapon);
+        return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+      }
+
       const result = createPendingReaction(state, attacker, target, weapon);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
@@ -729,7 +734,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               decoy: reaction
             }
           },
-          `${defender.name} played Decoy and must choose a new target.`
+          `${defender.name} played Ricochet and must choose a new target.`
         );
       }
 
@@ -839,6 +844,72 @@ function resolvePendingAttack(
     },
     messages: [...result.messages, `${attacker.name}'s SMG fires again at ${defender.name}.`]
   };
+}
+
+function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: CardInstance) {
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  const damage = weaponDefinition?.damage ?? 1;
+  const damagedPlayerIds = state.players
+    .filter((player) => !player.eliminated && player.id !== attacker.id && !state.smokeProtectedPlayerIds.includes(player.id))
+    .map((player) => player.id);
+  const eliminatedHands = state.players
+    .filter((player) => damagedPlayerIds.includes(player.id) && player.health <= damage)
+    .flatMap((player) => player.hand);
+  const players = state.players.map((player) => {
+    if (player.id === attacker.id) {
+      return {
+        ...player,
+        hand: [...player.hand.filter((card) => card.instanceId !== weapon.instanceId), ...eliminatedHands],
+        attackedThisRound: true,
+        actedThisRound: true,
+        actionsRemaining: Math.max(0, player.actionsRemaining - 1)
+      };
+    }
+
+    if (damagedPlayerIds.includes(player.id)) {
+      const health = Math.max(0, player.health - damage);
+      return {
+        ...player,
+        health,
+        hand: health === 0 ? [] : player.hand,
+        eliminated: health === 0
+      };
+    }
+
+    return player;
+  });
+  let nextState: GameState = {
+    ...state,
+    players,
+    discardPile: [...state.discardPile, weapon],
+    attackBonuses: omitKey(state.attackBonuses, attacker.id)
+  };
+  const winner = getWinner(nextState);
+  const messages = [`${attacker.name} swept the field with Minigun for ${damage} damage to each other player.`];
+
+  players
+    .filter((player) => damagedPlayerIds.includes(player.id) && player.eliminated)
+    .forEach((player) => messages.push(`${player.name} was eliminated.`));
+
+  if (winner) {
+    nextState = {
+      ...nextState,
+      phase: "gameOver",
+      winnerId: winner.id
+    };
+    messages.push(`${winner.name} is the last hand standing.`);
+  }
+
+  return {
+    state: nextState,
+    messages
+  };
+}
+
+function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
+  const next = { ...record };
+  delete next[key];
+  return next;
 }
 
 function resolveAbility(

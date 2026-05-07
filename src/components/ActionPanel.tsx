@@ -125,7 +125,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     return (
       <section className="action-panel reaction-panel">
         <div>
-          <p className="eyebrow">Decoy</p>
+          <p className="eyebrow">Ricochet</p>
           <h2>{pendingRedirectDefender.name}, redirect the attack</h2>
           <p>
             Choose a new target for {pendingRedirectAttacker.name}'s {weaponDefinition?.name ?? "attack"}.

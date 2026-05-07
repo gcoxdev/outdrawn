@@ -459,9 +459,7 @@ function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyL
   }
 
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
-  const damagePotential =
-    (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) +
-    (state.attackBonuses[player.id] ?? 0);
+  const damagePotential = getWeaponDamagePotential(state, player, weapon);
   const validTargets = state.players
     .filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
     .filter((candidate) => {
@@ -518,6 +516,10 @@ function getValidAttackTargets(state: GameState, player: PlayerState, weapon: Ca
 
 function getWeaponDamagePotential(state: GameState, player: PlayerState, weapon: CardInstance): number {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  if (weaponDefinition?.id === "weapon_minigun") {
+    return state.players.filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
+      .length;
+  }
   return (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) + (state.attackBonuses[player.id] ?? 0);
 }
 
@@ -619,6 +621,10 @@ function scoreReaction(card: CardInstance, damage: number, defenderHealth: numbe
 
   if (definition.id === "defense_counterattack") {
     return defenderHealth > damage ? 4 : 0;
+  }
+
+  if (definition.id === "defense_backfire") {
+    return damage >= 3 || damage >= defenderHealth ? 7 : 0;
   }
 
   if (definition.id === "defense_brace") {
@@ -826,13 +832,16 @@ function getDeckBalance() {
   const abilityCards = mainDeckCards.filter((card) => card.type === "ability").reduce((total, card) => total + card.count, 0);
   const weaponDamagePotential = mainDeckCards
     .filter((card) => card.type === "weapon")
-    .reduce((total, card) => total + ((card.damage ?? 0) + (card.splashDamage ?? 0)) * card.count, 0);
+    .reduce((total, card) => total + estimatedWeaponPressure(card) * card.count, 0);
   const estimatedSurvivalValue = mainDeckCards.reduce((total, card) => {
     if (card.type === "healing") {
       return total + (card.heal ?? 0) * card.count;
     }
     if (card.id === "defense_dodge" || card.id === "defense_smoke_bomb") {
       return total + 4 * card.count;
+    }
+    if (card.id === "defense_backfire") {
+      return total + 5 * card.count;
     }
     if (card.id === "defense_fake_death" || card.id === "healing_second_wind") {
       return total + 5 * card.count;
@@ -851,6 +860,14 @@ function getDeckBalance() {
     estimatedSurvivalValue,
     pressureToSurvivalRatio: Number((weaponDamagePotential / estimatedSurvivalValue).toFixed(2))
   };
+}
+
+function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }): number {
+  if (card.id === "weapon_minigun") {
+    return (card.damage ?? 0) * 3;
+  }
+
+  return (card.damage ?? 0) + (card.splashDamage ?? 0);
 }
 
 function addIssue(metrics: SimulationMetrics, issue: string) {

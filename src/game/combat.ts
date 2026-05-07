@@ -204,6 +204,15 @@ function resolveReactionDamage(
     return { ...baseResult, counterDamage: reactionDefinition.damage ?? 3 };
   }
 
+  if (reactionDefinition.id === "defense_backfire") {
+    return {
+      ...baseResult,
+      damage: 0,
+      counterDamage: reactionDefinition.damage ?? 2,
+      message: "{defender} caused the attack to backfire."
+    };
+  }
+
   if (reactionDefinition.id === "defense_fake_death" && baseDamage >= defenderHealth) {
     return {
       ...baseResult,

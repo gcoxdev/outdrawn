@@ -40,7 +40,7 @@ function getPassDeviceReason(state: GameState): string {
   }
 
   if (state.pendingRedirect) {
-    return "They played Decoy and need to redirect the attack.";
+    return "They played Ricochet and need to redirect the attack.";
   }
 
   if (state.pendingAttackCost) {

@@ -73,19 +73,19 @@ describe("remaining main deck card implementations", () => {
     expect(updatedPlayer.actionsRemaining).toBe(1);
   });
 
-  it("Decoy redirects an attack to another chosen player", () => {
+  it("Ricochet redirects an attack to another chosen player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
     const defender = state.players.find((player) => player.id !== attacker.id)!;
     const redirectedTarget = state.players.find((player) => player.id !== attacker.id && player.id !== defender.id)!;
-    const [weapon, decoy] = instances(["weapon_pistol", "defense_decoy"]);
+    const [weapon, ricochet] = instances(["weapon_pistol", "defense_decoy"]);
     state = {
       ...state,
       players: state.players.map((player) =>
         player.id === attacker.id
           ? { ...player, hand: [weapon] }
           : player.id === defender.id
-            ? { ...player, hand: [decoy] }
+            ? { ...player, hand: [ricochet] }
             : player
       )
     };
@@ -99,7 +99,7 @@ describe("remaining main deck card implementations", () => {
     state = gameReducer(state, {
       type: "PLAY_REACTION",
       defenderId: defender.id,
-      reactionCardInstanceId: decoy.instanceId
+      reactionCardInstanceId: ricochet.instanceId
     });
     expect(state.pendingRedirect?.defenderId).toBe(defender.id);
 
@@ -111,7 +111,64 @@ describe("remaining main deck card implementations", () => {
 
     expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
     expect(state.players.find((player) => player.id === redirectedTarget.id)!.health).toBe(17);
-    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, decoy.instanceId]));
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, ricochet.instanceId]));
+  });
+
+  it("Backfire cancels incoming damage and only damages the attacker", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const attacker = state.players[state.currentPlayerIndex];
+    const defender = state.players.find((player) => player.id !== attacker.id)!;
+    const [weapon, backfire] = instances(["weapon_pistol", "defense_backfire"]);
+    state = {
+      ...state,
+      round: 3,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [weapon] }
+          : player.id === defender.id
+            ? { ...player, hand: [backfire] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: defender.id,
+      weaponInstanceId: weapon.instanceId
+    });
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: backfire.instanceId });
+
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(18);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, backfire.instanceId]));
+  });
+
+  it("Minigun damages every other living player", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0);
+    const attacker = state.players[state.currentPlayerIndex];
+    const target = state.players.find((player) => player.id !== attacker.id)!;
+    const [minigun] = instances(["weapon_minigun"]);
+    state = {
+      ...state,
+      round: 3,
+      players: state.players.map((player) => (player.id === attacker.id ? { ...player, hand: [minigun], actionsRemaining: 2 } : player))
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: minigun.instanceId
+    });
+
+    expect(state.pendingReaction).toBeNull();
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
+    state.players
+      .filter((player) => player.id !== attacker.id)
+      .forEach((player) => expect(player.health).toBe(19));
+    expect(state.players.find((player) => player.id === attacker.id)!.actionsRemaining).toBe(1);
+    expect(state.discardPile.map((card) => card.instanceId)).toContain(minigun.instanceId);
   });
 
   it("Grenade damages the primary target and splashes nearby non-attackers", () => {

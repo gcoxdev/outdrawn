@@ -50,7 +50,7 @@ export type Card = {
 };
 
 export const mainDeckCards: Card[] = [
-  // Weapons — 29 cards
+  // Weapons — 31 cards
   {
     id: "weapon_pistol",
     name: "Pistol",
@@ -165,8 +165,24 @@ export const mainDeckCards: Card[] = [
     flavorText: "Accuracy by volume.",
     tags: ["weapon", "multi-hit", "single-target"]
   },
+  {
+    id: "weapon_minigun",
+    name: "Minigun",
+    type: "weapon",
+    count: 2,
+    timing: "action",
+    target: "allPlayers",
+    rarity: "rare",
+    damage: 1,
+    supplyCost: 3,
+    icons: ["damage", "spray"],
+    shortText: "Deal 1 damage to every other player.",
+    rulesText: "Deal 1 damage to every other living player. This attack has no reaction window.",
+    flavorText: "Nobody gets to ignore that sound.",
+    tags: ["weapon", "area", "all-opponents"]
+  },
 
-  // Defense — 18 cards
+  // Defense — 20 cards
   {
     id: "defense_armor_vest",
     name: "Armor Vest",
@@ -252,7 +268,7 @@ export const mainDeckCards: Card[] = [
   },
   {
     id: "defense_decoy",
-    name: "Decoy",
+    name: "Ricochet",
     type: "defense",
     count: 2,
     timing: "reaction",
@@ -263,8 +279,25 @@ export const mainDeckCards: Card[] = [
     icons: ["reaction", "redirect"],
     shortText: "Reaction. Redirect an attack to another valid player.",
     rulesText: "Reaction defense. Redirect an attack targeting you to another valid player. Does not redirect event or collapse damage.",
-    flavorText: "Wrong shadow.",
+    flavorText: "Wrong angle. Worse outcome.",
     tags: ["defense", "reaction", "redirect"]
+  },
+  {
+    id: "defense_backfire",
+    name: "Backfire",
+    type: "defense",
+    count: 2,
+    timing: "reaction",
+    target: "self",
+    rarity: "uncommon",
+    damage: 2,
+    supplyCost: 2,
+    isReaction: true,
+    icons: ["reaction", "damage", "cancel"],
+    shortText: "Reaction. Cancel damage; attacker takes 2.",
+    rulesText: "Reaction defense. Cancel incoming attack damage to yourself. The attacker takes 2 damage.",
+    flavorText: "Bad shot. Worse timing.",
+    tags: ["defense", "reaction", "retaliation", "cancel"]
   },
   {
     id: "defense_brace",
@@ -595,7 +628,7 @@ export const eventDeckCards: Card[] = [
     rarity: "common",
     icons: ["defense-down", "reaction"],
     shortText: "Reaction blocks/reductions prevent 1 less damage.",
-    rulesText: "Reaction defense cards block or reduce 1 less damage this round. Dodge, Smoke Bomb, Decoy, Fake Death, and Second Wind are unaffected.",
+    rulesText: "Reaction defense cards block or reduce 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, Fake Death, and Second Wind are unaffected.",
     flavorText: "Every hiding place has an angle.",
     tags: ["event", "defense-nerf"]
   },

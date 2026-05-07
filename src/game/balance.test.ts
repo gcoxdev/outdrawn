@@ -4,7 +4,7 @@ import { mainDeckCards } from "../data/cards";
 function totalWeaponDamage() {
   return mainDeckCards
     .filter((card) => card.type === "weapon")
-    .reduce((total, card) => total + (card.damage ?? 0) * card.count, 0);
+    .reduce((total, card) => total + estimatedWeaponPressure(card) * card.count, 0);
 }
 
 function totalDamageSupport() {
@@ -23,6 +23,10 @@ function estimatedSurvivalValue() {
       return total + 4 * card.count;
     }
 
+    if (card.id === "defense_backfire") {
+      return total + 5 * card.count;
+    }
+
     if (card.id === "defense_brace") {
       return total + 3 * card.count;
     }
@@ -37,6 +41,14 @@ function estimatedSurvivalValue() {
 
     return total;
   }, 0);
+}
+
+function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }) {
+  if (card.id === "weapon_minigun") {
+    return (card.damage ?? 0) * 3;
+  }
+
+  return (card.damage ?? 0) + (card.splashDamage ?? 0);
 }
 
 describe("starter deck balance", () => {
