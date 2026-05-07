@@ -46,13 +46,13 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     >
       <header className="card-view__header">
         <span className="card-view__name">{card.name}</span>
-        <span className="card-view__type">
-          <TypeIcon size={13} />
-          {card.type}
-        </span>
       </header>
       <div className="card-view__art" aria-hidden="true">
         <TypeIcon size={mode === "board" ? 28 : 42} strokeWidth={1.8} />
+        <span className="card-view__type">
+          <TypeIcon size={12} />
+          {card.type}
+        </span>
       </div>
       <div className="card-view__stats">
         {stats.map((stat) => {
@@ -73,7 +73,6 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       <p className="card-view__text">{mode === "detail" ? card.rulesText : card.shortText}</p>
       <footer className="card-view__footer">
         <span>{card.rarity}</span>
-        <span>{card.id.replace(/^[^_]+_/, "")}</span>
       </footer>
     </button>
   );

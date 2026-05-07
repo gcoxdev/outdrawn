@@ -651,7 +651,7 @@ p {
 
 .hand-rail {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
   align-items: start;
   gap: 8px;
 }
@@ -660,14 +660,14 @@ p {
   --card-accent: #d99d45;
   display: grid;
   align-self: start;
-  grid-template-rows: auto minmax(42px, 0.75fr) auto 1fr auto;
+  grid-template-rows: auto minmax(64px, 0.85fr) auto minmax(0, 1fr) auto;
   width: 100%;
   height: auto;
   aspect-ratio: 2.5 / 3.5;
   min-height: 0;
   border: 2px solid color-mix(in srgb, var(--card-accent), #000 30%);
   border-radius: 8px;
-  padding: 6px;
+  padding: 8px;
   background:
     linear-gradient(160deg, color-mix(in srgb, var(--card-accent), #111 72%), #151411 68%),
     #151411;
@@ -732,12 +732,12 @@ p {
 }
 
 .card-board {
-  max-width: 150px;
-  min-height: 138px;
+  max-width: 168px;
+  min-height: 156px;
 }
 
 .card-detail {
-  max-width: 250px;
+  max-width: 280px;
   margin-inline: auto;
 }
 
@@ -746,14 +746,16 @@ p {
 .card-view__stats {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 6px;
 }
 
 .card-view__name {
-  font-size: clamp(0.82rem, 1.8vw, 1rem);
+  display: block;
+  min-width: 0;
+  font-size: clamp(0.88rem, 1.5vw, 1.05rem);
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.05;
   overflow-wrap: anywhere;
   word-break: normal;
 }
@@ -762,6 +764,11 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  justify-self: center;
+  border: 1px solid rgba(244, 238, 226, 0.14);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: rgba(0, 0, 0, 0.18);
   color: var(--muted);
   font-size: 0.62rem;
   font-weight: 800;
@@ -770,8 +777,10 @@ p {
 
 .card-view__art {
   display: grid;
+  gap: 5px;
   place-items: center;
-  margin: 6px 0;
+  margin: 7px 0;
+  padding: 8px 4px 6px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   background:
@@ -786,13 +795,14 @@ p {
 }
 
 .card-view__text {
-  margin: 6px 0;
+  margin: 7px 0;
   color: #e8dfd0;
-  font-size: clamp(0.62rem, 1.1vw, 0.72rem);
-  line-height: 1.22;
+  font-size: clamp(0.64rem, 1vw, 0.74rem);
+  line-height: 1.26;
 }
 
 .card-view__footer {
+  justify-content: flex-end;
   color: var(--muted);
   font-size: 0.58rem;
   font-weight: 800;
