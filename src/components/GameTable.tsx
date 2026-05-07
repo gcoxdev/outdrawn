@@ -82,8 +82,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             <div className="log-panel__meta">
               <span>{state.mainDeck.length} deck</span>
               <span>{state.discardPile.length} discard</span>
-              <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
               <span>{state.eventDeck.length} events</span>
+              <span className="log-panel__event">{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
             </div>
             <GameLog entries={state.log} />
           </div>
@@ -95,7 +95,6 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               <p className="eyebrow">Round {state.round}</p>
               <h1>{decisionText}</h1>
             </div>
-            <span>{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
           </header>
 
           <section className="current-board">

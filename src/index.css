@@ -504,16 +504,6 @@ p {
   font-size: clamp(1.18rem, 2.6vw, 1.85rem);
 }
 
-.decision-strip > span {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 4px 8px;
-  color: var(--amber);
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
 .player-roster {
   display: grid;
   align-content: start;
@@ -908,8 +898,16 @@ p {
 .log-panel__meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   margin-bottom: 10px;
+}
+
+.log-panel__meta .log-panel__event {
+  margin-left: auto;
+  border-color: rgba(217, 157, 69, 0.48);
+  background: rgba(217, 157, 69, 0.12);
+  color: var(--amber);
 }
 
 .game-log ol {
