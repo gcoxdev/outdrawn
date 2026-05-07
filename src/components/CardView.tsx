@@ -49,10 +49,6 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       </header>
       <div className="card-view__art" aria-hidden="true">
         <TypeIcon size={mode === "board" ? 28 : 42} strokeWidth={1.8} />
-        <span className="card-view__type">
-          <TypeIcon size={12} />
-          {card.type}
-        </span>
       </div>
       <div className="card-view__stats">
         {stats.map((stat) => {
@@ -72,7 +68,10 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       </div>
       <p className="card-view__text">{mode === "detail" ? card.rulesText : card.shortText}</p>
       <footer className="card-view__footer">
-        <span>{card.rarity}</span>
+        <span className="card-view__type">
+          <TypeIcon size={12} />
+          {card.type}
+        </span>
       </footer>
     </button>
   );

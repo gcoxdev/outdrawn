@@ -764,7 +764,6 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  justify-self: center;
   border: 1px solid rgba(244, 238, 226, 0.14);
   border-radius: 999px;
   padding: 2px 7px;
@@ -777,10 +776,9 @@ p {
 
 .card-view__art {
   display: grid;
-  gap: 5px;
   place-items: center;
   margin: 7px 0;
-  padding: 8px 4px 6px;
+  padding: 8px 4px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   background:
@@ -802,7 +800,7 @@ p {
 }
 
 .card-view__footer {
-  justify-content: flex-end;
+  justify-content: flex-start;
   color: var(--muted);
   font-size: 0.58rem;
   font-weight: 800;
