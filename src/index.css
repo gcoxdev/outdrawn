@@ -537,10 +537,12 @@ p {
 .player-roster-card.is-decision {
   border-color: rgba(217, 157, 69, 0.8);
   background: rgba(217, 157, 69, 0.1);
+  box-shadow: inset 3px 0 0 var(--amber);
 }
 
 .player-roster-card.is-current:not(.is-decision) {
   border-color: rgba(76, 170, 114, 0.65);
+  box-shadow: inset 3px 0 0 var(--green);
 }
 
 .player-roster-card.is-eliminated {
@@ -853,9 +855,26 @@ p {
   gap: 8px;
 }
 
+.action-panel__decision-grid {
+  display: grid;
+  grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.action-panel__event-actions {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
 .selected-card {
   display: grid;
   gap: 10px;
+}
+
+.selected-card .card-detail {
+  max-width: 220px;
 }
 
 .empty-selection {
@@ -1162,5 +1181,13 @@ p {
 
   .hand-rail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .action-panel__decision-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-card .card-detail {
+    max-width: 260px;
   }
 }

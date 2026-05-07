@@ -368,164 +368,168 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
         </button>
       </div>
 
-      {selectedDefinition && selectedCard ? (
-        <div className="selected-card">
-          <CardView card={selectedDefinition} mode="detail" />
-          <div className="selected-card__commands">
-            {selectedDefinition.type === "healing" && (
-              <button
-                disabled={!canAct}
-                onClick={() =>
-                  dispatch({
-                    type: "PLAY_HEALING",
-                    playerId: currentPlayer.id,
-                    cardInstanceId: selectedCard.instanceId
-                  })
-                }
-              >
-                Play
-              </button>
-            )}
-            {selectedDefinition.type === "ability" && selectedDefinition.target !== "onePlayer" && (
-              <button
-                disabled={!canAct || !["ability_ambush", "ability_adrenaline", "ability_search", "ability_reload"].includes(selectedDefinition.id)}
-                onClick={() =>
-                  dispatch({
-                    type: "PLAY_ABILITY",
-                    playerId: currentPlayer.id,
-                    cardInstanceId: selectedCard.instanceId
-                  })
-                }
-              >
-                Play
-              </button>
-            )}
-            <button
-              disabled={state.phase !== "action"}
-              onClick={() =>
-                dispatch({
-                  type: "DISCARD_CARD",
-                  playerId: currentPlayer.id,
-                  cardInstanceId: selectedCard.instanceId
-                })
-              }
-            >
-              Discard
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="empty-selection">
-          <h2>Select a card</h2>
-          <p>Play weapons directly from hand, play simple healing, use implemented abilities, or discard down to {state.settings.maxHandSize} cards.</p>
-        </div>
-      )}
-
-      <div className="attack-box">
-        <h2>Attack</h2>
-        <p>{selectedDefinition?.type === "weapon" ? `Choose a target for ${selectedDefinition.name}.` : "Select a weapon card first."}</p>
-        <div className="target-list">
-          {livingTargets.map((target) => (
-            <button
-              disabled={!canAct || selectedDefinition?.type !== "weapon" || !selectedCard}
-              key={target.id}
-              onClick={() =>
-                selectedCard &&
-                dispatch({
-                  type: "ATTACK",
-                  attackerId: currentPlayer.id,
-                  targetPlayerId: target.id,
-                  weaponInstanceId: selectedCard.instanceId
-                })
-              }
-            >
-              {target.name}
-            </button>
-          ))}
-        </div>
-      </div>
-      {selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer" && (
-        <div className="attack-box">
-          <h2>Ability Target</h2>
-          <p>
-            {["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(selectedDefinition.id)
-              ? `Choose a target for ${selectedDefinition.name}.`
-              : "This ability is not implemented yet."}
-          </p>
-          <div className="target-list">
-            {livingTargets.map((target) => (
-              <button
-                disabled={
-                  !canAct ||
-                  !selectedCard ||
-                  !["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(
-                    selectedDefinition.id
-                  )
-                }
-                key={target.id}
-                onClick={() =>
-                  selectedCard &&
-                  dispatch({
-                    type: "PLAY_ABILITY",
-                    playerId: currentPlayer.id,
-                    cardInstanceId: selectedCard.instanceId,
-                    targetPlayerId: target.id
-                  })
-                }
-              >
-                {target.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-      {state.activeEvent?.card.definitionId === "event_black_market" && (
-        <div className="attack-box">
-          <h2>Black Market</h2>
-          <p>Select 2 cards from your hand, spend 1 action, and keep 1 of 3 revealed cards.</p>
-          <div className="pending-discard-list">
-            {currentPlayer.hand.map((card) => {
-              const definition = getCardDefinitionById(card.definitionId);
-              const isSelected = marketSelection.includes(card.instanceId);
-              return definition ? (
+      <div className="action-panel__decision-grid">
+        {selectedDefinition && selectedCard ? (
+          <div className="selected-card">
+            <CardView card={selectedDefinition} mode="detail" />
+            <div className="selected-card__commands">
+              {selectedDefinition.type === "healing" && (
                 <button
-                  className={`reaction-card-button${isSelected ? " is-selected" : ""}`}
                   disabled={!canAct}
-                  key={card.instanceId}
                   onClick={() =>
-                    setMarketSelection((current) => {
-                      if (current.includes(card.instanceId)) {
-                        return current.filter((id) => id !== card.instanceId);
-                      }
-
-                      if (current.length >= 2) {
-                        return [...current.slice(1), card.instanceId];
-                      }
-
-                      return [...current, card.instanceId];
+                    dispatch({
+                      type: "PLAY_HEALING",
+                      playerId: currentPlayer.id,
+                      cardInstanceId: selectedCard.instanceId
                     })
                   }
                 >
-                  <CardView card={definition} mode="board" isSelected={isSelected} />
+                  Play
                 </button>
-              ) : null;
-            })}
+              )}
+              {selectedDefinition.type === "ability" && selectedDefinition.target !== "onePlayer" && (
+                <button
+                  disabled={!canAct || !["ability_ambush", "ability_adrenaline", "ability_search", "ability_reload"].includes(selectedDefinition.id)}
+                  onClick={() =>
+                    dispatch({
+                      type: "PLAY_ABILITY",
+                      playerId: currentPlayer.id,
+                      cardInstanceId: selectedCard.instanceId
+                    })
+                  }
+                >
+                  Play
+                </button>
+              )}
+              <button
+                disabled={state.phase !== "action"}
+                onClick={() =>
+                  dispatch({
+                    type: "DISCARD_CARD",
+                    playerId: currentPlayer.id,
+                    cardInstanceId: selectedCard.instanceId
+                  })
+                }
+              >
+                Discard
+              </button>
+            </div>
           </div>
-          <button
-            disabled={!canAct || marketSelection.length !== 2 || state.mainDeck.length + state.discardPile.length === 0}
-            onClick={() => {
-              dispatch({
-                type: "START_BLACK_MARKET",
-                playerId: currentPlayer.id,
-                cardInstanceIds: marketSelection
-              });
-              setMarketSelection([]);
-            }}
-          >
-            Search Market
-          </button>
+        ) : (
+          <div className="empty-selection">
+            <h2>Select a card</h2>
+            <p>Play weapons directly from hand, play simple healing, use implemented abilities, or discard down to {state.settings.maxHandSize} cards.</p>
+          </div>
+        )}
+
+        <div className="action-panel__event-actions">
+          <div className="attack-box">
+            <h2>Attack</h2>
+            <p>{selectedDefinition?.type === "weapon" ? `Choose a target for ${selectedDefinition.name}.` : "Select a weapon card first."}</p>
+            <div className="target-list">
+              {livingTargets.map((target) => (
+                <button
+                  disabled={!canAct || selectedDefinition?.type !== "weapon" || !selectedCard}
+                  key={target.id}
+                  onClick={() =>
+                    selectedCard &&
+                    dispatch({
+                      type: "ATTACK",
+                      attackerId: currentPlayer.id,
+                      targetPlayerId: target.id,
+                      weaponInstanceId: selectedCard.instanceId
+                    })
+                  }
+                >
+                  {target.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          {selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer" && (
+            <div className="attack-box">
+              <h2>Ability Target</h2>
+              <p>
+                {["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(selectedDefinition.id)
+                  ? `Choose a target for ${selectedDefinition.name}.`
+                  : "This ability is not implemented yet."}
+              </p>
+              <div className="target-list">
+                {livingTargets.map((target) => (
+                  <button
+                    disabled={
+                      !canAct ||
+                      !selectedCard ||
+                      !["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(
+                        selectedDefinition.id
+                      )
+                    }
+                    key={target.id}
+                    onClick={() =>
+                      selectedCard &&
+                      dispatch({
+                        type: "PLAY_ABILITY",
+                        playerId: currentPlayer.id,
+                        cardInstanceId: selectedCard.instanceId,
+                        targetPlayerId: target.id
+                      })
+                    }
+                  >
+                    {target.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {state.activeEvent?.card.definitionId === "event_black_market" && (
+            <div className="attack-box">
+              <h2>Black Market</h2>
+              <p>Select 2 cards from your hand, spend 1 action, and keep 1 of 3 revealed cards.</p>
+              <div className="pending-discard-list">
+                {currentPlayer.hand.map((card) => {
+                  const definition = getCardDefinitionById(card.definitionId);
+                  const isSelected = marketSelection.includes(card.instanceId);
+                  return definition ? (
+                    <button
+                      className={`reaction-card-button${isSelected ? " is-selected" : ""}`}
+                      disabled={!canAct}
+                      key={card.instanceId}
+                      onClick={() =>
+                        setMarketSelection((current) => {
+                          if (current.includes(card.instanceId)) {
+                            return current.filter((id) => id !== card.instanceId);
+                          }
+
+                          if (current.length >= 2) {
+                            return [...current.slice(1), card.instanceId];
+                          }
+
+                          return [...current, card.instanceId];
+                        })
+                      }
+                    >
+                      <CardView card={definition} mode="board" isSelected={isSelected} />
+                    </button>
+                  ) : null;
+                })}
+              </div>
+              <button
+                disabled={!canAct || marketSelection.length !== 2 || state.mainDeck.length + state.discardPile.length === 0}
+                onClick={() => {
+                  dispatch({
+                    type: "START_BLACK_MARKET",
+                    playerId: currentPlayer.id,
+                    cardInstanceIds: marketSelection
+                  });
+                  setMarketSelection([]);
+                }}
+              >
+                Search Market
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </section>
   );
 }

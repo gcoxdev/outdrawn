@@ -8,7 +8,6 @@ type PlayerRosterProps = {
 };
 
 export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, displayPlayerId }: PlayerRosterProps) {
-  const orderedPlayers = orderPlayersForRoster(state.players, decisionPlayerId, currentPlayerId);
   const aliveCount = state.players.filter((player) => !player.eliminated).length;
 
   return (
@@ -21,7 +20,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
         <strong>{aliveCount} alive</strong>
       </div>
       <div className="player-roster__list">
-        {orderedPlayers.map((player) => (
+        {state.players.map((player) => (
           <article
             className={[
               "player-roster-card",
@@ -64,11 +63,6 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
       </div>
     </section>
   );
-}
-
-function orderPlayersForRoster(players: PlayerState[], decisionPlayerId: PlayerId, currentPlayerId: PlayerId): PlayerState[] {
-  const priority = players.find((player) => player.id === decisionPlayerId) ?? players.find((player) => player.id === currentPlayerId);
-  return priority ? [priority, ...players.filter((player) => player.id !== priority.id)] : players;
 }
 
 function labelController(player: PlayerState): string {
