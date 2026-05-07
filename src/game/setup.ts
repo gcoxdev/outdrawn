@@ -56,6 +56,7 @@ export function createNewGame(
     pendingMarketSearch: null,
     selectedCardId: null,
     attackBonuses: {},
+    reloadPlayerIds: [],
     markedTargets: {},
     smokeProtectedPlayerIds: [],
     intimidations: {},

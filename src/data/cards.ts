@@ -93,9 +93,9 @@ export const mainDeckCards: Card[] = [
     rarity: "rare",
     damage: 8,
     supplyCost: 3,
-    icons: ["damage", "target", "declare"],
-    shortText: "Deal 8 damage. Declare target before modifiers.",
-    rulesText: "Deal 8 damage to one player. You must declare the target before attack modifiers are played.",
+    icons: ["damage", "target"],
+    shortText: "Deal 8 damage to one player.",
+    rulesText: "Deal 8 damage to one player.",
     flavorText: "The shot lands before the panic does.",
     tags: ["weapon", "high-damage", "single-target"]
   },
@@ -316,7 +316,7 @@ export const mainDeckCards: Card[] = [
   },
   {
     id: "defense_fake_death",
-    name: "Fake Death",
+    name: "Revive",
     type: "defense",
     count: 1,
     timing: "lethal",
@@ -326,7 +326,7 @@ export const mainDeckCards: Card[] = [
     isLethalDefense: true,
     icons: ["lethal", "survive"],
     shortText: "Survive lethal player damage at 1 HP. Discard hand.",
-    rulesText: "Lethal defense. When you would be eliminated by another player's attack, survive at 1 health and discard your hand.",
+    rulesText: "When another player's attack would eliminate you, survive at 1 health and discard your hand.",
     flavorText: "The body count was off by one.",
     tags: ["defense", "lethal", "survival"]
   },
@@ -405,10 +405,10 @@ export const mainDeckCards: Card[] = [
     rarity: "uncommon",
     supplyCost: 2,
     icons: ["reuse", "weapon"],
-    shortText: "Recover the strongest weapon from discard.",
-    rulesText: "Take the highest-damage weapon from the discard pile and add it to your hand.",
+    shortText: "Your next weapon stays in your hand after use.",
+    rulesText: "Your next weapon attack this turn stays in your hand instead of being discarded after it resolves.",
     flavorText: "The empty click was only a pause.",
-    tags: ["ability", "weapon-support", "discard-recovery"]
+    tags: ["ability", "weapon-support", "reload"]
   },
   {
     id: "ability_sabotage",
@@ -525,20 +525,20 @@ export const mainDeckCards: Card[] = [
     tags: ["healing", "draw"]
   },
   {
-    id: "healing_second_wind",
-    name: "Second Wind",
+    id: "healing_field_dressing",
+    name: "Field Dressing",
     type: "healing",
     count: 1,
-    timing: "lethal",
+    timing: "action",
     target: "self",
-    rarity: "rare",
-    supplyCost: 3,
-    isLethalDefense: true,
-    icons: ["lethal", "survive"],
-    shortText: "Survive elimination at 1 HP. Discard hand.",
-    rulesText: "When you would be eliminated, survive at 1 health and discard your hand.",
-    flavorText: "One breath left is still one breath.",
-    tags: ["healing", "lethal", "survival"]
+    rarity: "common",
+    heal: 4,
+    supplyCost: 1,
+    icons: ["heal"],
+    shortText: "Heal 4.",
+    rulesText: "Heal 4 health. You cannot exceed your maximum health.",
+    flavorText: "Fast hands and clean pressure.",
+    tags: ["healing", "basic"]
   }
 ];
 
@@ -627,7 +627,7 @@ export const eventDeckCards: Card[] = [
     rarity: "common",
     icons: ["defense-down", "reaction"],
     shortText: "Reaction blocks/reductions prevent 1 less damage.",
-    rulesText: "Reaction defense cards block or reduce 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, Fake Death, and Second Wind are unaffected.",
+    rulesText: "Reaction defense cards block or reduce 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, and Revive are unaffected.",
     flavorText: "Every hiding place has an angle.",
     tags: ["event", "defense-nerf"]
   },

@@ -28,6 +28,7 @@ const initialState: GameState = {
   pendingMarketSearch: null,
   selectedCardId: null,
   attackBonuses: {},
+  reloadPlayerIds: [],
   markedTargets: {},
   smokeProtectedPlayerIds: [],
   intimidations: {},

@@ -17,6 +17,10 @@ function definitionFor(card: CardInstance | null) {
   return card ? allCards.find((definition) => definition.id === card.definitionId) : undefined;
 }
 
+function definitionById(definitionId: string) {
+  return allCards.find((definition) => definition.id === definitionId);
+}
+
 type GameTableProps = {
   state: GameState;
   dispatch: (action: GameAction) => void;
@@ -47,6 +51,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const canSelectDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision && !privacyGateActive && state.phase !== "gameOver";
   const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
   const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
+  const visibleEventDefinition = activeEventDefinition ?? (state.pendingSupplyDrop ? definitionById("event_supply_drop") : undefined);
   const winner = state.players.find((player) => player.id === state.winnerId);
   const decisionText = getDecisionText(state, currentPlayer.name, displayPlayer.name, winner?.name);
 
@@ -84,8 +89,14 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               <span>{state.mainDeck.length} deck</span>
               <span>{state.discardPile.length} discard</span>
               <span>{state.eventDeck.length} events</span>
-              <span className="log-panel__event">{activeEventDefinition ? activeEventDefinition.name : "No event"}</span>
+              <span className="log-panel__event">{visibleEventDefinition ? visibleEventDefinition.name : "No event"}</span>
             </div>
+            {visibleEventDefinition && (
+              <div className="current-event-summary">
+                <strong>{visibleEventDefinition.name}</strong>
+                <p>{visibleEventDefinition.rulesText}</p>
+              </div>
+            )}
             <GameLog entries={state.log} />
           </div>
         </aside>

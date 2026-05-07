@@ -75,7 +75,7 @@ Opening protection:
 - Grenade: deal 4 damage to the target and 2 splash damage to nearby non-attacking players in turn order.
 - Crossbow: deal 4 damage and ignores Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: deal 1 damage to every other living player. This attack has no reaction window.
+- Minigun: deal 1 damage to every other living player. It does not choose a target and has no reaction window.
 
 ## Defense
 
@@ -89,7 +89,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Ricochet: redirect the attack to another valid player.
 - Backfire: cancel incoming attack damage and deal that much damage to the attacker.
 - Brace: reduce damage by half, rounded down.
-- Fake Death: when an attack would eliminate you, survive at 1 health and discard your hand.
+- Revive: when an attack would eliminate you, survive at 1 health and discard your hand.
 
 ## Abilities
 
@@ -97,7 +97,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Disarm: target discards exactly 1 weapon from hand: their highest-damage weapon.
 - Steal: take 1 card from another player's hand.
 - Search: draw 3, keep 1, discard the rest.
-- Reload: take the highest-damage weapon from the discard pile into your hand.
+- Reload: your next weapon attack this turn stays in your hand instead of being discarded after it resolves.
 - Sabotage: target discards 2 cards of their choice.
 - Mark Target: attacks against the target deal +1 damage this round.
 - Intimidate: target must discard 1 card to attack you before your next turn.
@@ -108,7 +108,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Bandage: heal 3.
 - Medkit: heal 6 and costs both actions.
 - Painkillers: heal 2 and draw 1 card.
-- Second Wind: when you would be eliminated, survive at 1 health and discard your hand.
+- Field Dressing: heal 4.
 
 Healing cannot exceed maximum health.
 
@@ -119,7 +119,7 @@ Healing cannot exceed maximum health.
 - Bounty: damaging the highest-health player draws 1 card.
 - High Ground: each player's first attack this round deals +1 damage.
 - Low Ammo: each player discards their highest-damage weapon from hand or takes 3 damage.
-- No Cover: block/reduction reactions prevent 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, Fake Death, and Second Wind are unaffected.
+- No Cover: block/reduction reactions prevent 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, and Revive are unaffected.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
 - Black Market: this round, players may spend 1 action and discard 2 cards to reveal 3 cards, keep 1, and discard the rest.
 

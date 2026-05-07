@@ -218,16 +218,7 @@ function resolveReactionDamage(
       ...baseResult,
       survivesLethal: true,
       discardsDefenderHand: true,
-      message: "{defender} faked death and survived at 1 health."
-    };
-  }
-
-  if (reactionDefinition.id === "healing_second_wind" && baseDamage >= defenderHealth) {
-    return {
-      ...baseResult,
-      survivesLethal: true,
-      discardsDefenderHand: true,
-      message: "{defender} caught a second wind and survived at 1 health."
+      message: "{defender} revived and survived at 1 health."
     };
   }
 

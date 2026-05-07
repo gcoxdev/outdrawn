@@ -126,6 +126,7 @@ export type GameState = {
   pendingMarketSearch: PendingMarketSearch | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
+  reloadPlayerIds: PlayerId[];
   markedTargets: Record<PlayerId, number>;
   smokeProtectedPlayerIds: PlayerId[];
   intimidations: Record<PlayerId, PlayerId[]>;

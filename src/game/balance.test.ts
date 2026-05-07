@@ -31,7 +31,7 @@ function estimatedSurvivalValue() {
       return total + 3 * card.count;
     }
 
-    if (card.id === "defense_fake_death" || card.id === "healing_second_wind") {
+    if (card.id === "defense_fake_death") {
       return total + 5 * card.count;
     }
 

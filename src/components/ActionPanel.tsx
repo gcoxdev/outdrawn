@@ -16,6 +16,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
   const [discardSelection, setDiscardSelection] = useState<string[]>([]);
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
+  const selectedWeaponHitsEveryone = selectedDefinition?.type === "weapon" && selectedDefinition.target === "allPlayers";
   const livingTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
   );
@@ -418,33 +419,55 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
         ) : (
           <div className="empty-selection">
             <h2>Select a card</h2>
-            <p>Play weapons directly from hand, play simple healing, use implemented abilities, or discard down to {state.settings.maxHandSize} cards.</p>
+            <p>Play weapons, healing, and abilities from hand, or discard down to {state.settings.maxHandSize} cards.</p>
           </div>
         )}
 
         <div className="action-panel__event-actions">
           <div className="attack-box">
             <h2>Attack</h2>
-            <p>{selectedDefinition?.type === "weapon" ? `Choose a target for ${selectedDefinition.name}.` : "Select a weapon card first."}</p>
-            <div className="target-list">
-              {livingTargets.map((target) => (
-                <button
-                  disabled={!canAct || selectedDefinition?.type !== "weapon" || !selectedCard}
-                  key={target.id}
-                  onClick={() =>
-                    selectedCard &&
-                    dispatch({
-                      type: "ATTACK",
-                      attackerId: currentPlayer.id,
-                      targetPlayerId: target.id,
-                      weaponInstanceId: selectedCard.instanceId
-                    })
-                  }
-                >
-                  {target.name}
-                </button>
-              ))}
-            </div>
+            <p>
+              {selectedWeaponHitsEveryone
+                ? `${selectedDefinition.name} hits every other valid player.`
+                : selectedDefinition?.type === "weapon"
+                  ? `Choose a target for ${selectedDefinition.name}.`
+                  : "Select a weapon card first."}
+            </p>
+            {selectedWeaponHitsEveryone ? (
+              <button
+                disabled={!canAct || !selectedCard}
+                onClick={() =>
+                  selectedCard &&
+                  dispatch({
+                    type: "ATTACK",
+                    attackerId: currentPlayer.id,
+                    weaponInstanceId: selectedCard.instanceId
+                  })
+                }
+              >
+                Fire at Everyone
+              </button>
+            ) : (
+              <div className="target-list">
+                {livingTargets.map((target) => (
+                  <button
+                    disabled={!canAct || selectedDefinition?.type !== "weapon" || !selectedCard}
+                    key={target.id}
+                    onClick={() =>
+                      selectedCard &&
+                      dispatch({
+                        type: "ATTACK",
+                        attackerId: currentPlayer.id,
+                        targetPlayerId: target.id,
+                        weaponInstanceId: selectedCard.instanceId
+                      })
+                    }
+                  >
+                    {target.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer" && (
             <div className="attack-box">

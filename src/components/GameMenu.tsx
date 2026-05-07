@@ -172,7 +172,7 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                           <article className="catalog-card" key={card.id}>
                             <div>
                               <strong>{card.name}</strong>
-                              <p>{card.shortText}</p>
+                              <p>{card.rulesText}</p>
                               {implementationNote && <small>{implementationNote}</small>}
                             </div>
                             <div className="catalog-card__meta">

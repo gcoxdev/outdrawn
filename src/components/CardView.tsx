@@ -7,6 +7,7 @@ import {
   Shield,
   ShieldCheck,
   Swords,
+  CircleHelp,
   Zap
 } from "lucide-react";
 import type { Card } from "../data/cards";
@@ -73,6 +74,14 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
           {card.type}
         </span>
       </footer>
+      <span
+        className="card-view__rules"
+        data-rules={card.rulesText}
+        title={card.rulesText}
+        aria-label={`Rules for ${card.name}: ${card.rulesText}`}
+      >
+        <CircleHelp size={14} />
+      </span>
     </button>
   );
 }

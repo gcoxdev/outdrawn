@@ -52,7 +52,7 @@ describe("reaction defense cards", () => {
     expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(17);
   });
 
-  it("fake death prevents lethal attack damage and discards the defender hand", () => {
+  it("Revive prevents lethal attack damage and discards the defender hand", () => {
     const { state, target, reaction } = attackWithReaction("defense_fake_death", 3);
     const defender = state.players.find((player) => player.id === target.id)!;
 

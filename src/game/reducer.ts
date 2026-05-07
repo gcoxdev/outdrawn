@@ -1,6 +1,6 @@
 import { allCards } from "../data/cards";
 import { drawCardsWithRefill } from "./deck";
-import type { CardInstance } from "./types";
+import type { CardInstance, PlayerId } from "./types";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
@@ -572,8 +572,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             : player
         )
       };
-      const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy);
-      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+      const reloadActive = stateBeforeRedirect.reloadPlayerIds.includes(attacker.id);
+      const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy, {
+        keepWeaponInHand: reloadActive
+      });
+      const resolvedState = reloadActive ? consumeReload(result.state, attacker.id) : result.state;
+      return result.messages.reduce((nextState, message) => log(nextState, message), resolvedState);
     }
     case "RESOLVE_PENDING_ATTACK_COST": {
       const pending = state.pendingAttackCost;
@@ -626,7 +630,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const attacker = getCurrentPlayer(state);
-      const target = getPlayer(state, action.targetPlayerId);
+      const target = action.targetPlayerId ? getPlayer(state, action.targetPlayerId) : undefined;
       const weapon = attacker.hand.find((card) => card.instanceId === action.weaponInstanceId);
       const weaponDefinition = weapon ? getCardDefinitionById(weapon.definitionId) : undefined;
 
@@ -634,13 +638,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.pendingRedirect ||
         state.pendingAttackCost ||
         state.pendingMultiHitAttack ||
-        !target ||
-        target.eliminated ||
-        target.id === attacker.id ||
-        state.smokeProtectedPlayerIds.includes(target.id) ||
         !weapon ||
         weaponDefinition?.type !== "weapon"
       ) {
+        return state;
+      }
+
+      if (weaponDefinition.id === "weapon_minigun") {
+        const result = resolveMinigunAttack(state, attacker, weapon);
+        return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+      }
+
+      if (!target || target.eliminated || target.id === attacker.id || state.smokeProtectedPlayerIds.includes(target.id)) {
         return state;
       }
 
@@ -685,11 +694,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           },
           `${attacker.name} played SMG targeting ${target.name}.`
         );
-      }
-
-      if (weaponDefinition.id === "weapon_minigun") {
-        const result = resolveMinigunAttack(state, attacker, weapon);
-        return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
       }
 
       const result = createPendingReaction(state, attacker, target, weapon);
@@ -775,7 +779,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         actionsRemaining: 0,
         actedThisRound: true
       }));
-      return advanceTurn(log(ended, `${getCurrentPlayer(state).name} ended their turn.`));
+      return advanceTurn(
+        log(
+          {
+            ...ended,
+            reloadPlayerIds: ended.reloadPlayerIds.filter((playerId) => playerId !== action.playerId)
+          },
+          `${getCurrentPlayer(state).name} ended their turn.`
+        )
+      );
     }
     case "RESET_GAME":
       return {
@@ -797,15 +809,19 @@ function resolvePendingAttack(
   reaction: CardInstance | null
 ) {
   const multiHit = state.pendingMultiHitAttack;
+  const reloadActive = state.reloadPlayerIds.includes(attacker.id);
 
   if (!multiHit || multiHit.weapon.instanceId !== weapon.instanceId) {
-    return resolveAttack(state, attacker, defender, weapon, reaction);
+    const result = resolveAttack(state, attacker, defender, weapon, reaction, {
+      keepWeaponInHand: reloadActive
+    });
+    return reloadActive ? { ...result, state: consumeReload(result.state, attacker.id) } : result;
   }
 
   const isFinalHit = multiHit.hitsRemaining <= 1;
   const result = resolveAttack(state, attacker, defender, weapon, reaction, {
     baseDamageOverride: multiHit.hitDamage,
-    keepWeaponInHand: !isFinalHit,
+    keepWeaponInHand: !isFinalHit || reloadActive,
     spendAction: multiHit.hitsRemaining === 2,
     clearAttackBonuses: isFinalHit
   });
@@ -822,6 +838,7 @@ function resolvePendingAttack(
       ...result,
       state: {
         ...result.state,
+        reloadPlayerIds: isFinalHit ? result.state.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : result.state.reloadPlayerIds,
         pendingMultiHitAttack: null
       }
     };
@@ -849,6 +866,7 @@ function resolvePendingAttack(
 function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: CardInstance) {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   const damage = weaponDefinition?.damage ?? 1;
+  const reloadActive = state.reloadPlayerIds.includes(attacker.id);
   const damagedPlayerIds = state.players
     .filter((player) => !player.eliminated && player.id !== attacker.id && !state.smokeProtectedPlayerIds.includes(player.id))
     .map((player) => player.id);
@@ -859,7 +877,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     if (player.id === attacker.id) {
       return {
         ...player,
-        hand: [...player.hand.filter((card) => card.instanceId !== weapon.instanceId), ...eliminatedHands],
+        hand: [...(reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...eliminatedHands],
         attackedThisRound: true,
         actedThisRound: true,
         actionsRemaining: Math.max(0, player.actionsRemaining - 1)
@@ -881,7 +899,8 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   let nextState: GameState = {
     ...state,
     players,
-    discardPile: [...state.discardPile, weapon],
+    discardPile: reloadActive ? state.discardPile : [...state.discardPile, weapon],
+    reloadPlayerIds: reloadActive ? state.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : state.reloadPlayerIds,
     attackBonuses: omitKey(state.attackBonuses, attacker.id)
   };
   const winner = getWinner(nextState);
@@ -910,6 +929,13 @@ function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
   const next = { ...record };
   delete next[key];
   return next;
+}
+
+function consumeReload(state: GameState, playerId: PlayerId): GameState {
+  return {
+    ...state,
+    reloadPlayerIds: state.reloadPlayerIds.filter((candidate) => candidate !== playerId)
+  };
 }
 
 function resolveAbility(
@@ -993,24 +1019,11 @@ function resolveAbility(
   }
 
   if (definitionId === "ability_reload") {
-    const weapon = getHighestDamageWeapon(nextState.discardPile);
-    if (!weapon) {
-      return log(nextState, `${player.name} played Reload, but there were no weapons in the discard pile.`);
-    }
-
     nextState = {
       ...nextState,
-      discardPile: nextState.discardPile.filter((discardedCard) => discardedCard.instanceId !== weapon.instanceId),
-      players: nextState.players.map((candidate) =>
-        candidate.id === player.id
-          ? {
-              ...candidate,
-              hand: [...candidate.hand, weapon]
-            }
-          : candidate
-      )
+      reloadPlayerIds: Array.from(new Set([...nextState.reloadPlayerIds, player.id]))
     };
-    message = `${player.name} reloaded ${getCardDefinitionById(weapon.definitionId)?.name ?? "a weapon"} from the discard pile.`;
+    message = `${player.name} played Reload. Their next weapon stays in hand after use.`;
   }
 
   if (definitionId === "ability_disarm" && target) {

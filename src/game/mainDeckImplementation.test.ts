@@ -17,11 +17,11 @@ function instances(definitionIds: string[]) {
 }
 
 describe("remaining main deck card implementations", () => {
-  it("Second Wind can be played as lethal defense and discards the defender hand", () => {
+  it("Revive can be played as lethal defense and discards the defender hand", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
     const defender = state.players.find((player) => player.id !== attacker.id)!;
-    const [weapon, secondWind, extraCard] = instances(["weapon_pistol", "healing_second_wind", "weapon_knife"]);
+    const [weapon, revive, extraCard] = instances(["weapon_pistol", "defense_fake_death", "weapon_knife"]);
     state = {
       ...state,
       round: 3,
@@ -29,7 +29,7 @@ describe("remaining main deck card implementations", () => {
         player.id === attacker.id
           ? { ...player, hand: [weapon] }
           : player.id === defender.id
-            ? { ...player, health: 3, hand: [secondWind, extraCard] }
+            ? { ...player, health: 3, hand: [revive, extraCard] }
             : player
       )
     };
@@ -43,34 +43,45 @@ describe("remaining main deck card implementations", () => {
     state = gameReducer(state, {
       type: "PLAY_REACTION",
       defenderId: defender.id,
-      reactionCardInstanceId: secondWind.instanceId
+      reactionCardInstanceId: revive.instanceId
     });
 
     const updatedDefender = state.players.find((player) => player.id === defender.id)!;
     expect(updatedDefender.eliminated).toBe(false);
     expect(updatedDefender.health).toBe(1);
     expect(updatedDefender.hand).toHaveLength(0);
-    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([secondWind.instanceId, extraCard.instanceId]));
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([revive.instanceId, extraCard.instanceId]));
   });
 
-  it("Reload recovers the highest-damage weapon from discard into hand", () => {
+  it("Reload keeps the next weapon in hand after it resolves", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = state.players[state.currentPlayerIndex];
-    const [reload, pistol, shotgun] = instances(["ability_reload", "weapon_pistol", "weapon_shotgun"]);
+    const target = state.players.find((candidate) => candidate.id !== player.id)!;
+    const [reload, pistol] = instances(["ability_reload", "weapon_pistol"]);
     state = {
       ...state,
-      discardPile: [pistol, shotgun],
+      round: 3,
       players: state.players.map((candidate) =>
-        candidate.id === player.id ? { ...candidate, hand: [reload], actionsRemaining: 2 } : candidate
+        candidate.id === player.id ? { ...candidate, hand: [reload, pistol], actionsRemaining: 2 } : candidate
       )
     };
 
     state = gameReducer(state, { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: reload.instanceId });
+    expect(state.reloadPlayerIds).toContain(player.id);
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: player.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: pistol.instanceId
+    });
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: target.id });
 
     const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
-    expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([shotgun.instanceId]);
-    expect(state.discardPile.map((card) => card.instanceId)).toEqual([pistol.instanceId, reload.instanceId]);
-    expect(updatedPlayer.actionsRemaining).toBe(1);
+    expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([pistol.instanceId]);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual([reload.instanceId]);
+    expect(state.reloadPlayerIds).not.toContain(player.id);
+    expect(updatedPlayer.actionsRemaining).toBe(0);
   });
 
   it("Ricochet redirects an attack to another chosen player", () => {
@@ -147,7 +158,6 @@ describe("remaining main deck card implementations", () => {
   it("Minigun damages every other living player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
-    const target = state.players.find((player) => player.id !== attacker.id)!;
     const [minigun] = instances(["weapon_minigun"]);
     state = {
       ...state,
@@ -158,7 +168,6 @@ describe("remaining main deck card implementations", () => {
     state = gameReducer(state, {
       type: "ATTACK",
       attackerId: attacker.id,
-      targetPlayerId: target.id,
       weaponInstanceId: minigun.instanceId
     });
 

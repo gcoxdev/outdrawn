@@ -450,6 +450,28 @@ p {
   font-weight: 800;
 }
 
+.current-event-summary {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  border: 1px solid rgba(217, 157, 69, 0.35);
+  border-radius: 7px;
+  padding: 8px 9px;
+  background: rgba(217, 157, 69, 0.08);
+}
+
+.current-event-summary strong {
+  color: var(--amber);
+  font-size: 0.84rem;
+}
+
+.current-event-summary p {
+  margin: 0;
+  color: #ded4c2;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
 .operations-sidebar {
   display: grid;
   grid-template-rows: minmax(250px, 65fr) 8px minmax(170px, 35fr);
@@ -470,7 +492,7 @@ p {
 
 .sidebar-pane--log {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .sidebar-resize-handle {
@@ -659,9 +681,10 @@ p {
 
 .card-view {
   --card-accent: #d99d45;
+  position: relative;
   display: grid;
   align-self: start;
-  grid-template-rows: auto minmax(64px, 0.85fr) auto minmax(0, 1fr) auto;
+  grid-template-rows: auto 58px auto minmax(0, 1fr) auto;
   width: 100%;
   height: auto;
   aspect-ratio: 2.5 / 3.5;
@@ -777,6 +800,7 @@ p {
 
 .card-view__art {
   display: grid;
+  height: 58px;
   place-items: center;
   margin: 7px 0;
   padding: 8px 4px;
@@ -802,10 +826,49 @@ p {
 
 .card-view__footer {
   justify-content: flex-start;
+  padding-right: 22px;
   color: var(--muted);
   font-size: 0.58rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.card-view__rules {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid rgba(244, 238, 226, 0.18);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.32);
+  color: #e8dfd0;
+}
+
+.card-view__rules::after {
+  position: absolute;
+  right: -2px;
+  bottom: 28px;
+  z-index: 6;
+  display: none;
+  width: min(240px, 70vw);
+  border: 1px solid rgba(244, 238, 226, 0.18);
+  border-radius: 7px;
+  padding: 9px 10px;
+  background: #11100e;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.42);
+  color: var(--text);
+  content: attr(data-rules);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.card-view__rules:hover::after {
+  display: block;
 }
 
 .action-panel {

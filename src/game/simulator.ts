@@ -400,7 +400,11 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
       return { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: card.instanceId };
     }
 
-    if (definition.id === "ability_reload" && state.discardPile.some((discarded) => getCardDefinitionById(discarded.definitionId)?.type === "weapon")) {
+    if (
+      definition.id === "ability_reload" &&
+      !state.reloadPlayerIds.includes(player.id) &&
+      player.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon")
+    ) {
       return { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: card.instanceId };
     }
 
@@ -472,6 +476,10 @@ function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyL
     return null;
   }
 
+  if (weaponDefinition?.target === "allPlayers") {
+    return { type: "ATTACK", attackerId: player.id, weaponInstanceId: weapon.instanceId };
+  }
+
   return { type: "ATTACK", attackerId: player.id, targetPlayerId: target.id, weaponInstanceId: weapon.instanceId };
 }
 
@@ -502,6 +510,10 @@ function chooseMasterAttack(state: GameState, player: PlayerState, weapons: Card
   }
 
   const target = chooseThreatTarget(validTargets, "master", random);
+  if (getCardDefinitionById(bestWeapon.definitionId)?.target === "allPlayers") {
+    return { type: "ATTACK", attackerId: player.id, weaponInstanceId: bestWeapon.instanceId };
+  }
+
   return target ? { type: "ATTACK", attackerId: player.id, targetPlayerId: target.id, weaponInstanceId: bestWeapon.instanceId } : null;
 }
 
@@ -843,7 +855,7 @@ function getDeckBalance() {
     if (card.id === "defense_backfire") {
       return total + 6 * card.count;
     }
-    if (card.id === "defense_fake_death" || card.id === "healing_second_wind") {
+    if (card.id === "defense_fake_death") {
       return total + 5 * card.count;
     }
     if (card.type === "defense") {

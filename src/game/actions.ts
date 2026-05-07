@@ -19,7 +19,7 @@ export type GameAction =
   | {
       type: "ATTACK";
       attackerId: PlayerId;
-      targetPlayerId: PlayerId;
+      targetPlayerId?: PlayerId;
       weaponInstanceId: CardInstanceId;
     }
   | { type: "PLAY_REACTION"; defenderId: PlayerId; reactionCardInstanceId: CardInstanceId }
