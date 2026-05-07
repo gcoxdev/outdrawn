@@ -43,6 +43,7 @@ export function resolveAttack(
   const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
   const splashTargets = weaponDefinition.id === "weapon_grenade" ? getGrenadeSplashTargets(state.players, attacker.id, target.id) : [];
+  const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
   const counterDamage = reactionResult.counterDamage;
   const targetHandAfterReaction = reactionResult.discardsDefenderHand
     ? []
@@ -90,6 +91,7 @@ export function resolveAttack(
         hand: [...(options.keepWeaponInHand ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...loot],
         health: attackerHealth,
         eliminated: attackerHealth === 0,
+        eliminations: player.eliminations + (eliminated ? 1 : 0) + splashEliminations,
         attackedThisRound: true,
         actedThisRound: true,
         actionsRemaining: options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1)
@@ -101,7 +103,8 @@ export function resolveAttack(
         ...player,
         hand: eliminated ? [] : targetHandAfterReaction,
         health: nextHealth,
-        eliminated
+        eliminated,
+        eliminations: player.eliminations + (counterDamage > 0 && attacker.health <= counterDamage ? 1 : 0)
       };
     }
 

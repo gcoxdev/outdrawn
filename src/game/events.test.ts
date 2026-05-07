@@ -212,6 +212,26 @@ describe("event cards", () => {
     expect(state.winnerId).toBe("player_2");
   });
 
+  it("simultaneous elimination tiebreaker favors prior eliminations first", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    state = {
+      ...state,
+      round: 8,
+      players: state.players.map((player, index) => ({
+        ...player,
+        health: 2,
+        eliminations: index === 2 ? 1 : 0,
+        hand: index === 1 ? [main("weapon_knife")] : [],
+        actedThisRound: true
+      }))
+    };
+
+    state = gameReducer(state, { type: "END_TURN", playerId: state.players[state.currentPlayerIndex].id });
+
+    expect(state.phase).toBe("gameOver");
+    expect(state.winnerId).toBe("player_3");
+  });
+
   it("Supply Drop reveals three cards and lets players claim or pass in low-health order", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const supplyDrop = event("event_supply_drop");

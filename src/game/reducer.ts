@@ -42,12 +42,11 @@ function getHandSnapshots(state: GameState): GameState["log"][number]["handSnaps
 }
 
 function refreshLogSnapshots(state: GameState): GameState {
-  const snapshots = getHandSnapshots(state);
   return {
     ...state,
     log: state.log.map((entry) => ({
       ...entry,
-      handSnapshots: snapshots
+      handSnapshots: []
     }))
   };
 }
@@ -335,9 +334,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "START_GAME":
       return createNewGame(action.playerSetups ?? action.playerNames, Math.random, action.settings ?? state.settings);
     case "UPDATE_SETTINGS":
-      return action.settings.debugHandSnapshots && !state.settings.debugHandSnapshots
-        ? refreshLogSnapshots({ ...state, settings: action.settings })
-        : { ...state, settings: action.settings };
+      if (!action.settings.debugHandSnapshots) {
+        return refreshLogSnapshots({ ...state, settings: action.settings });
+      }
+
+      if (!state.settings.debugHandSnapshots) {
+        return log({ ...state, settings: action.settings }, "Debug hand snapshots enabled.");
+      }
+
+      return { ...state, settings: action.settings };
     case "SELECT_CARD":
       return { ...state, selectedCardId: action.cardInstanceId };
     case "DRAW_CARD": {
@@ -913,11 +918,13 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   const eliminatedHands = state.players
     .filter((player) => damagedPlayerIds.includes(player.id) && player.health <= damage)
     .flatMap((player) => player.hand);
+  const eliminatedCount = state.players.filter((player) => damagedPlayerIds.includes(player.id) && player.health <= damage).length;
   const players = state.players.map((player) => {
     if (player.id === attacker.id) {
       return {
         ...player,
         hand: [...(reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...eliminatedHands],
+        eliminations: player.eliminations + eliminatedCount,
         attackedThisRound: true,
         actedThisRound: true,
         actionsRemaining: Math.max(0, player.actionsRemaining - 1)
@@ -1151,13 +1158,17 @@ function enforceHandLimit(state: GameState, playerId: string): GameState {
 }
 
 function breakEliminationTie(players: PlayerState[]): PlayerState | null {
-  const candidates = [...players].sort((left, right) => right.health - left.health || right.hand.length - left.hand.length);
+  const candidates = [...players].sort(
+    (left, right) => right.eliminations - left.eliminations || right.health - left.health || right.hand.length - left.hand.length
+  );
   const winner = candidates[0];
   if (!winner) {
     return null;
   }
 
-  const tied = candidates.filter((player) => player.health === winner.health && player.hand.length === winner.hand.length);
+  const tied = candidates.filter(
+    (player) => player.eliminations === winner.eliminations && player.health === winner.health && player.hand.length === winner.hand.length
+  );
   return tied.length === 1 ? winner : null;
 }
 

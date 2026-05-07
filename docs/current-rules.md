@@ -62,9 +62,9 @@ Each living player acts once per round. After all living players have acted:
 4. The weapon and reaction card are discarded unless the specific card effect says otherwise.
 5. Eliminations and loot resolve.
 
-Opening protection:
+Optional opening protection:
 
-- During Rounds 1-2, a single attack's base damage is capped at 6 by default.
+- Opening damage caps are disabled by default.
 - Damage cap rounds controls how many opening rounds use this cap.
 - Opening damage cap controls the maximum base damage during those rounds.
 
@@ -177,10 +177,7 @@ Known tie scenarios:
 
 Current tiebreaker:
 
-1. Highest pre-effect health wins.
-2. If tied, largest hand wins.
-3. If still tied, no winner is declared.
-
-Recommended future tiebreaker:
-
-Track player-caused damage or eliminations and use that before declaring no winner.
+1. Most player eliminations wins.
+2. If tied, highest pre-effect health wins.
+3. If tied, largest hand wins.
+4. If still tied, no winner is declared.

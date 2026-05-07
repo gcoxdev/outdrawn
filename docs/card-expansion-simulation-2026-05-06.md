@@ -14,9 +14,9 @@ All runs completed without stalls.
 
 | Scenario | Games | Avg Rounds | Avg Turns | Notable Outcome |
 | --- | ---: | ---: | ---: | --- |
-| Competent vs competent | 2,000 | 8.12 | 25.37 | Seats stayed broadly balanced: 488 / 503 / 501 / 494 wins, plus 14 true ties. |
-| Mixed skill table | 5,000 | 8.02 | 24.07 | Expert 1,792, Master 1,711, Novice 986, Beginner 477, plus 34 true ties. |
-| Master vs master | 2,000 | 7.93 | 24.64 | Seats stayed broadly balanced: 488 / 506 / 504 / 488 wins, plus 14 true ties. |
+| Competent vs competent | 2,000 | 8.06 | 24.83 | Seats stayed broadly balanced: 491 / 485 / 508 / 511 wins, plus 5 true ties. |
+| Mixed skill table | 5,000 | 7.95 | 23.45 | Master 1,776, Expert 1,750, Novice 1,007, Beginner 460, plus 7 true ties. |
+| Master vs master | 2,000 | 7.77 | 23.93 | Seats stayed broadly balanced: 502 / 509 / 504 / 477 wins, plus 8 true ties. |
 
 ## Current Deck Balance
 
@@ -27,7 +27,7 @@ All runs completed without stalls.
 - Estimated survival value: 91
 - Pressure-to-survival ratio: 1.58
 
-The ratio still favors damage. Minigun at 2 damage pulls average game length back toward roughly 7.9-8.1 rounds and 24.1-25.4 turns.
+The ratio still favors damage. With opening damage caps disabled by default, average game length is roughly 7.8-8.1 rounds and 23.5-24.8 turns.
 
 ## Gameplay Notes
 

@@ -98,7 +98,7 @@ describe("gameplay corrections", () => {
     expect(currentSnapshot?.health).toBe(current.health);
   });
 
-  it("adds hand snapshots immediately when debug snapshots are turned on mid-game", () => {
+  it("adds a current hand snapshot when debug snapshots are turned on mid-game", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: false });
 
     expect(state.log[0].handSnapshots).toHaveLength(0);
@@ -108,7 +108,43 @@ describe("gameplay corrections", () => {
       settings: { ...state.settings, debugHandSnapshots: true }
     });
 
-    expect(state.log[0].handSnapshots).toHaveLength(3);
+    expect(state.log[0].handSnapshots).toHaveLength(0);
+    expect(state.log.at(-1)?.message).toBe("Debug hand snapshots enabled.");
+    expect(state.log.at(-1)?.handSnapshots).toHaveLength(3);
+  });
+
+  it("removes visible hand snapshots when debug snapshots are turned off", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: true });
+    const current = state.players[state.currentPlayerIndex];
+
+    state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });
+    expect(state.log.at(-1)?.handSnapshots).toHaveLength(3);
+
+    state = gameReducer(state, {
+      type: "UPDATE_SETTINGS",
+      settings: { ...state.settings, debugHandSnapshots: false }
+    });
+
+    expect(state.log.every((entry) => entry.handSnapshots.length === 0)).toBe(true);
+  });
+
+  it("keeps log snapshot health fixed at the time of the log entry", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: true });
+    const current = state.players[state.currentPlayerIndex];
+
+    state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });
+    const passEntryId = state.log.at(-1)!.id;
+    const passSnapshot = state.log.at(-1)!.handSnapshots.find((snapshot) => snapshot.playerId === current.id)!;
+
+    state = {
+      ...state,
+      players: state.players.map((player) => (player.id === current.id ? { ...player, health: 7 } : player))
+    };
+    state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });
+
+    const originalEntry = state.log.find((entry) => entry.id === passEntryId)!;
+    expect(passSnapshot.health).toBe(20);
+    expect(originalEntry.handSnapshots.find((snapshot) => snapshot.playerId === current.id)?.health).toBe(20);
   });
 
   it("Smoke Bomb prevents targeting until that player's next turn", () => {

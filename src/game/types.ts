@@ -31,6 +31,7 @@ export type PlayerState = {
   health: number;
   hand: CardInstance[];
   eliminated: boolean;
+  eliminations: number;
   attackedThisRound: boolean;
   actedThisRound: boolean;
   actionsRemaining: number;

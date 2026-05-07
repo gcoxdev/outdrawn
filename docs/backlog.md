@@ -19,4 +19,4 @@
 - Decide whether Backfire, Ricochet, splash damage, and other indirect damage should allow ordinary defense reactions.
 - Rebalance Black Market incentives; current cost may be too high for the expected reward.
 - Simulate alternate defaults: 30 starting/max health, 7 starting cards, 10 max cards, and 3 actions per turn.
-- Design negative-action notifications for damage, theft, forced discard, elimination, and other effects, including how this should work with multiple human players.
+- Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.
