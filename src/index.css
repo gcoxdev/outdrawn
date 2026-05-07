@@ -472,6 +472,24 @@ p {
   line-height: 1.35;
 }
 
+.negative-action-toast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 45;
+  max-width: min(560px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(207, 73, 62, 0.48);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: rgba(35, 18, 16, 0.96);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.44);
+  color: #ffe3df;
+  font-size: 0.88rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
 .operations-sidebar {
   display: grid;
   grid-template-rows: minmax(250px, 65fr) 8px minmax(170px, 35fr);
@@ -497,9 +515,15 @@ p {
 
 .sidebar-resize-handle {
   align-self: center;
-  height: 4px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(244, 238, 226, 0.14);
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.sidebar-resize-handle:hover {
+  background: rgba(217, 157, 69, 0.58);
 }
 
 .sidebar-section__header,
@@ -684,7 +708,7 @@ p {
   position: relative;
   display: grid;
   align-self: start;
-  grid-template-rows: auto 58px auto minmax(0, 1fr) auto;
+  grid-template-rows: auto 64px minmax(22px, auto) minmax(0, 1fr) auto;
   width: 100%;
   height: auto;
   aspect-ratio: 2.5 / 3.5;
@@ -697,7 +721,7 @@ p {
     #151411;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
   color: var(--text);
-  overflow: hidden;
+  overflow: visible;
   text-align: left;
 }
 
@@ -800,9 +824,9 @@ p {
 
 .card-view__art {
   display: grid;
-  height: 58px;
+  height: 56px;
   place-items: center;
-  margin: 7px 0;
+  margin: 4px 0;
   padding: 8px 4px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
@@ -813,8 +837,10 @@ p {
 }
 
 .card-view__stats {
+  align-self: start;
   justify-content: flex-start;
   flex-wrap: wrap;
+  min-height: 22px;
 }
 
 .card-view__text {
@@ -849,9 +875,9 @@ p {
 
 .card-view__rules::after {
   position: absolute;
-  right: -2px;
-  bottom: 28px;
-  z-index: 6;
+  right: -10px;
+  bottom: 30px;
+  z-index: 30;
   display: none;
   width: min(240px, 70vw);
   border: 1px solid rgba(244, 238, 226, 0.18);

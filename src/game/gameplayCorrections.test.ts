@@ -98,6 +98,19 @@ describe("gameplay corrections", () => {
     expect(currentSnapshot?.health).toBe(current.health);
   });
 
+  it("adds hand snapshots immediately when debug snapshots are turned on mid-game", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: false });
+
+    expect(state.log[0].handSnapshots).toHaveLength(0);
+
+    state = gameReducer(state, {
+      type: "UPDATE_SETTINGS",
+      settings: { ...state.settings, debugHandSnapshots: true }
+    });
+
+    expect(state.log[0].handSnapshots).toHaveLength(3);
+  });
+
   it("Smoke Bomb prevents targeting until that player's next turn", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];

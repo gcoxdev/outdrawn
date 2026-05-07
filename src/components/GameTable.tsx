@@ -1,5 +1,6 @@
 import { Eye } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
 import type { GameAction } from "../game/actions";
 import { getPassDeviceContext } from "../game/privacy";
@@ -31,6 +32,8 @@ type MobileTab = "play" | "players" | "log";
 export function GameTable({ state, dispatch }: GameTableProps) {
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("play");
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
+  const [sidebarPlayerPercent, setSidebarPlayerPercent] = useState(62);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
@@ -59,9 +62,44 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     setActiveMobileTab("play");
   }, [decisionPlayerId]);
 
+  useEffect(() => {
+    const latest = state.log[state.log.length - 1]?.message;
+    if (!latest || !isNegativeLogMessage(latest)) {
+      return;
+    }
+
+    setAlertMessage(latest);
+    const timeoutId = window.setTimeout(() => setAlertMessage(null), 3200);
+    return () => window.clearTimeout(timeoutId);
+  }, [state.log]);
+
+  function startSidebarResize(event: ReactPointerEvent<HTMLDivElement>) {
+    const sidebar = event.currentTarget.closest(".operations-sidebar");
+    if (!sidebar) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const bounds = sidebar.getBoundingClientRect();
+    const update = (clientY: number) => {
+      const nextPercent = ((clientY - bounds.top) / bounds.height) * 100;
+      setSidebarPlayerPercent(Math.min(82, Math.max(28, nextPercent)));
+    };
+
+    update(event.clientY);
+    const handleMove = (moveEvent: PointerEvent) => update(moveEvent.clientY);
+    const handleUp = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  }
+
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
       {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
+      {alertMessage && <div className="negative-action-toast">{alertMessage}</div>}
       <GameMenu settings={state.settings} dispatch={dispatch} />
 
       <nav className="mobile-board-tabs" aria-label="Board sections">
@@ -74,7 +112,10 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       </nav>
 
       <section className="game-shell">
-        <aside className="operations-sidebar board-panel board-panel-players">
+        <aside
+          className="operations-sidebar board-panel board-panel-players"
+          style={{ gridTemplateRows: `${sidebarPlayerPercent}fr 8px ${100 - sidebarPlayerPercent}fr` }}
+        >
           <div className="sidebar-pane sidebar-pane--players">
             <PlayerRoster
               state={state}
@@ -83,7 +124,13 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               displayPlayerId={displayPlayer.id}
             />
           </div>
-          <div className="sidebar-resize-handle" aria-hidden="true" />
+          <div
+            className="sidebar-resize-handle"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize player roster and log"
+            onPointerDown={startSidebarResize}
+          />
           <div className="sidebar-pane sidebar-pane--log board-panel-log">
             <div className="log-panel__meta">
               <span>{state.mainDeck.length} deck</span>
@@ -186,6 +233,10 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       )}
     </main>
   );
+}
+
+function isNegativeLogMessage(message: string): boolean {
+  return /\b(took|eliminated|stole|stolen|discarded|disarmed|sabotaged|damaged|hit by)\b/i.test(message);
 }
 
 function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {

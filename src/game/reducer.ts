@@ -41,6 +41,17 @@ function getHandSnapshots(state: GameState): GameState["log"][number]["handSnaps
   }));
 }
 
+function refreshLogSnapshots(state: GameState): GameState {
+  const snapshots = getHandSnapshots(state);
+  return {
+    ...state,
+    log: state.log.map((entry) => ({
+      ...entry,
+      handSnapshots: snapshots
+    }))
+  };
+}
+
 function updatePlayer(state: GameState, playerId: string, updater: (player: PlayerState) => PlayerState): GameState {
   return {
     ...state,
@@ -69,8 +80,15 @@ function advanceTurn(state: GameState): GameState {
 
   const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
   const nextRound = allLivingActed;
-  const collapseState = nextRound ? applyCollapseDamage(state) : state;
-  const transitionState = nextRound ? resolveRoundTransition(collapseState) : state;
+  const collapseState = nextRound ? logPlayerHealthChanges(state.players, applyCollapseDamage(state), "collapse") : state;
+  const pressureState =
+    nextRound && collapseState.activeEvent?.card.definitionId === "event_pressure_zone"
+      ? logPlayerHealthChanges(collapseState.players, applyPressureZone(collapseState), "Pressure Zone")
+      : collapseState;
+  const nextEventDefinition = nextRound ? getCardDefinitionById(pressureState.eventDeck[0]?.definitionId ?? "") : undefined;
+  const transitionState = nextRound
+    ? logPlayerHealthChanges(pressureState.players, resolveRoundTransition(pressureState), nextEventDefinition?.name ?? "event")
+    : state;
   const livingAfterTransition = transitionState.players.filter((player) => !player.eliminated);
   const postTransitionWinner = getWinner(transitionState);
   if (livingAfterTransition.length <= 1) {
@@ -118,20 +136,40 @@ function advanceTurn(state: GameState): GameState {
   return log(
     advanced,
     nextRound
-      ? `Round ${advanced.round} begins. ${advanced.players[currentPlayerIndex].name} is up.`
+      ? `Round ${advanced.round} begins. Event: ${nextEventDefinition?.name ?? "none"}. ${advanced.players[currentPlayerIndex].name} is up.`
       : `${advanced.players[currentPlayerIndex].name} is up.`
   );
 }
 
+function logPlayerHealthChanges(beforePlayers: PlayerState[], afterState: GameState, source: string): GameState {
+  return afterState.players.reduce((nextState, player) => {
+    const before = beforePlayers.find((candidate) => candidate.id === player.id);
+    if (!before) {
+      return nextState;
+    }
+
+    const damage = before.health - player.health;
+    let updated = nextState;
+    if (damage > 0) {
+      updated = log(updated, `${player.name} took ${damage} ${source} damage.`);
+    }
+
+    if (!before.eliminated && player.eliminated) {
+      updated = log(updated, `${player.name} was eliminated by ${source}.`);
+    }
+
+    return updated;
+  }, afterState);
+}
+
 function resolveRoundTransition(state: GameState): GameState {
-  const stateWithExpiredEventEffect = state.activeEvent?.card.definitionId === "event_pressure_zone" ? applyPressureZone(state) : state;
-  const stateWithoutExpiredEvent = stateWithExpiredEventEffect.activeEvent
+  const stateWithoutExpiredEvent = state.activeEvent
     ? {
-        ...stateWithExpiredEventEffect,
+        ...state,
         activeEvent: null,
-        eventDiscardPile: [...stateWithExpiredEventEffect.eventDiscardPile, stateWithExpiredEventEffect.activeEvent.card]
+        eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
       }
-    : stateWithExpiredEventEffect;
+    : state;
   const [eventCard, ...eventDeck] = stateWithoutExpiredEvent.eventDeck;
   const eventDefinition = eventCard ? getCardDefinitionById(eventCard.definitionId) : undefined;
 
@@ -297,7 +335,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "START_GAME":
       return createNewGame(action.playerSetups ?? action.playerNames, Math.random, action.settings ?? state.settings);
     case "UPDATE_SETTINGS":
-      return { ...state, settings: action.settings };
+      return action.settings.debugHandSnapshots && !state.settings.debugHandSnapshots
+        ? refreshLogSnapshots({ ...state, settings: action.settings })
+        : { ...state, settings: action.settings };
     case "SELECT_CARD":
       return { ...state, selectedCardId: action.cardInstanceId };
     case "DRAW_CARD": {
@@ -510,7 +550,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const card = player.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
       const definition = card ? getCardDefinitionById(card.definitionId) : undefined;
 
-      if (!card || !definition || definition.type !== "healing") {
+      if (!card || !definition || definition.type !== "healing" || player.actionsRemaining < (definition.actionsCost ?? 1)) {
         return state;
       }
 

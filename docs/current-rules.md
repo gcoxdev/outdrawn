@@ -64,18 +64,20 @@ Each living player acts once per round. After all living players have acted:
 
 Opening protection:
 
-- During Rounds 1-2, a single attack's base damage is capped at 6.
+- During Rounds 1-2, a single attack's base damage is capped at 6 by default.
+- Damage cap rounds controls how many opening rounds use this cap.
+- Opening damage cap controls the maximum base damage during those rounds.
 
 ## Weapons
 
 - Pistol: deal 3 damage.
 - Shotgun: deal 6 damage, then discard.
 - Sniper Rifle: deal 8 damage.
-- Knife: deal 2 damage. If it eliminates a player, the attacker can keep 1 additional loot card before discarding down.
+- Knife: deal 2 damage.
 - Grenade: deal 4 damage to the target and 2 splash damage to nearby non-attacking players in turn order.
 - Crossbow: deal 4 damage and ignores Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: deal 1 damage to every other living player. It does not choose a target and has no reaction window.
+- Minigun: deal 2 damage to every other living player. It does not choose a target and has no reaction window.
 
 ## Defense
 
@@ -106,7 +108,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 ## Healing
 
 - Bandage: heal 3.
-- Medkit: heal 6 and costs both actions.
+- Medkit: heal 6 and costs 2 actions.
 - Painkillers: heal 2 and draw 1 card.
 - Field Dressing: heal 4.
 
@@ -129,7 +131,8 @@ If a player is eliminated by another player's attack:
 
 1. The attacker gains the eliminated player's remaining hand.
 2. The eliminated player's hand is emptied.
-3. The attacker must discard down to the max hand size if necessary.
+3. Loot can temporarily put the attacker over the max hand size.
+4. The attacker must discard down before ending their turn.
 
 If a player is eliminated by event or collapse damage:
 

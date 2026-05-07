@@ -53,7 +53,9 @@ export function resolveAttack(
   let winnerId = state.winnerId;
   let phase = state.phase;
   const messages = [
-    `${attacker.name} attacked ${target.name} with ${weaponDefinition.name} for ${damage} damage.`
+    reactionDefinition?.id === "defense_decoy"
+      ? `${target.name} was hit by Ricochet with ${weaponDefinition.name} for ${damage} damage.`
+      : `${attacker.name} attacked ${target.name} with ${weaponDefinition.name} for ${damage} damage.`
   ];
 
   if (reaction && reactionDefinition) {
@@ -73,7 +75,11 @@ export function resolveAttack(
   }
 
   splashTargets.forEach((splashTarget) => {
-    messages.push(`${splashTarget.name} took ${weaponDefinition.splashDamage ?? 0} splash damage.`);
+    const splashDamage = weaponDefinition.splashDamage ?? 0;
+    messages.push(`${splashTarget.name} took ${splashDamage} splash damage from ${weaponDefinition.name}.`);
+    if (splashTarget.health <= splashDamage) {
+      messages.push(`${splashTarget.name} was eliminated by splash damage.`);
+    }
   });
 
   const players = state.players.map((player) => {

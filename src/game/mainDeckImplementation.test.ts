@@ -175,7 +175,7 @@ describe("remaining main deck card implementations", () => {
     expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
     state.players
       .filter((player) => player.id !== attacker.id)
-      .forEach((player) => expect(player.health).toBe(19));
+      .forEach((player) => expect(player.health).toBe(18));
     expect(state.players.find((player) => player.id === attacker.id)!.actionsRemaining).toBe(1);
     expect(state.discardPile.map((card) => card.instanceId)).toContain(minigun.instanceId);
   });

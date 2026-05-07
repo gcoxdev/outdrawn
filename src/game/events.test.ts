@@ -43,6 +43,7 @@ describe("event cards", () => {
     expect(state.round).toBe(2);
     expect(state.activeEvent?.card.instanceId).toBe(highGround.instanceId);
     expect(state.eventDeck).toHaveLength(0);
+    expect(state.log.at(-1)?.message).toContain("Event: High Ground");
   });
 
   it("High Ground adds 1 damage to a player's first attack this round", () => {
@@ -111,6 +112,10 @@ describe("event cards", () => {
     expect(state.players[2].health).toBe(17);
     expect(state.discardPile.map((card) => card.instanceId)).toContain(pistol.instanceId);
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(lowAmmo.instanceId);
+    expect(state.log.map((entry) => entry.message)).toEqual(expect.arrayContaining([
+      "Blake took 3 Low Ammo damage.",
+      "Casey took 3 Low Ammo damage."
+    ]));
   });
 
   it("Critical Condition damages low-health players when revealed", () => {
@@ -124,6 +129,10 @@ describe("event cards", () => {
     state = endCurrentRound(state);
 
     expect(state.players.map((player) => player.health)).toEqual([11, 9, 2]);
+    expect(state.log.map((entry) => entry.message)).toEqual(expect.arrayContaining([
+      "Blake took 1 Critical Condition damage.",
+      "Casey took 2 Critical Condition damage."
+    ]));
   });
 
   it("Bounty draws a card for attackers who damage the highest-health player", () => {
