@@ -1015,11 +1015,31 @@ p {
 }
 
 .winner-modal__icon,
+.winner-modal__close,
 .winner-modal__panel h2,
 .winner-modal__panel p,
 .winner-modal__panel button {
   position: relative;
   z-index: 1;
+}
+
+.winner-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 46px;
+  min-height: 46px;
+  place-items: center;
+  border-color: rgba(244, 238, 226, 0.18);
+  border-radius: 6px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+}
+
+.winner-modal__close:hover {
+  background: rgba(217, 157, 69, 0.2);
 }
 
 .winner-modal__icon {
