@@ -42,7 +42,6 @@ Defense candidates:
 - Emergency Shield: block all damage, then skip your next draw.
 - Mirror Shield: reduce damage by half and return the prevented amount to the attacker.
 - Escape Route: cancel an attack and move turn order focus to the next player.
-- Bodyguard: in team games, take damage for an ally and reduce it by 2.
 - Decoy Hand: reveal two random cards; attacker chooses one to discard instead of dealing damage.
 - Last Stand Armor: only playable at low health; block more damage than Armor Vest.
 
@@ -50,36 +49,55 @@ Ability candidates:
 
 - Scout: look at one player's hand.
 - Recon Drone: look at the top cards of the deck and reorder them.
-- Bounty Contract: mark a player; whoever damages them draws a card.
 - Trade Route: swap one card with another willing player.
 - Forced Trade: swap one random card with a target player.
 - Blackout: hide all hands and disable hand-peek effects until your next turn.
 - Sabotage Supply: target player discards a random card, then draws 1.
-- Rally: all teammates draw 1 in team games.
 - Focus: your next attack this turn gets +2 damage.
 - Suppression: target player has 1 fewer action next turn.
-- Pickpocket: steal a random face-down card from target player's hand.
-- Counterplay: recover a defense card from the discard pile.
+- Feint: choose a target; if they spend a defense card against your next attack this turn, draw 1.
+- Jam Comms: target player cannot receive ally support reactions until their next turn.
+- Signal Boost: your next ability card this turn costs 0 actions.
 
 Healing/support candidates:
 
-- Field Dressing: heal a small amount and draw 1.
-- Painkillers: heal now, then take delayed damage next round.
-- Stim Pack: gain 1 action this turn and heal 1.
 - Safe House: skip your attack action to heal and become untargetable until your next turn.
-- Team Medic: heal yourself or an ally.
-- Second Chance: if you would be eliminated this round, stay at 1 HP and discard your hand.
+- Emergency Rations: heal a small amount, then discard 1 card.
+- Blood Pact: heal 1, then your next successful attack heals you for 1 more.
+- Triage Kit: heal more if you have taken damage since your last turn.
+- Reinforced Bandage: heal a small amount and reduce the next damage you take this round by 1.
+
+Team-mode candidates:
+
+- Cover Ally: when a teammate is attacked, reduce that damage by 3.
+- Intercept: take an attack meant for a teammate, then reduce that damage by 2.
+- Coordinated Strike: you and a teammate each discard 1 card; deal bonus damage to one shared target.
+- Flank: if a teammate damaged the target this round, deal extra damage to that target.
+- Rally Point: all teammates may draw 1, then each must discard down to max hand size.
+- Field Medic: heal a teammate; if they are at low health, heal extra.
+- Shared Supplies: give a card from your hand to a teammate; both players may draw 1 if you give a defense card.
+- Suppressing Fire: reduce the next attack against any teammate by 2 and mark the attacker.
+- Revive Beacon: if a teammate would be eliminated, they stay at 1 HP, discard their hand, and skip their next turn.
+- Squad Loadout: each teammate may pass one card to another teammate, then discard 1 if over max hand size.
+- Callout: reveal one opponent's hand to your team until the end of the round.
+- Crossfire: deal damage to an opponent; a teammate seated opposite or adjacent to them may deal 1 extra damage.
+- Guard Rotation: until your next turn, the first attack against each teammate is reduced by 1.
+- Last Squad Standing: if your team has fewer living players than another team, each teammate draws 1.
+- Friendly Fire: event or hazard card where splash damage can hit teammates this round unless prevented.
+- Broken Formation: target team cannot use ally reactions until the end of the round.
+- Supply Line: each teammate may recover one low-value card from discard, then the team skips its next draw bonus.
+- Extraction Zone: team event where a chosen teammate becomes untargetable but cannot attack until their next turn.
+- Vengeance Pact: when a teammate is eliminated, one surviving teammate immediately draws 2 and may attack the eliminator.
 
 Event candidates:
 
 - Fog of War: attacks must target a random opponent this round.
-- Ammo Shortage: weapon cards cost 1 extra action this round.
-- Open Season: all attack damage is increased by 1 this round.
-- Medical Cache: each living player may heal or draw.
 - Collapsing Zone: lowest-health player takes damage at round end.
-- Air Drop: reveal several cards; players draft in turn order.
 - Interference: ability cards cannot be played this round.
 - Revenge Round: eliminated players' cards are discarded instead of looted this round.
+- Exposed Hands: each player reveals one random card from hand until round end.
+- Forced March: players with more than max hand size take damage before discarding.
+- Bad Intel: the first ability played this round targets a random valid player instead.
 
 ## Rules To Clarify
 
