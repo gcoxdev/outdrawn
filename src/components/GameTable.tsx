@@ -65,6 +65,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             {tab}
           </button>
         ))}
+        <GameMenu settings={state.settings} dispatch={dispatch} variant="mobileIcon" />
       </nav>
 
       <section className="game-shell">

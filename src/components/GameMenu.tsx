@@ -14,6 +14,7 @@ type NumericSettingKey = {
 type GameMenuProps = {
   settings: GameSettings;
   dispatch: (action: GameAction) => void;
+  variant?: "floating" | "mobileIcon";
 };
 
 const settingFields: Array<{
@@ -31,7 +32,7 @@ const settingFields: Array<{
   { key: "openingDamageCap", label: "Opening damage cap", min: 1, max: 20 }
 ];
 
-export function GameMenu({ settings, dispatch }: GameMenuProps) {
+export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
   const cardsByType = useMemo(
@@ -63,9 +64,14 @@ export function GameMenu({ settings, dispatch }: GameMenuProps) {
 
   return (
     <>
-      <button className="menu-trigger" type="button" onClick={() => setIsOpen(true)} aria-label="Open menu">
+      <button
+        className={`menu-trigger ${variant === "mobileIcon" ? "menu-trigger--mobile-icon" : ""}`}
+        type="button"
+        onClick={() => setIsOpen(true)}
+        aria-label="Open menu"
+      >
         <Menu size={18} />
-        Menu
+        {variant === "floating" && "Menu"}
       </button>
       {isOpen && (
         <div className="menu-overlay" role="dialog" aria-modal="true" aria-label="Game menu">

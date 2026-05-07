@@ -58,6 +58,15 @@ button {
   text-transform: uppercase;
 }
 
+.menu-trigger--mobile-icon {
+  position: static;
+  display: none;
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+  padding: 0;
+}
+
 .menu-overlay {
   position: fixed;
   inset: 0;
@@ -1143,7 +1152,7 @@ p {
     top: 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -1152,7 +1161,8 @@ p {
   }
 
   .mobile-board-tabs button {
-    min-height: 34px;
+    height: 42px;
+    min-height: 42px;
     padding: 0 4px;
     font-size: 0.72rem;
     font-weight: 900;
@@ -1162,6 +1172,14 @@ p {
   .mobile-board-tabs button.is-active {
     background: var(--amber);
     color: #15120d;
+  }
+
+  .game-table > .menu-trigger {
+    display: none;
+  }
+
+  .mobile-board-tabs .menu-trigger--mobile-icon {
+    display: inline-flex;
   }
 
   .game-shell {
