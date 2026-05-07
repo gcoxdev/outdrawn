@@ -1023,7 +1023,7 @@ p {
   z-index: 1;
 }
 
-.winner-modal__close {
+.winner-modal__panel .winner-modal__close {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -1038,7 +1038,7 @@ p {
   color: var(--text);
 }
 
-.winner-modal__close:hover {
+.winner-modal__panel .winner-modal__close:hover {
   background: rgba(217, 157, 69, 0.2);
 }
 
