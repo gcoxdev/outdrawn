@@ -62,19 +62,13 @@ Each living player acts once per round. After all living players have acted:
 4. The weapon and reaction card are discarded unless the specific card effect says otherwise.
 5. Eliminations and loot resolve.
 
-Optional opening protection:
-
-- Opening damage caps are disabled by default.
-- Damage cap rounds controls how many opening rounds use this cap.
-- Opening damage cap controls the maximum base damage during those rounds.
-
 ## Weapons
 
 - Pistol: deal 3 damage.
 - Shotgun: deal 6 damage, then discard.
 - Sniper Rifle: deal 8 damage.
 - Knife: deal 2 damage.
-- Grenade: deal 4 damage to the target and 2 splash damage to nearby non-attacking players in turn order.
+- Grenade: deal 4 damage to the target and 2 splash damage to the next living player clockwise and counterclockwise from the target in seating order.
 - Crossbow: deal 4 damage and ignores Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
 - Minigun: deal 2 damage to every other living player. It does not choose a target and has no reaction window.

@@ -66,19 +66,21 @@ export function createNewGame(
         id: "log_setup",
         round: 1,
         message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`,
-        handSnapshots:
-          import.meta.env.DEV && settings.debugHandSnapshots
-            ? players.map((player) => ({
-                playerId: player.id,
-                playerName: player.name,
-                health: player.health,
-                cards: player.hand.map((card) => ({ ...card }))
-              }))
-            : []
+        debugHandSnapshots: import.meta.env.DEV ? getHandSnapshots(players) : [],
+        handSnapshots: import.meta.env.DEV && settings.debugHandSnapshots ? getHandSnapshots(players) : []
       }
     ],
     winnerId: null
   };
+}
+
+function getHandSnapshots(players: PlayerState[]): GameState["log"][number]["debugHandSnapshots"] {
+  return players.map((player) => ({
+    playerId: player.id,
+    playerName: player.name,
+    health: player.health,
+    cards: player.hand.map((card) => ({ ...card }))
+  }));
 }
 
 function normalizePlayerSetups(playerInputs: string[] | PlayerSetup[]): PlayerSetup[] {

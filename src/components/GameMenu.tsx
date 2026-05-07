@@ -27,9 +27,7 @@ const settingFields: Array<{
   { key: "maxHealth", label: "Max health", min: 1, max: 100 },
   { key: "startingHandSize", label: "Starting hand size", min: 1, max: 15 },
   { key: "maxHandSize", label: "Max cards in hand", min: 1, max: 20 },
-  { key: "actionsPerTurn", label: "Actions per turn", min: 1, max: 6 },
-  { key: "openingDamageCapRounds", label: "Damage cap rounds", min: 0, max: 10 },
-  { key: "openingDamageCap", label: "Opening damage cap", min: 1, max: 20 }
+  { key: "actionsPerTurn", label: "Actions per turn", min: 1, max: 6 }
 ];
 
 export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuProps) {

@@ -69,7 +69,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     }
 
     setAlertMessage(latest);
-    const timeoutId = window.setTimeout(() => setAlertMessage(null), 3200);
+    const timeoutId = window.setTimeout(() => setAlertMessage(null), 4200);
     return () => window.clearTimeout(timeoutId);
   }, [state.log]);
 

@@ -63,9 +63,18 @@ export default function App() {
       <SetupScreen
         settings={state.settings}
         dispatch={dispatch}
-        onStart={(playerSetups: PlayerSetup[]) =>
-          dispatch({ type: "START_GAME", playerNames: playerSetups.map((player) => player.name), playerSetups, settings: state.settings })
-        }
+        onStart={(playerSetups: PlayerSetup[]) => {
+          const humanCount = playerSetups.filter((player) => player.controller.type === "human").length;
+          dispatch({
+            type: "START_GAME",
+            playerNames: playerSetups.map((player) => player.name),
+            playerSetups,
+            settings: {
+              ...state.settings,
+              passDeviceMode: humanCount >= 2 ? true : state.settings.passDeviceMode
+            }
+          });
+        }}
       />
     );
   }

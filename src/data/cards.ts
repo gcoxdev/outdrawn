@@ -128,7 +128,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["damage", "splash", "target"],
     shortText: "Deal 4 to target and 2 splash to adjacent players.",
-    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the next living player clockwise and counterclockwise from the target. The attacker is not hit by their own Grenade unless a card says otherwise. Dodge cancels damage only to the dodging player; splash still resolves.",
+    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the next living player clockwise and counterclockwise from the target in seating order. The attacker is not hit by their own Grenade unless a card says otherwise. Dodge cancels damage only to the dodging player; splash still resolves.",
     flavorText: "Nobody is standing far enough away.",
     tags: ["weapon", "splash", "area"]
   },

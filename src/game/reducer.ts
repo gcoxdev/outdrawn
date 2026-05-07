@@ -14,6 +14,8 @@ import {
 } from "./rules";
 
 function log(state: GameState, message: string): GameState {
+  const debugHandSnapshots = shouldCaptureHandSnapshots() ? getHandSnapshots(state) : [];
+  const handSnapshots = state.settings.debugHandSnapshots ? debugHandSnapshots : [];
   return {
     ...state,
     log: [
@@ -22,14 +24,15 @@ function log(state: GameState, message: string): GameState {
         id: `log_${state.log.length + 1}_${Date.now()}`,
         round: state.round,
         message,
-        handSnapshots: shouldCaptureHandSnapshots(state) ? getHandSnapshots(state) : []
+        debugHandSnapshots,
+        handSnapshots
       }
     ]
   };
 }
 
-function shouldCaptureHandSnapshots(state: GameState): boolean {
-  return import.meta.env.DEV && state.settings.debugHandSnapshots;
+function shouldCaptureHandSnapshots(): boolean {
+  return import.meta.env.DEV;
 }
 
 function getHandSnapshots(state: GameState): GameState["log"][number]["handSnapshots"] {
@@ -41,12 +44,12 @@ function getHandSnapshots(state: GameState): GameState["log"][number]["handSnaps
   }));
 }
 
-function refreshLogSnapshots(state: GameState): GameState {
+function setLogSnapshotVisibility(state: GameState, visible: boolean): GameState {
   return {
     ...state,
     log: state.log.map((entry) => ({
       ...entry,
-      handSnapshots: []
+      handSnapshots: visible ? entry.debugHandSnapshots : []
     }))
   };
 }
@@ -334,15 +337,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "START_GAME":
       return createNewGame(action.playerSetups ?? action.playerNames, Math.random, action.settings ?? state.settings);
     case "UPDATE_SETTINGS":
-      if (!action.settings.debugHandSnapshots) {
-        return refreshLogSnapshots({ ...state, settings: action.settings });
-      }
-
-      if (!state.settings.debugHandSnapshots) {
-        return log({ ...state, settings: action.settings }, "Debug hand snapshots enabled.");
-      }
-
-      return { ...state, settings: action.settings };
+      return setLogSnapshotVisibility({ ...state, settings: action.settings }, action.settings.debugHandSnapshots);
     case "SELECT_CARD":
       return { ...state, selectedCardId: action.cardInstanceId };
     case "DRAW_CARD": {

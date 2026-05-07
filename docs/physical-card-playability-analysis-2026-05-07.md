@@ -6,7 +6,7 @@ Last Hand Standing should work cleanly as a tabletop card game, not only as a br
 
 ## Current Physical Sticking Points
 
-- Opening damage caps are awkward in physical play because players must remember a special round-limited exception. Recommendation: keep the setting for digital testing but disable it by default.
+- Opening damage caps were awkward in physical play because players had to remember a special round-limited exception. They have been removed.
 - Event deck separation is playable but adds another pile and timing step. It is clear, but slower than a single deck. Mixing events into the main deck is worth analyzing later.
 - Reload is now physical-friendly because it no longer searches a discard pile for the strongest weapon.
 - Debug hand snapshots, logs, and bot strategy are digital-only. They should not be part of printed rules.
@@ -36,7 +36,7 @@ Last Hand Standing should work cleanly as a tabletop card game, not only as a br
 ## Recommendations
 
 - Keep the current web prototype as the rules testbed, but mark digital-only features clearly in docs.
-- Disable opening damage caps by default.
+- Keep opening damage caps out of the printed rules.
 - Add a printed-rules pass that removes web terms such as log, debug snapshots, bot levels, and pass-device mode.
 - Continue analyzing whether events should be mixed into the main deck.
 - Before print testing, create a physical turn reference card covering turn actions, reaction timing, elimination loot, round cleanup, and event reveal timing.

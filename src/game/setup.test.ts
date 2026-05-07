@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STARTING_HAND_SIZE, STARTING_HEALTH } from "../data/constants";
+import { defaultGameSettings, STARTING_HAND_SIZE, STARTING_HEALTH } from "../data/constants";
 import { deckSummary } from "../data/cards";
 import { createNewGame } from "./setup";
 
@@ -52,5 +52,12 @@ describe("game setup", () => {
     expect(() =>
       createNewGame(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn", "Gray"], () => 0)
     ).toThrow("3 to 6 players");
+  });
+
+  it("stores debug snapshots even when they are hidden", () => {
+    const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: false });
+
+    expect(state.log[0].handSnapshots).toHaveLength(0);
+    expect(state.log[0].debugHandSnapshots).toHaveLength(3);
   });
 });

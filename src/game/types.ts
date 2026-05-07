@@ -46,6 +46,12 @@ export type LogEntry = {
   id: string;
   round: number;
   message: string;
+  debugHandSnapshots: Array<{
+    playerId: PlayerId;
+    playerName: string;
+    health: number;
+    cards: CardInstance[];
+  }>;
   handSnapshots: Array<{
     playerId: PlayerId;
     playerName: string;

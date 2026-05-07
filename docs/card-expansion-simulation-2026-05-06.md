@@ -14,9 +14,9 @@ All runs completed without stalls.
 
 | Scenario | Games | Avg Rounds | Avg Turns | Notable Outcome |
 | --- | ---: | ---: | ---: | --- |
-| Competent vs competent | 2,000 | 8.06 | 24.83 | Seats stayed broadly balanced: 491 / 485 / 508 / 511 wins, plus 5 true ties. |
-| Mixed skill table | 5,000 | 7.95 | 23.45 | Master 1,776, Expert 1,750, Novice 1,007, Beginner 460, plus 7 true ties. |
-| Master vs master | 2,000 | 7.77 | 23.93 | Seats stayed broadly balanced: 502 / 509 / 504 / 477 wins, plus 8 true ties. |
+| Competent vs competent | 2,000 | 8.01 | 24.78 | Seats stayed broadly balanced: 489 / 521 / 487 / 498 wins, plus 5 true ties. |
+| Mixed skill table | 5,000 | 7.92 | 23.37 | Expert 1,839, Master 1,724, Novice 971, Beginner 459, plus 7 true ties. |
+| Master vs master | 2,000 | 7.82 | 24.10 | Seats stayed broadly balanced: 522 / 482 / 504 / 492 wins, no true ties. |
 
 ## Current Deck Balance
 
@@ -27,7 +27,7 @@ All runs completed without stalls.
 - Estimated survival value: 91
 - Pressure-to-survival ratio: 1.58
 
-The ratio still favors damage. With opening damage caps disabled by default, average game length is roughly 7.8-8.1 rounds and 23.5-24.8 turns.
+The ratio still favors damage. With damage caps removed, average game length is roughly 7.8-8.1 rounds and 23.5-24.8 turns.
 
 ## Gameplay Notes
 

@@ -490,7 +490,7 @@ p {
   font-size: clamp(1rem, 2vw, 1.2rem);
   font-weight: 800;
   text-align: center;
-  animation: toast-linger 3.2s ease forwards;
+  animation: toast-linger 4.2s ease forwards;
   pointer-events: none;
 }
 

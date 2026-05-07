@@ -15,6 +15,15 @@ export type ResolveAttackOptions = {
   clearAttackBonuses?: boolean;
 };
 
+function getBaseAttackDamage(state: GameState, attacker: PlayerState, target: PlayerState, weaponDefinition: CardDefinition): number {
+  return (
+    (weaponDefinition.damage ?? 0) +
+    (state.attackBonuses[attacker.id] ?? 0) +
+    (state.markedTargets[target.id] ?? 0) +
+    getEventAttackBonus(state, attacker)
+  );
+}
+
 export function resolveAttack(
   state: GameState,
   attacker: PlayerState,
@@ -28,15 +37,7 @@ export function resolveAttack(
     return { state, messages: [] };
   }
 
-  const baseDamage =
-    options.baseDamageOverride ??
-    Math.min(
-      (weaponDefinition.damage ?? 0) +
-        (state.attackBonuses[attacker.id] ?? 0) +
-        (state.markedTargets[target.id] ?? 0) +
-        getEventAttackBonus(state, attacker),
-      state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
-    );
+  const baseDamage = options.baseDamageOverride ?? getBaseAttackDamage(state, attacker, target, weaponDefinition);
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
   const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition, state.activeEvent?.card.definitionId);
   const damage = reactionResult.damage;
@@ -311,13 +312,7 @@ export function createPendingReaction(
     return { state, messages: [] };
   }
 
-  const baseDamage = Math.min(
-    (weaponDefinition.damage ?? 0) +
-      (state.attackBonuses[attacker.id] ?? 0) +
-      (state.markedTargets[target.id] ?? 0) +
-      getEventAttackBonus(state, attacker),
-    state.round <= state.settings.openingDamageCapRounds ? state.settings.openingDamageCap : Number.POSITIVE_INFINITY
-  );
+  const baseDamage = getBaseAttackDamage(state, attacker, target, weaponDefinition);
   const pendingReaction: PendingReaction = {
     attackerId: attacker.id,
     defenderId: target.id,
