@@ -1,6 +1,6 @@
 import { allCards } from "../data/cards";
 import { drawCardsWithRefill } from "./deck";
-import type { CardInstance, PlayerId } from "./types";
+import type { CardInstance, PlayerId, SecondaryDamageItem, SecondaryDamageSource } from "./types";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
@@ -991,17 +991,31 @@ function resolvePendingAttack(
   const multiHit = state.pendingMultiHitAttack;
   const reloadActive = state.reloadPlayerIds.includes(attacker.id);
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
+  const counterDamage = getReactionCounterDamage(reactionDefinition, state.pendingReaction?.baseDamage ?? 0);
   const deferSplash = state.settings.allowSecondaryDefense && weaponDefinition?.id === "weapon_grenade" && !multiHit;
+  const deferCounterDamage = state.settings.allowSecondaryDefense && counterDamage > 0;
 
   if (!multiHit || multiHit.weapon.instanceId !== weapon.instanceId) {
     const result = resolveAttack(state, attacker, defender, weapon, reaction, {
       keepWeaponInHand: reloadActive,
-      resolveSplash: !deferSplash
+      resolveSplash: !deferSplash,
+      resolveCounterDamage: !deferCounterDamage
     });
     const stateAfterReload = reloadActive ? consumeReload(result.state, attacker.id) : result.state;
-    return deferSplash
-      ? enqueueGrenadeSplash(stateAfterReload, result.messages, state.players, attacker.id, defender.id, weapon)
-      : { ...result, state: stateAfterReload };
+    const counterItems = deferCounterDamage
+      ? [
+          {
+            attackerId: defender.id,
+            defenderId: attacker.id,
+            weapon,
+            baseDamage: counterDamage,
+            source: reactionDefinition?.id === "defense_backfire" ? ("backfire" as const) : ("counterattack" as const)
+          }
+        ]
+      : [];
+    const splashItems = deferSplash ? getGrenadeSplashItems(stateAfterReload, state.players, attacker.id, defender.id, weapon) : [];
+    return enqueueSecondaryDamage(stateAfterReload, result.messages, [...counterItems, ...splashItems]);
   }
 
   const isFinalHit = multiHit.hitsRemaining <= 1;
@@ -1049,50 +1063,54 @@ function resolvePendingAttack(
   };
 }
 
-function enqueueGrenadeSplash(
+function getGrenadeSplashItems(
   state: GameState,
-  messages: string[],
   beforePlayers: PlayerState[],
   attackerId: PlayerId,
   targetId: PlayerId,
   weapon: CardInstance
-) {
-  if (state.phase === "gameOver") {
-    return { state, messages };
-  }
-
+): SecondaryDamageItem[] {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   const splashDamage = weaponDefinition?.splashDamage ?? 0;
-  const splashTargets = getGrenadeSplashTargets(beforePlayers, attackerId, targetId)
+  if (splashDamage <= 0) {
+    return [];
+  }
+
+  return getGrenadeSplashTargets(beforePlayers, attackerId, targetId)
     .filter((target) => {
       const current = getPlayer(state, target.id);
       return current && !current.eliminated;
     })
     .map((target) => ({
+      attackerId,
       defenderId: target.id,
+      weapon,
       baseDamage: splashDamage,
       source: "splash" as const
     }));
+}
 
-  if (splashTargets.length === 0 || splashDamage <= 0) {
+function enqueueSecondaryDamage(state: GameState, messages: string[], items: SecondaryDamageItem[]) {
+  const pendingItems = items.filter((item) => {
+    const defender = getPlayer(state, item.defenderId);
+    return state.phase !== "gameOver" && defender && !defender.eliminated && item.baseDamage > 0;
+  });
+
+  if (pendingItems.length === 0) {
     return { state, messages };
   }
 
-  const [nextSplash, ...remaining] = splashTargets;
-  const defender = getPlayer(state, nextSplash.defenderId);
+  const [next, ...remaining] = pendingItems;
+  const defender = getPlayer(state, next.defenderId);
   return {
     state: {
       ...state,
       pendingSecondaryDamage: {
-        attackerId,
-        defenderId: nextSplash.defenderId,
-        weapon,
-        baseDamage: nextSplash.baseDamage,
-        source: nextSplash.source,
+        ...next,
         remaining
       }
     },
-    messages: [...messages, `${defender?.name ?? "A player"} may defend against Grenade splash damage.`]
+    messages: [...messages, `${defender?.name ?? "A player"} may defend against ${getSecondarySourceName(next.source)}.`]
   };
 }
 
@@ -1106,31 +1124,32 @@ function resolveCurrentSecondaryDamage(state: GameState, reaction: CardInstance 
   }
 
   const baseState = { ...state, pendingSecondaryDamage: null };
-  const result = resolveSecondaryDamage(baseState, attacker, defender, pending.weapon, pending.baseDamage, pending.source, reaction);
-  if (result.state.phase === "gameOver" || pending.remaining.length === 0) {
+  const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
+  const counterDamage = getReactionCounterDamage(reactionDefinition, pending.baseDamage);
+  const deferCounterDamage = state.settings.allowSecondaryDefense && counterDamage > 0;
+  const result = resolveSecondaryDamage(baseState, attacker, defender, pending.weapon, pending.baseDamage, pending.source, reaction, {
+    resolveCounterDamage: !deferCounterDamage
+  });
+  const counterItems: SecondaryDamageItem[] = deferCounterDamage
+    ? [
+        {
+          attackerId: defender.id,
+          defenderId: attacker.id,
+          weapon: pending.weapon,
+          baseDamage: counterDamage,
+          source: reactionDefinition?.id === "defense_backfire" ? "backfire" : "counterattack"
+        }
+      ]
+    : [];
+  const remainingItems = [...counterItems, ...pending.remaining];
+  if (result.state.phase === "gameOver" || remainingItems.length === 0) {
     return result;
   }
 
-  const [next, ...remaining] = pending.remaining;
+  const [next, ...remaining] = remainingItems;
   const nextDefender = getPlayer(result.state, next.defenderId);
   if (!nextDefender || nextDefender.eliminated) {
-    return {
-      ...result,
-      state: {
-        ...result.state,
-        pendingSecondaryDamage:
-          remaining.length > 0
-            ? {
-                attackerId: pending.attackerId,
-                defenderId: remaining[0].defenderId,
-                weapon: pending.weapon,
-                baseDamage: remaining[0].baseDamage,
-                source: remaining[0].source,
-                remaining: remaining.slice(1)
-              }
-            : null
-      }
-    };
+    return enqueueSecondaryDamage(result.state, result.messages, remaining);
   }
 
   return {
@@ -1138,16 +1157,40 @@ function resolveCurrentSecondaryDamage(state: GameState, reaction: CardInstance 
     state: {
       ...result.state,
       pendingSecondaryDamage: {
-        attackerId: pending.attackerId,
-        defenderId: next.defenderId,
-        weapon: pending.weapon,
-        baseDamage: next.baseDamage,
-        source: next.source,
+        ...next,
         remaining
       }
     },
-    messages: [...result.messages, `${nextDefender.name} may defend against ${next.source === "splash" ? "splash damage" : "Ricochet"}.`]
+    messages: [...result.messages, `${nextDefender.name} may defend against ${getSecondarySourceName(next.source)}.`]
   };
+}
+
+function getReactionCounterDamage(reactionDefinition: ReturnType<typeof getCardDefinitionById>, baseDamage: number): number {
+  if (reactionDefinition?.id === "defense_counterattack") {
+    return reactionDefinition.damage ?? 3;
+  }
+
+  if (reactionDefinition?.id === "defense_backfire") {
+    return baseDamage;
+  }
+
+  return 0;
+}
+
+function getSecondarySourceName(source: SecondaryDamageSource): string {
+  if (source === "splash") {
+    return "Grenade splash damage";
+  }
+
+  if (source === "ricochet") {
+    return "Ricochet";
+  }
+
+  if (source === "minigun") {
+    return "Minigun damage";
+  }
+
+  return source === "backfire" ? "Backfire damage" : "Counterattack damage";
 }
 
 function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: CardInstance) {
@@ -1157,6 +1200,37 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   const damagedPlayerIds = state.players
     .filter((player) => !player.eliminated && player.id !== attacker.id && !state.smokeProtectedPlayerIds.includes(player.id))
     .map((player) => player.id);
+  if (state.settings.allowSecondaryDefense) {
+    const baseState: GameState = {
+      ...state,
+      discardPile: reloadActive ? state.discardPile : [...state.discardPile, weapon],
+      reloadPlayerIds: reloadActive ? state.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : state.reloadPlayerIds,
+      attackBonuses: omitKey(state.attackBonuses, attacker.id),
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? {
+              ...player,
+              hand: reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId),
+              attackedThisRound: true,
+              actedThisRound: true,
+              actionsRemaining: Math.max(0, player.actionsRemaining - 1)
+            }
+          : player
+      )
+    };
+    return enqueueSecondaryDamage(
+      baseState,
+      [`${attacker.name} swept the field with Minigun for ${damage} damage to each other player.`],
+      damagedPlayerIds.map((playerId) => ({
+        attackerId: attacker.id,
+        defenderId: playerId,
+        weapon,
+        baseDamage: damage,
+        source: "minigun"
+      }))
+    );
+  }
+
   const eliminatedHands = state.players
     .filter((player) => damagedPlayerIds.includes(player.id) && player.health <= damage)
     .flatMap((player) => player.hand);

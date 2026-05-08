@@ -156,6 +156,123 @@ describe("remaining main deck card implementations", () => {
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, backfire.instanceId]));
   });
 
+  it("can allow defense against Backfire damage", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      allowSecondaryDefense: true
+    });
+    const attacker = state.players[state.currentPlayerIndex];
+    const defender = state.players.find((player) => player.id !== attacker.id)!;
+    const [weapon, backfire, shield] = instances(["weapon_pistol", "defense_backfire", "defense_shield_plate"]);
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [weapon, shield] }
+          : player.id === defender.id
+            ? { ...player, hand: [backfire] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: defender.id,
+      weaponInstanceId: weapon.instanceId
+    });
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: backfire.instanceId });
+
+    expect(state.pendingSecondaryDamage).toMatchObject({ defenderId: attacker.id, source: "backfire", baseDamage: 3 });
+
+    state = gameReducer(state, {
+      type: "PLAY_SECONDARY_REACTION",
+      defenderId: attacker.id,
+      reactionCardInstanceId: shield.instanceId
+    });
+
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, backfire.instanceId, shield.instanceId]));
+  });
+
+  it("can allow defense against Counterattack damage", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      allowSecondaryDefense: true
+    });
+    const attacker = state.players[state.currentPlayerIndex];
+    const defender = state.players.find((player) => player.id !== attacker.id)!;
+    const [weapon, counterattack, shield] = instances(["weapon_pistol", "defense_counterattack", "defense_shield_plate"]);
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [weapon, shield] }
+          : player.id === defender.id
+            ? { ...player, hand: [counterattack] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: defender.id,
+      weaponInstanceId: weapon.instanceId
+    });
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: counterattack.instanceId });
+
+    expect(state.pendingSecondaryDamage).toMatchObject({ defenderId: attacker.id, source: "counterattack", baseDamage: 3 });
+
+    state = gameReducer(state, {
+      type: "PLAY_SECONDARY_REACTION",
+      defenderId: attacker.id,
+      reactionCardInstanceId: shield.instanceId
+    });
+
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(17);
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, counterattack.instanceId, shield.instanceId]));
+  });
+
+  it("can allow defense against Minigun damage", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0, {
+      ...defaultGameSettings,
+      allowSecondaryDefense: true
+    });
+    const attacker = state.players[state.currentPlayerIndex];
+    const defender = state.players.find((player) => player.id !== attacker.id)!;
+    const [minigun, shield] = instances(["weapon_minigun", "defense_shield_plate"]);
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [minigun], actionsRemaining: 2 }
+          : player.id === defender.id
+            ? { ...player, hand: [shield] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      weaponInstanceId: minigun.instanceId
+    });
+
+    expect(state.pendingSecondaryDamage).toMatchObject({ defenderId: defender.id, source: "minigun", baseDamage: 2 });
+
+    state = gameReducer(state, {
+      type: "PLAY_SECONDARY_REACTION",
+      defenderId: defender.id,
+      reactionCardInstanceId: shield.instanceId
+    });
+
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.pendingSecondaryDamage?.source).toBe("minigun");
+  });
+
   it("Minigun damages every other living player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];

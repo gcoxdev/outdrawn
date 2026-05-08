@@ -1,5 +1,5 @@
 import { allCards } from "../data/cards";
-import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState } from "./types";
+import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState, SecondaryDamageSource } from "./types";
 import { getCardDefinitionById, getWinner } from "./rules";
 import { drawCardsWithRefill } from "./deck";
 
@@ -14,6 +14,7 @@ export type ResolveAttackOptions = {
   spendAction?: boolean;
   clearAttackBonuses?: boolean;
   resolveSplash?: boolean;
+  resolveCounterDamage?: boolean;
 };
 
 function getBaseAttackDamage(state: GameState, attacker: PlayerState, target: PlayerState, weaponDefinition: CardDefinition): number {
@@ -51,8 +52,9 @@ export function resolveAttack(
   const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
   const attackerEliminations = (eliminated ? 1 : 0) + splashEliminations;
   const counterDamage = reactionResult.counterDamage;
-  const counterEliminatesAttacker = counterDamage > 0 && attacker.health <= counterDamage;
-  const attackerHealthAfterCounter = Math.max(0, attacker.health - counterDamage);
+  const appliedCounterDamage = options.resolveCounterDamage === false ? 0 : counterDamage;
+  const counterEliminatesAttacker = appliedCounterDamage > 0 && attacker.health <= appliedCounterDamage;
+  const attackerHealthAfterCounter = Math.max(0, attacker.health - appliedCounterDamage);
   const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, attackerEliminations, state);
   const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
   const reviveRetainedCards = reactionResult.discardsDefenderHand
@@ -202,8 +204,9 @@ export function resolveSecondaryDamage(
   defender: PlayerState,
   weapon: CardInstance,
   baseDamage: number,
-  source: "splash" | "ricochet",
-  reaction: CardInstance | null
+  source: SecondaryDamageSource,
+  reaction: CardInstance | null,
+  options: Pick<ResolveAttackOptions, "resolveCounterDamage"> = {}
 ): AttackResult {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (!weaponDefinition || weaponDefinition.type !== "weapon") {
@@ -216,8 +219,9 @@ export function resolveSecondaryDamage(
   const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, defender.health - damage);
   const eliminated = nextHealth === 0;
   const counterDamage = reactionResult.counterDamage;
-  const counterEliminatesAttacker = counterDamage > 0 && attacker.health <= counterDamage;
-  const attackerHealthAfterCounter = Math.max(0, attacker.health - counterDamage);
+  const appliedCounterDamage = options.resolveCounterDamage === false ? 0 : counterDamage;
+  const counterEliminatesAttacker = appliedCounterDamage > 0 && attacker.health <= appliedCounterDamage;
+  const attackerHealthAfterCounter = Math.max(0, attacker.health - appliedCounterDamage);
   const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, eliminated ? 1 : 0, state);
   const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
   const retainedCards = reactionResult.discardsDefenderHand
@@ -232,7 +236,7 @@ export function resolveSecondaryDamage(
       ? defender.hand.filter((card) => card.instanceId !== reaction.instanceId)
       : defender.hand;
   const loot = eliminated ? defenderHandAfterReaction : [];
-  const sourceLabel = source === "splash" ? `splash damage from ${weaponDefinition.name}` : `Ricochet with ${weaponDefinition.name}`;
+  const sourceLabel = getSecondarySourceLabel(source, weaponDefinition.name);
   const messages = [`${defender.name} took ${damage} ${sourceLabel}.`];
 
   if (reaction && reactionDefinition) {
@@ -248,7 +252,7 @@ export function resolveSecondaryDamage(
   }
 
   if (eliminated) {
-    messages.push(`${defender.name} was eliminated by ${source === "splash" ? "splash damage" : "Ricochet"}.`);
+    messages.push(`${defender.name} was eliminated by ${getSecondaryEliminationLabel(source)}.`);
   }
 
   const players = state.players.map((player) => {
@@ -304,6 +308,34 @@ export function resolveSecondaryDamage(
   }
 
   return { state: nextState, messages };
+}
+
+function getSecondarySourceLabel(source: SecondaryDamageSource, weaponName: string): string {
+  if (source === "splash") {
+    return `splash damage from ${weaponName}`;
+  }
+
+  if (source === "ricochet") {
+    return `Ricochet with ${weaponName}`;
+  }
+
+  if (source === "minigun") {
+    return `Minigun fire`;
+  }
+
+  return source === "backfire" ? "Backfire damage" : "Counterattack damage";
+}
+
+function getSecondaryEliminationLabel(source: SecondaryDamageSource): string {
+  if (source === "splash") {
+    return "splash damage";
+  }
+
+  if (source === "minigun") {
+    return "Minigun";
+  }
+
+  return source === "ricochet" ? "Ricochet" : source === "backfire" ? "Backfire" : "Counterattack";
 }
 
 function applyEliminationHealthReward(health: number, eliminations: number, state: GameState): number {

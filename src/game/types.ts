@@ -114,17 +114,18 @@ export type PendingSteal = {
   targetPlayerId: PlayerId;
 };
 
-export type PendingSecondaryDamage = {
+export type SecondaryDamageSource = "splash" | "ricochet" | "minigun" | "counterattack" | "backfire";
+
+export type SecondaryDamageItem = {
   attackerId: PlayerId;
   defenderId: PlayerId;
   weapon: CardInstance;
   baseDamage: number;
-  source: "splash" | "ricochet";
-  remaining: Array<{
-    defenderId: PlayerId;
-    baseDamage: number;
-    source: "splash" | "ricochet";
-  }>;
+  source: SecondaryDamageSource;
+};
+
+export type PendingSecondaryDamage = SecondaryDamageItem & {
+  remaining: SecondaryDamageItem[];
 };
 
 export type GamePhase = "setup" | "action" | "gameOver";

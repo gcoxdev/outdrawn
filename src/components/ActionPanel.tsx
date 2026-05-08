@@ -120,7 +120,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           <h2>{pendingDefender.name} is under attack</h2>
           <p>
             {isSecondary
-              ? `${pendingDefender.name} can defend against ${state.pendingSecondaryDamage?.source === "splash" ? "splash damage" : "Ricochet"} for ${activeReaction.baseDamage} base damage.`
+              ? `${pendingDefender.name} can defend against ${getSecondarySourceLabel(state.pendingSecondaryDamage?.source)} for ${activeReaction.baseDamage} base damage.`
               : `${pendingAttacker.name} played ${weaponDefinition?.name ?? "a weapon"} for ${activeReaction.baseDamage} base damage.`}
             {smgHitNumber ? ` Hit ${smgHitNumber} of 2.` : ""}
           </p>
@@ -621,4 +621,20 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
       </div>
     </section>
   );
+}
+
+function getSecondarySourceLabel(source: string | undefined): string {
+  if (source === "splash") {
+    return "splash damage";
+  }
+
+  if (source === "ricochet") {
+    return "Ricochet";
+  }
+
+  if (source === "minigun") {
+    return "Minigun damage";
+  }
+
+  return source === "backfire" ? "Backfire damage" : "Counterattack damage";
 }
