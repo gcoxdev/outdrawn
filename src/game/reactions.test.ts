@@ -12,12 +12,13 @@ function card(definitionId: string) {
   return instance;
 }
 
-function attackWithReaction(reactionId: string, targetHealth = 20) {
+function attackWithReaction(reactionId: string, targetHealth = 20, extraTargetCards: string[] = []) {
   let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
   const attacker = state.players[state.currentPlayerIndex];
   const target = state.players.find((player) => player.id !== attacker.id)!;
   const weapon = card("weapon_pistol");
   const reaction = card(reactionId);
+  const extras = extraTargetCards.map((definitionId) => card(definitionId));
   state = {
     ...state,
     round: 3,
@@ -25,7 +26,7 @@ function attackWithReaction(reactionId: string, targetHealth = 20) {
       player.id === attacker.id
         ? { ...player, hand: [weapon] }
         : player.id === target.id
-          ? { ...player, health: targetHealth, hand: [reaction] }
+          ? { ...player, health: targetHealth, hand: [reaction, ...extras] }
           : player
     )
   };
@@ -41,7 +42,7 @@ function attackWithReaction(reactionId: string, targetHealth = 20) {
     reactionCardInstanceId: reaction.instanceId
   });
 
-  return { state, attacker, target, weapon, reaction };
+  return { state, attacker, target, weapon, reaction, extras };
 }
 
 describe("reaction defense cards", () => {
@@ -52,13 +53,14 @@ describe("reaction defense cards", () => {
     expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(17);
   });
 
-  it("Revive prevents lethal attack damage and discards the defender hand", () => {
-    const { state, target, reaction } = attackWithReaction("defense_fake_death", 3);
+  it("Revive prevents lethal attack damage and keeps only healing cards", () => {
+    const { state, target, reaction, extras } = attackWithReaction("defense_fake_death", 3, ["healing_bandage", "weapon_knife"]);
     const defender = state.players.find((player) => player.id === target.id)!;
 
     expect(defender.eliminated).toBe(false);
     expect(defender.health).toBe(1);
-    expect(defender.hand).toHaveLength(0);
+    expect(defender.hand.map((cardInstance) => cardInstance.instanceId)).toEqual([extras[0].instanceId]);
     expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === reaction.instanceId)).toBe(true);
+    expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === extras[1].instanceId)).toBe(true);
   });
 });

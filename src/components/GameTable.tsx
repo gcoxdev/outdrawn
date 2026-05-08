@@ -45,6 +45,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingSearch?.playerId) ??
     state.players.find((player) => player.id === state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex]) ??
     state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
+    state.players.find((player) => player.id === state.pendingSteal?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === decisionPlayerId;
@@ -174,7 +175,9 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                               ? "Supply Drop"
                               : state.pendingMarketSearch
                                 ? "Black Market"
-                                : "Current Player"}
+                                : state.pendingSteal
+                                  ? "Stealing"
+                                  : "Current Player"}
                 </p>
                 <h2>{displayPlayer.name}</h2>
               </div>
@@ -266,6 +269,10 @@ function getDecisionText(state: GameState, currentPlayerName: string, displayPla
 
   if (state.pendingMarketSearch) {
     return `${displayPlayerName} is choosing market loot`;
+  }
+
+  if (state.pendingSteal) {
+    return `${displayPlayerName} is stealing`;
   }
 
   if (state.pendingSearch) {

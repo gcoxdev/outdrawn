@@ -72,10 +72,10 @@ describe("ability cards", () => {
     expect(state.discardPile.some((card) => card.instanceId === adrenaline.instanceId)).toBe(true);
   });
 
-  it("uses Steal to take the first card from a target hand", () => {
-    let { state, current, target } = stateWithHands(["ability_steal"], ["weapon_pistol"]);
+  it("uses Steal to choose a card from a target hand", () => {
+    let { state, current, target } = stateWithHands(["ability_steal"], ["weapon_pistol", "weapon_knife"]);
     const steal = state.players[state.currentPlayerIndex].hand[0];
-    const stolen = state.players.find((player) => player.id === target.id)!.hand[0];
+    const stolen = state.players.find((player) => player.id === target.id)!.hand[1];
 
     state = gameReducer(state, {
       type: "PLAY_ABILITY",
@@ -84,8 +84,36 @@ describe("ability cards", () => {
       targetPlayerId: target.id
     });
 
+    expect(state.pendingSteal).toMatchObject({ playerId: current.id, targetPlayerId: target.id });
+
+    state = gameReducer(state, {
+      type: "RESOLVE_PENDING_STEAL",
+      playerId: current.id,
+      targetPlayerId: target.id,
+      cardInstanceId: stolen.instanceId
+    });
+
     expect(state.players.find((player) => player.id === current.id)!.hand.some((card) => card.instanceId === stolen.instanceId)).toBe(true);
-    expect(state.players.find((player) => player.id === target.id)!.hand).toHaveLength(0);
+    expect(state.players.find((player) => player.id === target.id)!.hand).toHaveLength(1);
+    expect(state.pendingSteal).toBeNull();
+  });
+
+  it("does not let targeted abilities choose a smoke-protected player", () => {
+    let { state, current, target } = stateWithHands(["ability_steal"], ["weapon_pistol"]);
+    const steal = state.players[state.currentPlayerIndex].hand[0];
+    state = {
+      ...state,
+      smokeProtectedPlayerIds: [target.id]
+    };
+
+    const next = gameReducer(state, {
+      type: "PLAY_ABILITY",
+      playerId: current.id,
+      cardInstanceId: steal.instanceId,
+      targetPlayerId: target.id
+    });
+
+    expect(next).toBe(state);
   });
 
   it("uses Sabotage to discard two cards from a target hand", () => {

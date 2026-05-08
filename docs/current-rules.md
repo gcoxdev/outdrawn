@@ -68,34 +68,35 @@ Each living player acts once per round. After all living players have acted:
 - Shotgun: deal 6 damage, then discard.
 - Sniper Rifle: deal 8 damage.
 - Knife: deal 2 damage.
-- Grenade: deal 4 damage to the target and 2 splash damage to the next living player on each side of that target in seating order. The attacker is not hit by their own Grenade.
-- Crossbow: deal 4 damage and ignores Armor Vest.
+- Grenade: deal 4 damage to the target and 2 splash damage to the living players before and after the target in seating order. The attacker is immune.
+- Assault Rifle: deal 5 damage.
+- Crossbow: deal 4 damage and penetrates Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: deal 2 damage to every other living player. It does not choose a target and has no reaction window.
+- Minigun: deal 2 damage to every other living player. It does not choose a target.
 
 ## Defense
 
 Defense cards are played from hand as reactions. There is no equipment system in the current prototype.
 
-- Armor Vest: reduce incoming attack damage by 2 unless the attack ignores armor.
+- Armor Vest: reduce incoming attack damage by 2 unless the weapon penetrates armor.
 - Shield Plate: block 4 damage.
 - Dodge: cancel damage to yourself from one attack.
 - Counterattack: after taking damage, deal 3 damage back to the attacker.
 - Smoke Bomb: cancel damage and become untargetable until your next turn. Attacks and targeted abilities cannot choose you. Splash and event damage still affect you.
-- Ricochet: redirect the attack to another valid player.
+- Ricochet: redirect the attack to another valid player other than the attacker.
 - Backfire: cancel incoming attack damage and deal that much damage to the attacker.
 - Brace: reduce damage by half, rounded down.
-- Revive: when an attack would eliminate you, survive at 1 health and discard your hand.
+- Revive: when an attack would eliminate you, survive at 1 health. Keep healing cards and discard the rest of your hand.
 
 ## Abilities
 
 - Ambush: your next attack this turn deals +3 damage.
-- Disarm: target discards exactly 1 weapon from hand: their highest-damage weapon.
-- Steal: take 1 card from another player's hand.
+- Disarm: target discards their highest-damage weapon from hand.
+- Steal: choose 1 face-down card from another player's hand and take it.
 - Search: draw 3, keep 1, discard the rest.
 - Reload: your next weapon attack this turn stays in your hand instead of being discarded after it resolves.
 - Sabotage: target discards up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.
-- Mark Target: attacks against the target deal +1 damage this round.
+- Mark Target: any attack against the target deals +1 damage this round.
 - Intimidate: target must discard 1 card to attack you before your next turn.
 - Adrenaline: gain 1 net action this turn and lose 2 health.
 

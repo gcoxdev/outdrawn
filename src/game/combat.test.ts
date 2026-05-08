@@ -109,6 +109,26 @@ describe("combat and healing", () => {
     expect(state.players.find((player) => player.id === target.id)!.health).toBe(16);
   });
 
+  it("Assault Rifle deals 5 damage to one target", () => {
+    let state = stateWithCurrentPlayerCards(["weapon_assault_rifle"]);
+    const attacker = state.players[state.currentPlayerIndex];
+    const target = state.players.find((player) => player.id !== attacker.id)!;
+    const weapon = attacker.hand[0];
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: weapon.instanceId
+    });
+
+    expect(state.pendingReaction?.baseDamage).toBe(5);
+
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: target.id });
+
+    expect(state.players.find((player) => player.id === target.id)!.health).toBe(15);
+  });
+
   it("does not keep a reusable shotgun after attacking", () => {
     let state = stateWithCurrentPlayerCards(["weapon_shotgun"]);
     const attacker = state.players[state.currentPlayerIndex];

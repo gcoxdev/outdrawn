@@ -63,5 +63,9 @@ function getPassDeviceReason(state: GameState): string {
     return "They need to choose which Black Market card to keep.";
   }
 
+  if (state.pendingSteal) {
+    return "They need to choose which face-down card to steal.";
+  }
+
   return "It is their turn.";
 }

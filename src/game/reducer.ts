@@ -545,6 +545,34 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       return log(enforceHandLimit(nextState, player.id), `${player.name} bought 1 Black Market card and discarded ${discarded.length}.`);
     }
+    case "RESOLVE_PENDING_STEAL": {
+      const pending = state.pendingSteal;
+      const player = pending ? getPlayer(state, pending.playerId) : undefined;
+      const target = pending ? getPlayer(state, pending.targetPlayerId) : undefined;
+      const stolen = target?.hand.find((card) => card.instanceId === action.cardInstanceId);
+
+      if (!pending || !player || !target || !stolen || action.playerId !== player.id || action.targetPlayerId !== target.id) {
+        return state;
+      }
+
+      const nextState = {
+        ...state,
+        pendingSteal: null,
+        players: state.players.map((candidate) => {
+          if (candidate.id === player.id) {
+            return { ...candidate, hand: [...candidate.hand, stolen] };
+          }
+
+          if (candidate.id === target.id) {
+            return { ...candidate, hand: candidate.hand.filter((card) => card.instanceId !== stolen.instanceId) };
+          }
+
+          return candidate;
+        })
+      };
+
+      return log(enforceHandLimit(nextState, player.id), `${player.name} stole 1 card from ${target.name}.`);
+    }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {
         return state;
@@ -580,6 +608,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       if (definition.target === "onePlayer" && (!target || target.eliminated || target.id === player.id)) {
+        return state;
+      }
+
+      if (target && state.smokeProtectedPlayerIds.includes(target.id)) {
         return state;
       }
 
@@ -1027,26 +1059,18 @@ function resolveAbility(
   }
 
   if (definitionId === "ability_steal" && target) {
-    const stolen = target.hand[0];
-    if (!stolen) {
+    if (target.hand.length === 0) {
       return log(nextState, `${player.name} played Steal, but ${target.name} had no cards.`);
     }
 
     nextState = {
       ...nextState,
-      players: nextState.players.map((candidate) => {
-        if (candidate.id === player.id) {
-          return { ...candidate, hand: [...candidate.hand, stolen] };
-        }
-
-        if (candidate.id === target.id) {
-          return { ...candidate, hand: candidate.hand.filter((handCard) => handCard.instanceId !== stolen.instanceId) };
-        }
-
-        return candidate;
-      })
+      pendingSteal: {
+        playerId: player.id,
+        targetPlayerId: target.id
+      }
     };
-    message = `${player.name} stole 1 card from ${target.name}.`;
+    message = `${player.name} played Steal and must choose 1 card from ${target.name}.`;
   }
 
   if (definitionId === "ability_search") {

@@ -50,7 +50,7 @@ export type Card = {
 };
 
 export const mainDeckCards: Card[] = [
-  // Weapons — 31 cards
+  // Weapons — 35 cards
   {
     id: "weapon_pistol",
     name: "Pistol",
@@ -127,10 +127,26 @@ export const mainDeckCards: Card[] = [
     splashDamage: 2,
     supplyCost: 2,
     icons: ["damage", "splash", "target"],
-    shortText: "Deal 4 damage, plus 2 splash to target's neighbors.",
-    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the next living player on each side of that target in seating order. The attacker is not hit by their own Grenade.",
+    shortText: "Deal 4 damage, plus 2 splash to players before and after target.",
+    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the living players before and after the target in seating order. Attacker is immune.",
     flavorText: "Nobody is standing far enough away.",
     tags: ["weapon", "splash", "area"]
+  },
+  {
+    id: "weapon_assault_rifle",
+    name: "Assault Rifle",
+    type: "weapon",
+    count: 4,
+    timing: "action",
+    target: "onePlayer",
+    rarity: "uncommon",
+    damage: 5,
+    supplyCost: 2,
+    icons: ["damage", "target"],
+    shortText: "Deal 5 damage to one player.",
+    rulesText: "Deal 5 damage to one player.",
+    flavorText: "Controlled fire. Serious pressure.",
+    tags: ["weapon", "midrange", "single-target"]
   },
   {
     id: "weapon_crossbow",
@@ -144,8 +160,8 @@ export const mainDeckCards: Card[] = [
     ignoresArmor: true,
     supplyCost: 2,
     icons: ["damage", "pierce", "target"],
-    shortText: "Deal 4 damage. Ignores Armor Vest.",
-    rulesText: "Deal 4 damage to one player. This damage ignores Armor Vest reactions.",
+    shortText: "Deal 4 damage. Penetrates Armor Vest.",
+    rulesText: "Deal 4 damage to one player. This weapon penetrates Armor Vest.",
     flavorText: "Old tech. New problem.",
     tags: ["weapon", "piercing", "single-target"]
   },
@@ -177,7 +193,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 3,
     icons: ["damage", "spray"],
     shortText: "Deal 2 damage to every other player.",
-    rulesText: "Deal 2 damage to every other living player. This attack has no reaction window.",
+    rulesText: "Deal 2 damage to every other living player.",
     flavorText: "Nobody gets to ignore that sound.",
     tags: ["weapon", "area", "all-opponents"]
   },
@@ -196,7 +212,7 @@ export const mainDeckCards: Card[] = [
     isReaction: true,
     icons: ["armor", "block"],
     shortText: "Reduce incoming damage by 2.",
-    rulesText: "Reduce incoming attack damage by 2 unless the damage ignores armor.",
+    rulesText: "Reduce incoming attack damage by 2 unless the weapon penetrates armor.",
     flavorText: "Not invincible. Just harder to kill.",
     tags: ["defense", "reaction", "armor"]
   },
@@ -277,8 +293,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "redirect"],
-    shortText: "Redirect an attack to another valid player.",
-    rulesText: "Redirect an attack targeting you to another valid player. Does not redirect event or collapse damage.",
+    shortText: "Redirect an attack to another player.",
+    rulesText: "Redirect an attack targeting you to another valid player other than the attacker.",
     flavorText: "Wrong angle. Worse outcome.",
     tags: ["defense", "reaction", "redirect"]
   },
@@ -325,8 +341,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 3,
     isLethalDefense: true,
     icons: ["lethal", "survive"],
-    shortText: "Survive lethal player damage at 1 HP. Discard hand.",
-    rulesText: "When another player's attack would eliminate you, survive at 1 health and discard your hand.",
+    shortText: "Survive at 1 HP. Keep healing cards only.",
+    rulesText: "When another player's attack would eliminate you, survive at 1 health. Keep healing cards and discard the rest of your hand.",
     flavorText: "The body count was off by one.",
     tags: ["defense", "lethal", "survival"]
   },
@@ -359,8 +375,8 @@ export const mainDeckCards: Card[] = [
     discard: 1,
     supplyCost: 2,
     icons: ["discard", "weapon"],
-    shortText: "Target discards their highest-damage weapon from hand.",
-    rulesText: "Choose one player. They discard exactly 1 weapon from hand: the weapon with the highest damage.",
+    shortText: "Target discards their highest-damage weapon.",
+    rulesText: "Choose one player. They discard their highest-damage weapon from hand.",
     flavorText: "A threat without a weapon is just noise.",
     tags: ["ability", "control", "weapon-removal"]
   },
@@ -374,8 +390,8 @@ export const mainDeckCards: Card[] = [
     rarity: "common",
     supplyCost: 2,
     icons: ["steal", "hand"],
-    shortText: "Take 1 random card from another player.",
-    rulesText: "Choose one player. Take 1 random card from their hand.",
+    shortText: "Choose 1 face-down card from another player.",
+    rulesText: "Choose one player. Pick 1 face-down card from their hand and take it.",
     flavorText: "Looting is easier when they are still alive.",
     tags: ["ability", "hand-attack", "steal"]
   },
@@ -437,8 +453,8 @@ export const mainDeckCards: Card[] = [
     damage: 1,
     supplyCost: 2,
     icons: ["mark", "damage"],
-    shortText: "Attacks against target deal +1 this round.",
-    rulesText: "Choose one player. Attacks against that player deal +1 damage until the end of the round.",
+    shortText: "Anyone attacking target deals +1 this round.",
+    rulesText: "Choose one player. Any attack against that player deals +1 damage until the end of the round.",
     flavorText: "Everyone saw the signal.",
     tags: ["ability", "mark", "damage-buff"]
   },

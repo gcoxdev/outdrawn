@@ -14,6 +14,8 @@
 - Generate AI-rendered PNG card faces, not SVG or rasterized SVG, following the root reference examples and preserving 2.5" x 3.5" width/height.
 - Consider optional elimination reward: automatically heal by a configurable amount after eliminating another player.
 - Consider a round-start draw-up rule where all living players draw up to max hand size, while still only playing 2 or configured actions; likely requires higher HP and fresh simulations.
+- If event cards are mixed into the main deck, drawn events may only stay active until turn order returns to the player who drew them; any previous event effects would need to expire and discard. This may only fit a pure round-robin model.
+- Revisit Supply Drop if events are drawn like regular cards: it may need to play immediately for 0 actions and draw/reveal 3 cards, with a clear discard-down timing before any of those cards can be used.
 
 ## Deck Presets
 

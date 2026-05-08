@@ -16,6 +16,7 @@ export type GameAction =
   | { type: "RESOLVE_SUPPLY_DROP_PICK"; playerId: PlayerId; cardInstanceId: CardInstanceId | null }
   | { type: "START_BLACK_MARKET"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
   | { type: "RESOLVE_MARKET_SEARCH"; playerId: PlayerId; keepCardInstanceId: CardInstanceId }
+  | { type: "RESOLVE_PENDING_STEAL"; playerId: PlayerId; targetPlayerId: PlayerId; cardInstanceId: CardInstanceId }
   | {
       type: "ATTACK";
       attackerId: PlayerId;

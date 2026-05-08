@@ -109,6 +109,11 @@ export type PendingMarketSearch = {
   cards: CardInstance[];
 };
 
+export type PendingSteal = {
+  playerId: PlayerId;
+  targetPlayerId: PlayerId;
+};
+
 export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
@@ -131,6 +136,7 @@ export type GameState = {
   pendingSearch: PendingSearch | null;
   pendingSupplyDrop: PendingSupplyDrop | null;
   pendingMarketSearch: PendingMarketSearch | null;
+  pendingSteal: PendingSteal | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   reloadPlayerIds: PlayerId[];

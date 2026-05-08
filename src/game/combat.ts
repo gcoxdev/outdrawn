@@ -46,8 +46,14 @@ export function resolveAttack(
   const splashTargets = weaponDefinition.id === "weapon_grenade" ? getGrenadeSplashTargets(state.players, attacker.id, target.id) : [];
   const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
   const counterDamage = reactionResult.counterDamage;
+  const reviveRetainedCards = reactionResult.discardsDefenderHand
+    ? target.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "healing")
+    : [];
+  const revivedDiscardedCards = reactionResult.discardsDefenderHand
+    ? target.hand.filter((card) => card.instanceId !== reaction?.instanceId && getCardDefinitionById(card.definitionId)?.type !== "healing")
+    : [];
   const targetHandAfterReaction = reactionResult.discardsDefenderHand
-    ? []
+    ? reviveRetainedCards
     : reaction
       ? target.hand.filter((card) => card.instanceId !== reaction.instanceId)
       : target.hand;
@@ -163,7 +169,7 @@ export function resolveAttack(
         ...nextState.discardPile,
         ...(options.keepWeaponInHand ? [] : [weapon]),
         ...(reaction ? [reaction] : []),
-        ...(reactionResult.discardsDefenderHand ? target.hand.filter((card) => card.instanceId !== reaction?.instanceId) : [])
+        ...(reactionResult.discardsDefenderHand ? revivedDiscardedCards : [])
       ],
       phase,
       winnerId
@@ -233,7 +239,7 @@ function resolveReactionDamage(
   }
 
   if (reactionDefinition.id === "defense_armor_vest" && weaponDefinition.ignoresArmor) {
-    return { ...baseResult, message: "Armor Vest did not stop the piercing hit." };
+    return { ...baseResult, message: "Armor Vest did not stop the penetrating hit." };
   }
 
   const block = reactionDefinition.block ?? 0;

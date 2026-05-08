@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { GameAction } from "../game/actions";
 import { getCardDefinitionById, getPlayer } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
-import { CardView } from "./CardView";
+import { CardBack, CardView } from "./CardView";
 
 type ActionPanelProps = {
   state: GameState;
@@ -32,6 +32,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     !state.pendingSearch &&
     !state.pendingSupplyDrop &&
     !state.pendingMarketSearch &&
+    !state.pendingSteal &&
     currentPlayer.actionsRemaining > 0;
   const canEndTurn =
     state.phase === "action" &&
@@ -42,7 +43,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     !state.pendingDiscard &&
     !state.pendingSearch &&
     !state.pendingSupplyDrop &&
-    !state.pendingMarketSearch;
+    !state.pendingMarketSearch &&
+    !state.pendingSteal;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
   const pendingRedirectDefender = state.pendingRedirect ? getPlayer(state, state.pendingRedirect.defenderId) : undefined;
@@ -54,6 +56,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     ? getPlayer(state, state.pendingSupplyDrop.playerOrder[state.pendingSupplyDrop.currentIndex])
     : undefined;
   const pendingMarketPlayer = state.pendingMarketSearch ? getPlayer(state, state.pendingMarketSearch.playerId) : undefined;
+  const pendingStealPlayer = state.pendingSteal ? getPlayer(state, state.pendingSteal.playerId) : undefined;
+  const pendingStealTarget = state.pendingSteal ? getPlayer(state, state.pendingSteal.targetPlayerId) : undefined;
   const reactionCards =
     pendingDefender?.hand.filter((card) => {
       const definition = getCardDefinitionById(card.definitionId);
@@ -81,6 +85,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
       getPlayer(state, state.pendingSearch?.playerId ?? "") ??
       pendingSupplyDropPlayer ??
       pendingMarketPlayer ??
+      pendingStealPlayer ??
       currentPlayer;
 
     return (
@@ -94,6 +99,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
 
   if (state.pendingReaction && pendingDefender && pendingAttacker) {
     const weaponDefinition = getCardDefinitionById(state.pendingReaction.weapon.definitionId);
+    const smgHitNumber =
+      state.pendingMultiHitAttack?.weapon.instanceId === state.pendingReaction.weapon.instanceId
+        ? 3 - state.pendingMultiHitAttack.hitsRemaining
+        : null;
 
     return (
       <section className="action-panel reaction-panel">
@@ -102,6 +111,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           <h2>{pendingDefender.name} is under attack</h2>
           <p>
             {pendingAttacker.name} played {weaponDefinition?.name ?? "a weapon"} for {state.pendingReaction.baseDamage} base damage.
+            {smgHitNumber ? ` Hit ${smgHitNumber} of 2.` : ""}
           </p>
         </div>
         <div className="reaction-card-list">
@@ -356,6 +366,36 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
               </button>
             ) : null;
           })}
+        </div>
+      </section>
+    );
+  }
+
+  if (state.pendingSteal && pendingStealPlayer && pendingStealTarget) {
+    return (
+      <section className="action-panel reaction-panel">
+        <div>
+          <p className="eyebrow">Steal</p>
+          <h2>{pendingStealPlayer.name}, choose 1 card</h2>
+          <p>Pick one face-down card from {pendingStealTarget.name}'s hand.</p>
+        </div>
+        <div className="pending-discard-list">
+          {pendingStealTarget.hand.map((card) => (
+            <button
+              className="reaction-card-button"
+              key={card.instanceId}
+              onClick={() =>
+                dispatch({
+                  type: "RESOLVE_PENDING_STEAL",
+                  playerId: pendingStealPlayer.id,
+                  targetPlayerId: pendingStealTarget.id,
+                  cardInstanceId: card.instanceId
+                })
+              }
+            >
+              <CardBack />
+            </button>
+          ))}
         </div>
       </section>
     );

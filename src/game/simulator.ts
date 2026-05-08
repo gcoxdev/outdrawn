@@ -247,6 +247,16 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     };
   }
 
+  if (state.pendingSteal) {
+    const target = getPlayer(state, state.pendingSteal.targetPlayerId)!;
+    return {
+      type: "RESOLVE_PENDING_STEAL",
+      playerId: state.pendingSteal.playerId,
+      targetPlayerId: target.id,
+      cardInstanceId: pickBestCard(target.hand, strategy, random).instanceId
+    };
+  }
+
   const player = getCurrentPlayer(state);
   if (player.hand.length > state.settings.maxHandSize) {
     return { type: "DISCARD_CARD", playerId: player.id, cardInstanceId: pickLowestCards(player.hand, 1, strategy, random)[0].instanceId };
@@ -309,6 +319,7 @@ export function getDecisionPlayerId(state: GameState): string {
     state.pendingSearch?.playerId ??
     state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
     state.pendingMarketSearch?.playerId ??
+    state.pendingSteal?.playerId ??
     getCurrentPlayer(state).id
   );
 }
@@ -372,7 +383,9 @@ function chooseSetupAbility(state: GameState, player: PlayerState, strategy: Str
     return null;
   }
 
-  const livingTargets = state.players.filter((candidate) => !candidate.eliminated && candidate.id !== player.id);
+  const livingTargets = state.players.filter(
+    (candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id)
+  );
   const ambush = player.hand.find((card) => card.definitionId === "ability_ambush");
   if (ambush) {
     return { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: ambush.instanceId };
@@ -395,7 +408,9 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
   }
 
   const abilities = player.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "ability");
-  const livingTargets = state.players.filter((candidate) => !candidate.eliminated && candidate.id !== player.id);
+  const livingTargets = state.players.filter(
+    (candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id)
+  );
 
   for (const card of abilities) {
     const definition = getCardDefinitionById(card.definitionId);
@@ -621,6 +636,7 @@ function collectStateIssues(state: GameState, metrics: SimulationMetrics) {
       !player.eliminated &&
       player.hand.length > state.settings.maxHandSize &&
       getCurrentPlayer(state).id !== player.id &&
+      state.pendingSteal?.playerId !== player.id &&
       state.pendingDiscard?.playerId !== player.id
     ) {
       addIssue(metrics, "non-current player over hand limit");
