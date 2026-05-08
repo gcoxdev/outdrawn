@@ -152,7 +152,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                 <p>{visibleEventDefinition.rulesText}</p>
               </div>
             )}
-            <GameLog entries={state.log} />
+            <GameLog entries={state.log} players={state.players.map((player) => ({ id: player.id, name: player.name }))} />
           </div>
         </aside>
 

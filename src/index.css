@@ -1026,14 +1026,76 @@ p {
   color: var(--muted);
 }
 
-.attack-box h2,
-.game-log h2 {
+.attack-box h2 {
   margin-bottom: 8px;
 }
 
 .game-log {
   min-height: 0;
   overflow: auto;
+}
+
+.game-log__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.game-log__header h2 {
+  margin: 0;
+}
+
+.game-log__header span {
+  margin-right: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.log-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) auto;
+  align-items: end;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.log-filter label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.log-filter select,
+.log-filter input {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 7px;
+  padding: 0 8px;
+  font-size: 0.78rem;
+}
+
+.log-filter__clear {
+  display: grid;
+  width: 32px;
+  min-height: 32px;
+  place-items: center;
+  padding: 0;
+}
+
+.log-empty {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
 }
 
 .log-panel__meta {

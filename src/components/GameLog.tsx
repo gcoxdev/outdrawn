@@ -1,12 +1,69 @@
+import { X } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { LogEntry } from "../game/types";
 import { getCardDefinitionById } from "../game/rules";
 
-export function GameLog({ entries }: { entries: LogEntry[] }) {
+type GameLogProps = {
+  entries: LogEntry[];
+  players: Array<{ id: string; name: string }>;
+};
+
+export function GameLog({ entries, players }: GameLogProps) {
+  const [playerFilter, setPlayerFilter] = useState("");
+  const [textFilter, setTextFilter] = useState("");
+  const filteredEntries = useMemo(() => {
+    const normalizedText = textFilter.trim().toLowerCase();
+    const selectedPlayerName = players.find((player) => player.id === playerFilter)?.name.toLowerCase() ?? "";
+
+    return entries.filter((entry) => {
+      const message = entry.message.toLowerCase();
+      const matchesPlayer = !selectedPlayerName || message.includes(selectedPlayerName);
+      const matchesText = !normalizedText || message.includes(normalizedText);
+      return matchesPlayer && matchesText;
+    });
+  }, [entries, playerFilter, players, textFilter]);
+  const hasFilter = Boolean(playerFilter || textFilter.trim());
+
   return (
     <aside className="game-log">
-      <h2>Log</h2>
+      <div className="game-log__header">
+        <h2>Log</h2>
+        <span>
+          {filteredEntries.length}/{entries.length}
+        </span>
+      </div>
+      <div className="log-filter" aria-label="Log filters">
+        <label>
+          <span>Player</span>
+          <select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)}>
+            <option value="">All players</option>
+            {players.map((player) => (
+              <option key={player.id} value={player.id}>
+                {player.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Search</span>
+          <input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="damage, stole, revive..." />
+        </label>
+        {hasFilter && (
+          <button
+            className="log-filter__clear"
+            type="button"
+            onClick={() => {
+              setPlayerFilter("");
+              setTextFilter("");
+            }}
+            aria-label="Clear log filters"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
       <ol>
-        {entries
+        {filteredEntries
           .slice()
           .reverse()
           .map((entry) => (
@@ -38,6 +95,7 @@ export function GameLog({ entries }: { entries: LogEntry[] }) {
             </li>
           ))}
       </ol>
+      {filteredEntries.length === 0 && <p className="log-empty">No log entries match these filters.</p>}
     </aside>
   );
 }
