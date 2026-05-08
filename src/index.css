@@ -470,7 +470,9 @@ p {
 .game-table {
   display: grid;
   gap: 10px;
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
   padding: 10px;
 }
 
@@ -481,9 +483,11 @@ p {
 .game-shell {
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  align-items: stretch;
   gap: 10px;
   height: calc(100vh - 20px);
   min-height: 0;
+  overflow: hidden;
 }
 
 .operations-sidebar,
@@ -576,6 +580,7 @@ p {
   display: grid;
   grid-template-rows: minmax(250px, 65fr) 8px minmax(170px, 35fr);
   gap: 8px;
+  height: 100%;
   padding: 8px;
   min-height: 0;
   overflow: hidden;
@@ -745,7 +750,10 @@ p {
   align-content: start;
   grid-template-rows: auto auto auto;
   gap: 10px;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: 10px;
 }
 
@@ -1386,6 +1394,9 @@ p {
 
 @media (max-width: 720px) {
   .game-table {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
     padding: 6px;
   }
 
@@ -1437,6 +1448,7 @@ p {
   .operations-sidebar,
   .decision-workspace {
     display: grid;
+    height: auto;
     min-height: 0;
     overflow: visible;
   }
