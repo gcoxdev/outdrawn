@@ -193,7 +193,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 3,
     icons: ["damage", "spray"],
     shortText: "Deal 2 damage to every other player.",
-    rulesText: "Deal 2 damage to every other living player.",
+    rulesText: "Deal 2 damage to every other player.",
     flavorText: "Nobody gets to ignore that sound.",
     tags: ["weapon", "area", "all-opponents"]
   },
@@ -390,8 +390,8 @@ export const mainDeckCards: Card[] = [
     rarity: "common",
     supplyCost: 2,
     icons: ["steal", "hand"],
-    shortText: "Choose 1 face-down card from another player.",
-    rulesText: "Choose one player. Pick 1 face-down card from their hand and take it.",
+    shortText: "Choose 1 card from another player.",
+    rulesText: "Choose one player. Pick 1 card from their hand and take it.",
     flavorText: "Looting is easier when they are still alive.",
     tags: ["ability", "hand-attack", "steal"]
   },

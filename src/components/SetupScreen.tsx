@@ -14,7 +14,7 @@ const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "exp
 type ControlChoice = "human" | `computer:${StrategyLevel}`;
 
 export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
-  const [playerCount, setPlayerCount] = useState(3);
+  const [playerCount, setPlayerCount] = useState(4);
   const [names, setNames] = useState(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn"]);
   const [controls, setControls] = useState<ControlChoice[]>([
     "human",

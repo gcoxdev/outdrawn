@@ -85,6 +85,11 @@ button {
   background: rgba(0, 0, 0, 0.58);
 }
 
+.menu-backdrop:hover:not(:disabled) {
+  border-color: transparent;
+  background: rgba(0, 0, 0, 0.58);
+}
+
 .menu-panel {
   position: relative;
   z-index: 1;
@@ -934,18 +939,21 @@ p {
 
 .reaction-card-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 168px));
+  justify-content: start;
   gap: 10px;
 }
 
 .pending-discard-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 168px));
+  justify-content: start;
   gap: 10px;
 }
 
 .reaction-card-button {
   display: block;
+  width: min(100%, 168px);
   height: auto;
   min-height: 0;
   border: 0;
@@ -955,6 +963,16 @@ p {
 
 .reaction-card-button:hover {
   background: transparent;
+}
+
+.hand-limit-warning {
+  margin: -4px 0 0;
+  border: 1px solid rgba(217, 157, 69, 0.42);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: rgba(217, 157, 69, 0.13);
+  color: #f0c783;
+  font-weight: 800;
 }
 
 .action-panel__commands,

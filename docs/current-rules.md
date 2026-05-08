@@ -72,7 +72,7 @@ Each living player acts once per round. After all living players have acted:
 - Assault Rifle: deal 5 damage.
 - Crossbow: deal 4 damage and penetrates Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: deal 2 damage to every other living player. It does not choose a target.
+- Minigun: deal 2 damage to every other player. It does not choose a target.
 
 ## Defense
 
@@ -92,7 +92,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 
 - Ambush: your next attack this turn deals +3 damage.
 - Disarm: target discards their highest-damage weapon from hand.
-- Steal: choose 1 face-down card from another player's hand and take it.
+- Steal: choose 1 card from another player's hand and take it.
 - Search: draw 3, keep 1, discard the rest.
 - Reload: your next weapon attack this turn stays in your hand instead of being discarded after it resolves.
 - Sabotage: target discards up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.

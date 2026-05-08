@@ -114,3 +114,4 @@ Event candidates:
 - Rebalance Black Market incentives; current cost may be too high for the expected reward.
 - Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.
 - Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.
+- Add leaderboard and player stat tracking, especially for online play history, rankings, and lobby records.

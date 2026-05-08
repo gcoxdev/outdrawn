@@ -19,6 +19,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
   const selectedIsWeapon = selectedDefinition?.type === "weapon";
   const selectedIsTargetedAbility = selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer";
   const selectedWeaponHitsEveryone = selectedDefinition?.type === "weapon" && selectedDefinition.target === "allPlayers";
+  const overHandLimit = currentPlayer.hand.length > state.settings.maxHandSize;
   const livingTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
   );
@@ -377,7 +378,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
         <div>
           <p className="eyebrow">Steal</p>
           <h2>{pendingStealPlayer.name}, choose 1 card</h2>
-          <p>Pick one face-down card from {pendingStealTarget.name}'s hand.</p>
+          <p>Pick one card from {pendingStealTarget.name}'s hand.</p>
         </div>
         <div className="pending-discard-list">
           {pendingStealTarget.hand.map((card) => (
@@ -414,12 +415,17 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           Pass
         </button>
         <button
-          disabled={!canEndTurn || currentPlayer.hand.length > state.settings.maxHandSize}
+          disabled={!canEndTurn || overHandLimit}
           onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
         >
           End Turn
         </button>
       </div>
+      {overHandLimit && (
+        <p className="hand-limit-warning" role="status">
+          {currentPlayer.name} has {currentPlayer.hand.length} cards. Discard down to {state.settings.maxHandSize} before ending turn.
+        </p>
+      )}
 
       <div className="action-panel__decision-grid">
         {selectedDefinition && selectedCard ? (
