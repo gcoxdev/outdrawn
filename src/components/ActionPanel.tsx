@@ -33,6 +33,16 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     !state.pendingSupplyDrop &&
     !state.pendingMarketSearch &&
     currentPlayer.actionsRemaining > 0;
+  const canEndTurn =
+    state.phase === "action" &&
+    !state.pendingReaction &&
+    !state.pendingRedirect &&
+    !state.pendingAttackCost &&
+    !state.pendingMultiHitAttack &&
+    !state.pendingDiscard &&
+    !state.pendingSearch &&
+    !state.pendingSupplyDrop &&
+    !state.pendingMarketSearch;
   const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
   const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
   const pendingRedirectDefender = state.pendingRedirect ? getPlayer(state, state.pendingRedirect.defenderId) : undefined;
@@ -364,7 +374,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           Pass
         </button>
         <button
-          disabled={!canAct || currentPlayer.hand.length > state.settings.maxHandSize}
+          disabled={!canEndTurn || currentPlayer.hand.length > state.settings.maxHandSize}
           onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
         >
           End Turn
