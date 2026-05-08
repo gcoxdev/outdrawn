@@ -65,7 +65,10 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
     dispatch({ type: "UPDATE_SETTINGS", settings: normalized });
   }
 
-  function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode" | "allowSecondaryDefense", value: boolean) {
+  function updateBooleanSetting(
+    key: "debugHandSnapshots" | "passDeviceMode" | "allowSecondaryDefense" | "mixEventsIntoMainDeck" | "personalSupplyDrops",
+    value: boolean
+  ) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
@@ -237,6 +240,22 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     type="checkbox"
                     checked={settings.allowSecondaryDefense}
                     onChange={(event) => updateBooleanSetting("allowSecondaryDefense", event.target.checked)}
+                  />
+                </label>
+                <label className="setting-control setting-toggle">
+                  <span>Mix events into deck</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.mixEventsIntoMainDeck}
+                    onChange={(event) => updateBooleanSetting("mixEventsIntoMainDeck", event.target.checked)}
+                  />
+                </label>
+                <label className="setting-control setting-toggle">
+                  <span>Personal Supply Drops</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.personalSupplyDrops}
+                    onChange={(event) => updateBooleanSetting("personalSupplyDrops", event.target.checked)}
                   />
                 </label>
                 <label className="setting-control setting-toggle">

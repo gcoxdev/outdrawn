@@ -24,6 +24,8 @@ export type GameSettings = {
   turnOrder: TurnOrderMode;
   eliminationHealthReward: number;
   allowSecondaryDefense: boolean;
+  mixEventsIntoMainDeck: boolean;
+  personalSupplyDrops: boolean;
   blackMarketPreset: BlackMarketPreset;
   blackMarketCustom: BlackMarketConfig;
   debugHandSnapshots: boolean;
@@ -48,6 +50,8 @@ export const defaultGameSettings: GameSettings = {
   turnOrder: "standard",
   eliminationHealthReward: 0,
   allowSecondaryDefense: false,
+  mixEventsIntoMainDeck: false,
+  personalSupplyDrops: false,
   blackMarketPreset: "standard",
   blackMarketCustom: blackMarketPresets.custom,
   debugHandSnapshots: false,

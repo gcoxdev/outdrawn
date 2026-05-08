@@ -98,7 +98,8 @@ function advanceTurn(state: GameState): GameState {
     return pressureGameOver;
   }
 
-  const nextEventDefinition = nextRound ? getCardDefinitionById(pressureState.eventDeck[0]?.definitionId ?? "") : undefined;
+  const nextEventDefinition =
+    nextRound && !pressureState.settings.mixEventsIntoMainDeck ? getCardDefinitionById(pressureState.eventDeck[0]?.definitionId ?? "") : undefined;
   const transitionState = nextRound
     ? logPlayerHealthChanges(pressureState.players, resolveRoundTransition(pressureState), nextEventDefinition?.name ?? "event")
     : state;
@@ -200,6 +201,11 @@ function resolveRoundTransition(state: GameState): GameState {
         eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
       }
     : state;
+
+  if (stateWithoutExpiredEvent.settings.mixEventsIntoMainDeck) {
+    return stateWithoutExpiredEvent;
+  }
+
   const [eventCard, ...eventDeck] = stateWithoutExpiredEvent.eventDeck;
   const eventDefinition = eventCard ? getCardDefinitionById(eventCard.definitionId) : undefined;
 
@@ -208,11 +214,14 @@ function resolveRoundTransition(state: GameState): GameState {
   }
 
   if (eventDefinition.timing === "immediate") {
-    return applyImmediateEvent({
-      ...stateWithoutExpiredEvent,
-      eventDeck,
-      eventDiscardPile: [...stateWithoutExpiredEvent.eventDiscardPile, eventCard]
-    }, eventDefinition.id);
+    return applyImmediateEvent(
+      {
+        ...stateWithoutExpiredEvent,
+        eventDeck,
+        eventDiscardPile: [...stateWithoutExpiredEvent.eventDiscardPile, eventCard]
+      },
+      eventDefinition.id
+    );
   }
 
   if (eventDefinition.timing === "thisRound" || eventDefinition.timing === "ongoing") {
@@ -233,18 +242,22 @@ function resolveRoundTransition(state: GameState): GameState {
   };
 }
 
-function applyImmediateEvent(state: GameState, eventId: string): GameState {
+function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?: PlayerId): GameState {
   if (eventId === "event_supply_drop") {
     const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, 3);
+    const playerOrder =
+      state.settings.personalSupplyDrops && sourcePlayerId
+        ? [sourcePlayerId]
+        : [...state.players]
+            .filter((player) => !player.eliminated)
+            .sort((left, right) => left.health - right.health)
+            .map((player) => player.id);
     return {
       ...state,
       mainDeck: reveal.mainDeck,
       discardPile: reveal.discardPile,
       pendingSupplyDrop: {
-        playerOrder: [...state.players]
-          .filter((player) => !player.eliminated)
-          .sort((left, right) => left.health - right.health)
-          .map((player) => player.id),
+        playerOrder,
         currentIndex: 0,
         revealedCards: reveal.drawn
       }
@@ -322,6 +335,53 @@ function applyPressureZone(state: GameState): GameState {
   };
 }
 
+function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: PlayerId): GameState {
+  const definition = getCardDefinitionById(eventCard.definitionId);
+  const player = getPlayer(state, playerId);
+  const stateWithoutActiveEvent =
+    state.activeEvent && definition?.timing !== "immediate"
+      ? {
+          ...state,
+          activeEvent: null,
+          eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
+        }
+      : state;
+
+  if (!definition || definition.type !== "event" || !player) {
+    return state;
+  }
+
+  if (definition.timing === "immediate") {
+    const eventState = {
+      ...stateWithoutActiveEvent,
+      eventDiscardPile: [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
+    };
+    const resolved = logPlayerHealthChanges(state.players, applyImmediateEvent(eventState, definition.id, playerId), definition.name);
+    return log(resolved, `${player.name} drew ${definition.name}.`);
+  }
+
+  if (definition.timing === "thisRound" || definition.timing === "ongoing") {
+    return log(
+      {
+        ...stateWithoutActiveEvent,
+        activeEvent: {
+          card: eventCard,
+          timing: definition.timing
+        }
+      },
+      `${player.name} drew ${definition.name}. Event: ${definition.name}.`
+    );
+  }
+
+  return log(
+    {
+      ...stateWithoutActiveEvent,
+      eventDiscardPile: [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
+    },
+    `${player.name} drew ${definition.name}.`
+  );
+}
+
 function applyCollapseDamage(state: GameState): GameState {
   const damage = state.round >= 8 ? 2 : state.round >= 3 ? 1 : 0;
   if (damage === 0) {
@@ -382,11 +442,18 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const draw = drawCardsWithRefill(state.mainDeck, state.discardPile, 1);
+      const drawnCard = draw.drawn[0];
+      const drawnDefinition = getCardDefinitionById(drawnCard?.definitionId ?? "");
       let nextState = {
         ...state,
         mainDeck: draw.mainDeck,
         discardPile: draw.discardPile
       };
+      if (drawnCard && drawnDefinition?.type === "event" && state.settings.mixEventsIntoMainDeck) {
+        nextState = spendAction(nextState, action.playerId);
+        return resolveDrawnEvent(nextState, drawnCard, action.playerId);
+      }
+
       nextState = updatePlayer(nextState, action.playerId, (player) => ({
         ...player,
         hand: [...player.hand, ...draw.drawn]
@@ -496,6 +563,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const revealedCards = picked ? pending.revealedCards.filter((card) => card.instanceId !== picked.instanceId) : pending.revealedCards;
+      const personalOverflow =
+        Boolean(picked) && state.settings.personalSupplyDrops && pending.playerOrder.length === 1 && player.hand.length >= state.settings.maxHandSize;
       const nextIndex = pending.currentIndex + 1;
       const finished = nextIndex >= pending.playerOrder.length || revealedCards.length === 0;
       let nextState = {
@@ -507,9 +576,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               currentIndex: nextIndex,
               revealedCards
             },
-        discardPile: finished ? [...state.discardPile, ...revealedCards] : state.discardPile,
+        discardPile: finished ? [...state.discardPile, ...revealedCards, ...(personalOverflow && picked ? [picked] : [])] : state.discardPile,
         players: state.players.map((candidate) =>
-          candidate.id === player.id && picked
+          candidate.id === player.id && picked && !personalOverflow
             ? {
                 ...candidate,
                 hand: [...candidate.hand, picked]
@@ -517,11 +586,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             : candidate
         )
       };
-      if (picked) {
+      if (picked && !personalOverflow) {
         nextState = enforceHandLimit(nextState, player.id);
       }
 
-      return log(nextState, picked ? `${player.name} claimed a Supply Drop card.` : `${player.name} passed on Supply Drop.`);
+      return log(
+        nextState,
+        personalOverflow ? `${player.name} discarded an overflowing Supply Drop card.` : picked ? `${player.name} claimed a Supply Drop card.` : `${player.name} passed on Supply Drop.`
+      );
     }
     case "START_BLACK_MARKET": {
       if (!canPlayerAct(state, action.playerId) || state.activeEvent?.card.definitionId !== "event_black_market") {

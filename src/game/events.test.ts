@@ -47,6 +47,58 @@ describe("event cards", () => {
     expect(state.log.at(-1)?.message).toContain("Event: High Ground");
   });
 
+  it("mixes event cards into the main deck and disables round-start event reveals", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      mixEventsIntoMainDeck: true
+    });
+    const highGround = event("event_high_ground");
+    state = {
+      ...state,
+      eventDeck: [highGround]
+    };
+
+    state = endCurrentRound(state);
+
+    expect(state.round).toBe(2);
+    expect(state.activeEvent).toBeNull();
+    expect(state.eventDeck.map((card) => card.instanceId)).toEqual([highGround.instanceId]);
+    expect(state.log.at(-1)?.message).toContain("Event: none");
+  });
+
+  it("does not deal mixed event cards into starting hands", () => {
+    const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      mixEventsIntoMainDeck: true,
+      startingHandSize: 7
+    });
+
+    expect(state.eventDeck).toHaveLength(0);
+    expect(state.players.flatMap((player) => player.hand).some((card) => card.definitionId.startsWith("event_"))).toBe(false);
+    expect(state.mainDeck.some((card) => card.definitionId.startsWith("event_"))).toBe(true);
+  });
+
+  it("resolves a mixed this-round event when it is drawn instead of adding it to hand", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      mixEventsIntoMainDeck: true
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const highGround = event("event_high_ground");
+    state = {
+      ...state,
+      mainDeck: [highGround],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(state.activeEvent?.card.instanceId).toBe(highGround.instanceId);
+    expect(state.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(0);
+    expect(state.players.find((candidate) => candidate.id === player.id)?.actionsRemaining).toBe(1);
+    expect(state.log.at(-1)?.message).toContain("drew High Ground");
+  });
+
   it("High Ground adds 1 damage to a player's first attack this round", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
@@ -310,6 +362,63 @@ describe("event cards", () => {
     expect(state.pendingDiscard?.playerId).toBe("player_1");
     expect(state.pendingDiscard?.count).toBe(1);
     expect(state.pendingDiscard?.reason).toBe("hand limit");
+  });
+
+  it("personal Supply Drop from a mixed event only offers cards to the drawing player", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      mixEventsIntoMainDeck: true,
+      personalSupplyDrops: true
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const supplyDrop = event("event_supply_drop");
+    const pistol = main("weapon_pistol");
+    const shield = main("defense_shield_plate");
+    const search = main("ability_search");
+    state = {
+      ...state,
+      mainDeck: [supplyDrop, pistol, shield, search],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(state.pendingSupplyDrop?.playerOrder).toEqual([player.id]);
+    expect(state.pendingSupplyDrop?.revealedCards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shield.instanceId, search.instanceId]);
+
+    state = gameReducer(state, { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: player.id, cardInstanceId: shield.instanceId });
+
+    expect(state.pendingSupplyDrop).toBeNull();
+    expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([shield.instanceId]);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([pistol.instanceId, search.instanceId]));
+    expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(supplyDrop.instanceId);
+  });
+
+  it("personal Supply Drop discards overflow instead of prompting discard-down", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      mixEventsIntoMainDeck: true,
+      personalSupplyDrops: true,
+      maxHandSize: 1
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const supplyDrop = event("event_supply_drop");
+    const existing = main("weapon_knife");
+    const pistol = main("weapon_pistol");
+    state = {
+      ...state,
+      mainDeck: [supplyDrop, pistol],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [existing], actionsRemaining: 2 } : candidate
+      )
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+    state = gameReducer(state, { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: player.id, cardInstanceId: pistol.instanceId });
+
+    expect(state.pendingDiscard).toBeNull();
+    expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([existing.instanceId]);
+    expect(state.discardPile.map((card) => card.instanceId)).toContain(pistol.instanceId);
   });
 
   it("Black Market lets a player discard two cards and choose one revealed deck card", () => {
