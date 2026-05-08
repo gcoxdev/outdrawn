@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_HEALTH } from "../data/constants";
+import { defaultGameSettings, MAX_HEALTH } from "../data/constants";
 import { mainDeckCards } from "../data/cards";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
@@ -176,6 +176,37 @@ describe("combat and healing", () => {
     expect(state.players.find((player) => player.id === target.id)!.eliminated).toBe(true);
     expect(state.phase).toBe("gameOver");
     expect(state.winnerId).toBe(attacker.id);
+  });
+
+  it("heals the attacker when elimination health reward is enabled", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      eliminationHealthReward: 3
+    });
+    const attacker = state.players[state.currentPlayerIndex];
+    const target = state.players.find((player) => player.id !== attacker.id)!;
+    const pistol = cardInstance("weapon_pistol");
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, health: 10, hand: [pistol] }
+          : player.id === target.id
+            ? { ...player, health: 3 }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: pistol.instanceId
+    });
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: target.id });
+
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(13);
+    expect(state.log.map((entry) => entry.message)).toContain("Ari recovered 3 health from elimination reward.");
   });
 
   it("plays simple healing cards without exceeding max health", () => {

@@ -45,7 +45,12 @@ export function resolveAttack(
   const eliminated = nextHealth === 0;
   const splashTargets = weaponDefinition.id === "weapon_grenade" ? getGrenadeSplashTargets(state.players, attacker.id, target.id) : [];
   const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
+  const attackerEliminations = (eliminated ? 1 : 0) + splashEliminations;
   const counterDamage = reactionResult.counterDamage;
+  const counterEliminatesAttacker = counterDamage > 0 && attacker.health <= counterDamage;
+  const attackerHealthAfterCounter = Math.max(0, attacker.health - counterDamage);
+  const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, attackerEliminations, state);
+  const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
   const reviveRetainedCards = reactionResult.discardsDefenderHand
     ? target.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "healing")
     : [];
@@ -96,9 +101,9 @@ export function resolveAttack(
       return {
         ...player,
         hand: [...(options.keepWeaponInHand ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...loot],
-        health: attackerHealth,
+        health: attackerRewardedHealth,
         eliminated: attackerHealth === 0,
-        eliminations: player.eliminations + (eliminated ? 1 : 0) + splashEliminations,
+        eliminations: player.eliminations + attackerEliminations,
         attackedThisRound: true,
         actedThisRound: true,
         actionsRemaining: options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1)
@@ -109,9 +114,9 @@ export function resolveAttack(
       return {
         ...player,
         hand: eliminated ? [] : targetHandAfterReaction,
-        health: nextHealth,
+        health: defenderRewardedHealth,
         eliminated,
-        eliminations: player.eliminations + (counterDamage > 0 && attacker.health <= counterDamage ? 1 : 0)
+        eliminations: player.eliminations + (counterEliminatesAttacker ? 1 : 0)
       };
     }
 
@@ -128,6 +133,15 @@ export function resolveAttack(
     return player;
   });
   let nextState = { ...state, players };
+  const attackerRewardGain = attackerRewardedHealth - attackerHealthAfterCounter;
+  if (attackerRewardGain > 0) {
+    messages.push(`${attacker.name} recovered ${attackerRewardGain} health from elimination reward.`);
+  }
+  const defenderRewardGain = defenderRewardedHealth - nextHealth;
+  if (defenderRewardGain > 0) {
+    messages.push(`${target.name} recovered ${defenderRewardGain} health from elimination reward.`);
+  }
+
   if (shouldRewardBounty(state, target, damage)) {
     const bountyDraw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
     nextState = {
@@ -176,6 +190,14 @@ export function resolveAttack(
     },
     messages
   };
+}
+
+function applyEliminationHealthReward(health: number, eliminations: number, state: GameState): number {
+  if (health <= 0 || eliminations <= 0 || state.settings.eliminationHealthReward <= 0) {
+    return health;
+  }
+
+  return Math.min(state.settings.maxHealth, health + eliminations * state.settings.eliminationHealthReward);
 }
 
 function resolveReactionDamage(

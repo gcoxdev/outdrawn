@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTIONS_PER_TURN, STARTING_HAND_SIZE } from "../data/constants";
+import { ACTIONS_PER_TURN, defaultGameSettings, STARTING_HAND_SIZE } from "../data/constants";
 import { mainDeckCards } from "../data/cards";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
@@ -69,6 +69,21 @@ describe("game reducer turns and combat", () => {
     expect(state.round).toBe(2);
     expect(getCurrentPlayer(state).actionsRemaining).toBe(ACTIONS_PER_TURN);
     expect(state.players.every((player) => !player.actedThisRound)).toBe(true);
+  });
+
+  it("keeps the same round starter in round robin turn order", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, turnOrder: "roundRobin" });
+
+    expect(getCurrentPlayer(state).id).toBe("player_1");
+    state = gameReducer(state, { type: "END_TURN", playerId: "player_1" });
+    expect(getCurrentPlayer(state).id).toBe("player_2");
+    state = gameReducer(state, { type: "END_TURN", playerId: "player_2" });
+    expect(getCurrentPlayer(state).id).toBe("player_3");
+    state = gameReducer(state, { type: "END_TURN", playerId: "player_3" });
+
+    expect(state.round).toBe(2);
+    expect(getCurrentPlayer(state).id).toBe("player_1");
+    expect(state.firstPlayerIndex).toBe(0);
   });
 
   it("ignores table actions after the game is over", () => {

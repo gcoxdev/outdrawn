@@ -1,7 +1,7 @@
 import { Menu, Plus, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
-import { defaultGameSettings, type GameSettings } from "../data/constants";
+import { defaultGameSettings, type GameSettings, type TurnOrderMode } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
 import rulesText from "../../docs/current-rules.md?raw";
@@ -27,7 +27,8 @@ const settingFields: Array<{
   { key: "maxHealth", label: "Max health", min: 1, max: 100 },
   { key: "startingHandSize", label: "Starting hand size", min: 1, max: 15 },
   { key: "maxHandSize", label: "Max cards in hand", min: 1, max: 20 },
-  { key: "actionsPerTurn", label: "Actions per turn", min: 1, max: 6 }
+  { key: "actionsPerTurn", label: "Actions per turn", min: 1, max: 6 },
+  { key: "eliminationHealthReward", label: "Health reward on elimination", min: 0, max: 20 }
 ];
 
 export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuProps) {
@@ -58,6 +59,10 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
 
   function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode", value: boolean) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
+  }
+
+  function updateTurnOrder(value: TurnOrderMode) {
+    dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, turnOrder: value } });
   }
 
   return (
@@ -117,6 +122,13 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     />
                   </label>
                 ))}
+                <label className="setting-control">
+                  <span>Turn order</span>
+                  <select value={settings.turnOrder} onChange={(event) => updateTurnOrder(event.target.value as TurnOrderMode)}>
+                    <option value="standard">Standard</option>
+                    <option value="roundRobin">Round robin</option>
+                  </select>
+                </label>
                 <label className="setting-control setting-toggle">
                   <span>Pass device mode</span>
                   <input

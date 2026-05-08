@@ -4,12 +4,16 @@ export const STARTING_HAND_SIZE = 5;
 export const MAX_HAND_SIZE = 7;
 export const ACTIONS_PER_TURN = 2;
 
+export type TurnOrderMode = "standard" | "roundRobin";
+
 export type GameSettings = {
   startingHealth: number;
   maxHealth: number;
   startingHandSize: number;
   maxHandSize: number;
   actionsPerTurn: number;
+  turnOrder: TurnOrderMode;
+  eliminationHealthReward: number;
   debugHandSnapshots: boolean;
   passDeviceMode: boolean;
 };
@@ -20,6 +24,8 @@ export const defaultGameSettings: GameSettings = {
   startingHandSize: STARTING_HAND_SIZE,
   maxHandSize: MAX_HAND_SIZE,
   actionsPerTurn: ACTIONS_PER_TURN,
+  turnOrder: "standard",
+  eliminationHealthReward: 0,
   debugHandSnapshots: false,
   passDeviceMode: false
 };

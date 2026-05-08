@@ -76,7 +76,12 @@ function advanceTurn(state: GameState): GameState {
   }
 
   const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
-  const nextRound = allLivingActed;
+  const nextLivingIndex = findNextLivingIndex(state.players, state.currentPlayerIndex);
+  const roundRobinFirstPlayerIndex =
+    state.settings.turnOrder === "roundRobin" && state.players[state.firstPlayerIndex].eliminated
+      ? findNextLivingIndex(state.players, state.firstPlayerIndex)
+      : state.firstPlayerIndex;
+  const nextRound = state.settings.turnOrder === "roundRobin" ? nextLivingIndex === roundRobinFirstPlayerIndex : allLivingActed;
   const collapseState = nextRound ? logPlayerHealthChanges(state.players, applyCollapseDamage(state), "collapse") : state;
   const collapseGameOver = nextRound ? completeGameIfOver(collapseState, state.players) : null;
   if (collapseGameOver) {
@@ -101,9 +106,14 @@ function advanceTurn(state: GameState): GameState {
     return transitionGameOver;
   }
 
-  const firstPlayerIndex = nextRound
-    ? findNextLivingIndex(transitionState.players, transitionState.firstPlayerIndex)
-    : transitionState.firstPlayerIndex;
+  const firstPlayerIndex =
+    state.settings.turnOrder === "roundRobin"
+      ? transitionState.players[roundRobinFirstPlayerIndex].eliminated
+        ? findNextLivingIndex(transitionState.players, roundRobinFirstPlayerIndex)
+        : roundRobinFirstPlayerIndex
+      : nextRound
+        ? findNextLivingIndex(transitionState.players, transitionState.firstPlayerIndex)
+        : transitionState.firstPlayerIndex;
   const currentPlayerIndex = nextRound ? firstPlayerIndex : findNextLivingIndex(transitionState.players, transitionState.currentPlayerIndex);
 
   const players = transitionState.players.map((player, index) => {
@@ -969,9 +979,11 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   const eliminatedCount = state.players.filter((player) => damagedPlayerIds.includes(player.id) && player.health <= damage).length;
   const players = state.players.map((player) => {
     if (player.id === attacker.id) {
+      const rewardedHealth = applyEliminationHealthReward(player.health, eliminatedCount, state);
       return {
         ...player,
         hand: [...(reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...eliminatedHands],
+        health: rewardedHealth,
         eliminations: player.eliminations + eliminatedCount,
         attackedThisRound: true,
         actedThisRound: true,
@@ -1004,6 +1016,12 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   players
     .filter((player) => damagedPlayerIds.includes(player.id) && player.eliminated)
     .forEach((player) => messages.push(`${player.name} was eliminated.`));
+  const rewardGain = state.players.find((player) => player.id === attacker.id)
+    ? (players.find((player) => player.id === attacker.id)?.health ?? attacker.health) - attacker.health
+    : 0;
+  if (rewardGain > 0) {
+    messages.push(`${attacker.name} recovered ${rewardGain} health from elimination reward.`);
+  }
 
   if (winner) {
     nextState = {
@@ -1018,6 +1036,14 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     state: nextState,
     messages
   };
+}
+
+function applyEliminationHealthReward(health: number, eliminations: number, state: GameState): number {
+  if (health <= 0 || eliminations <= 0 || state.settings.eliminationHealthReward <= 0) {
+    return health;
+  }
+
+  return Math.min(state.settings.maxHealth, health + eliminations * state.settings.eliminationHealthReward);
 }
 
 function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
