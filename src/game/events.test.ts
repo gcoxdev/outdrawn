@@ -212,6 +212,30 @@ describe("event cards", () => {
     expect(state.winnerId).toBe("player_2");
   });
 
+  it("stops resolving end-round effects once collapse produces a winner", () => {
+    let state = createNewGame(["Ari", "Blake", "Devon"], () => 0);
+    state = {
+      ...state,
+      round: 10,
+      currentPlayerIndex: 0,
+      eventDeck: [event("event_critical_condition")],
+      players: state.players.map((player, index) => ({
+        ...player,
+        health: index === 0 ? 2 : index === 2 ? 3 : 0,
+        eliminated: index === 1,
+        actedThisRound: index === 2
+      }))
+    };
+
+    state = gameReducer(state, { type: "END_TURN", playerId: "player_1" });
+
+    expect(state.phase).toBe("gameOver");
+    expect(state.winnerId).toBe("player_3");
+    expect(state.players.map((player) => player.health)).toEqual([0, 0, 1]);
+    expect(state.log.map((entry) => entry.message)).toContain("Devon is the last hand standing.");
+    expect(state.log.map((entry) => entry.message)).not.toContain("Devon took 2 Critical Condition damage.");
+  });
+
   it("simultaneous elimination tiebreaker favors prior eliminations first", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     state = {

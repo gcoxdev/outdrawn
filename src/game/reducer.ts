@@ -72,34 +72,33 @@ function spendAction(state: GameState, playerId: string): GameState {
 function advanceTurn(state: GameState): GameState {
   const livingPlayers = state.players.filter((player) => !player.eliminated);
   if (livingPlayers.length <= 1) {
-    const winner = getWinner(state);
-    return {
-      ...state,
-      phase: "gameOver",
-      winnerId: winner?.id ?? null
-    };
+    return completeGame(state, getWinner(state));
   }
 
   const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
   const nextRound = allLivingActed;
   const collapseState = nextRound ? logPlayerHealthChanges(state.players, applyCollapseDamage(state), "collapse") : state;
+  const collapseGameOver = nextRound ? completeGameIfOver(collapseState, state.players) : null;
+  if (collapseGameOver) {
+    return collapseGameOver;
+  }
+
   const pressureState =
     nextRound && collapseState.activeEvent?.card.definitionId === "event_pressure_zone"
       ? logPlayerHealthChanges(collapseState.players, applyPressureZone(collapseState), "Pressure Zone")
       : collapseState;
+  const pressureGameOver = nextRound ? completeGameIfOver(pressureState, collapseState.players) : null;
+  if (pressureGameOver) {
+    return pressureGameOver;
+  }
+
   const nextEventDefinition = nextRound ? getCardDefinitionById(pressureState.eventDeck[0]?.definitionId ?? "") : undefined;
   const transitionState = nextRound
     ? logPlayerHealthChanges(pressureState.players, resolveRoundTransition(pressureState), nextEventDefinition?.name ?? "event")
     : state;
-  const livingAfterTransition = transitionState.players.filter((player) => !player.eliminated);
-  const postTransitionWinner = getWinner(transitionState);
-  if (livingAfterTransition.length <= 1) {
-    const tiebreaker = postTransitionWinner ?? breakEliminationTie(state.players);
-    return {
-      ...transitionState,
-      phase: "gameOver",
-      winnerId: tiebreaker?.id ?? null
-    };
+  const transitionGameOver = nextRound ? completeGameIfOver(transitionState, pressureState.players) : null;
+  if (transitionGameOver) {
+    return transitionGameOver;
   }
 
   const firstPlayerIndex = nextRound
@@ -141,6 +140,24 @@ function advanceTurn(state: GameState): GameState {
       ? `Round ${advanced.round} begins. Event: ${nextEventDefinition?.name ?? "none"}. ${advanced.players[currentPlayerIndex].name} is up.`
       : `${advanced.players[currentPlayerIndex].name} is up.`
   );
+}
+
+function completeGameIfOver(state: GameState, beforePlayers: PlayerState[]): GameState | null {
+  if (state.players.filter((player) => !player.eliminated).length > 1) {
+    return null;
+  }
+
+  return completeGame(state, getWinner(state) ?? breakEliminationTie(beforePlayers));
+}
+
+function completeGame(state: GameState, winner: PlayerState | null): GameState {
+  const gameOverState = {
+    ...state,
+    phase: "gameOver" as const,
+    winnerId: winner?.id ?? null
+  };
+
+  return log(gameOverState, winner ? `${winner.name} is the last hand standing.` : "No winner remains.");
 }
 
 function logPlayerHealthChanges(beforePlayers: PlayerState[], afterState: GameState, source: string): GameState {
