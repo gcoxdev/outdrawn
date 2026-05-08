@@ -342,7 +342,7 @@ export const mainDeckCards: Card[] = [
     isLethalDefense: true,
     icons: ["lethal", "survive"],
     shortText: "Survive at 1 HP. Consume healing cards.",
-    rulesText: "When another player's attack would eliminate you, survive at 1 health. Immediately consume healing cards in your hand for their healing, then discard your hand.",
+    rulesText: "When another player's attack would eliminate you, survive at 1 health. Apply all available healing cards, then discard the rest.",
     flavorText: "The body count was off by one.",
     tags: ["defense", "lethal", "survival"]
   },
