@@ -30,6 +30,7 @@ type CardViewProps = {
 
 export function CardView({ card, mode = "hand", isSelected = false, isDisabled = false, onClick }: CardViewProps) {
   const TypeIcon = typeIcons[card.type];
+  const className = `card-view card-${card.type} card-${mode}${isSelected ? " is-selected" : ""}`;
   const stats = [
     card.damage ? { label: card.damage, icon: Swords, title: "Damage" } : null,
     card.splashDamage ? { label: card.splashDamage, icon: Bomb, title: "Splash" } : null,
@@ -38,13 +39,8 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     card.isReaction ? { label: "R", icon: Activity, title: "Reaction" } : null
   ].filter(Boolean);
 
-  return (
-    <button
-      className={`card-view card-${card.type} card-${mode}${isSelected ? " is-selected" : ""}`}
-      disabled={isDisabled}
-      onClick={onClick}
-      type="button"
-    >
+  const cardContent = (
+    <>
       <header className="card-view__header">
         <span className="card-view__name">{card.name}</span>
       </header>
@@ -82,7 +78,21 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       >
         <CircleHelp size={14} />
       </span>
-    </button>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button className={className} disabled={isDisabled} onClick={onClick} type="button">
+        {cardContent}
+      </button>
+    );
+  }
+
+  return (
+    <article className={className} aria-label={`${card.name} card`}>
+      {cardContent}
+    </article>
   );
 }
 
