@@ -50,7 +50,7 @@ describe("event cards", () => {
   it("mixes event cards into the main deck and disables round-start event reveals", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
       ...defaultGameSettings,
-      mixEventsIntoMainDeck: true
+      eventHandling: "mixedDeck"
     });
     const highGround = event("event_high_ground");
     state = {
@@ -69,7 +69,7 @@ describe("event cards", () => {
   it("does not deal mixed event cards into starting hands", () => {
     const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
       ...defaultGameSettings,
-      mixEventsIntoMainDeck: true,
+      eventHandling: "mixedDeck",
       startingHandSize: 7
     });
 
@@ -81,7 +81,7 @@ describe("event cards", () => {
   it("resolves a mixed this-round event when it is drawn instead of adding it to hand", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
       ...defaultGameSettings,
-      mixEventsIntoMainDeck: true
+      eventHandling: "mixedDeck"
     });
     const player = state.players[state.currentPlayerIndex];
     const highGround = event("event_high_ground");
@@ -367,7 +367,7 @@ describe("event cards", () => {
   it("personal Supply Drop from a mixed event only offers cards to the drawing player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
       ...defaultGameSettings,
-      mixEventsIntoMainDeck: true,
+      eventHandling: "mixedDeck",
       personalSupplyDrops: true
     });
     const player = state.players[state.currentPlayerIndex];
@@ -397,7 +397,7 @@ describe("event cards", () => {
   it("personal Supply Drop discards overflow instead of prompting discard-down", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
       ...defaultGameSettings,
-      mixEventsIntoMainDeck: true,
+      eventHandling: "mixedDeck",
       personalSupplyDrops: true,
       maxHandSize: 1
     });

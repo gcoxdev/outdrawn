@@ -5,6 +5,7 @@ export const MAX_HAND_SIZE = 7;
 export const ACTIONS_PER_TURN = 2;
 
 export type TurnOrderMode = "standard" | "roundRobin";
+export type EventHandlingMode = "roundStart" | "mixedDeck";
 export type BlackMarketPreset = "standard" | "discount" | "noAction" | "bigger" | "healthPay" | "custom";
 
 export type BlackMarketConfig = {
@@ -22,9 +23,9 @@ export type GameSettings = {
   maxHandSize: number;
   actionsPerTurn: number;
   turnOrder: TurnOrderMode;
+  eventHandling: EventHandlingMode;
   eliminationHealthReward: number;
   allowSecondaryDefense: boolean;
-  mixEventsIntoMainDeck: boolean;
   personalSupplyDrops: boolean;
   blackMarketPreset: BlackMarketPreset;
   blackMarketCustom: BlackMarketConfig;
@@ -48,9 +49,9 @@ export const defaultGameSettings: GameSettings = {
   maxHandSize: MAX_HAND_SIZE,
   actionsPerTurn: ACTIONS_PER_TURN,
   turnOrder: "standard",
+  eventHandling: "roundStart",
   eliminationHealthReward: 0,
   allowSecondaryDefense: false,
-  mixEventsIntoMainDeck: false,
   personalSupplyDrops: false,
   blackMarketPreset: "standard",
   blackMarketCustom: blackMarketPresets.custom,

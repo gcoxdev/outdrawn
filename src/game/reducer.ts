@@ -99,7 +99,7 @@ function advanceTurn(state: GameState): GameState {
   }
 
   const nextEventDefinition =
-    nextRound && !pressureState.settings.mixEventsIntoMainDeck ? getCardDefinitionById(pressureState.eventDeck[0]?.definitionId ?? "") : undefined;
+    nextRound && pressureState.settings.eventHandling !== "mixedDeck" ? getCardDefinitionById(pressureState.eventDeck[0]?.definitionId ?? "") : undefined;
   const transitionState = nextRound
     ? logPlayerHealthChanges(pressureState.players, resolveRoundTransition(pressureState), nextEventDefinition?.name ?? "event")
     : state;
@@ -202,7 +202,7 @@ function resolveRoundTransition(state: GameState): GameState {
       }
     : state;
 
-  if (stateWithoutExpiredEvent.settings.mixEventsIntoMainDeck) {
+  if (stateWithoutExpiredEvent.settings.eventHandling === "mixedDeck") {
     return stateWithoutExpiredEvent;
   }
 
@@ -449,7 +449,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         mainDeck: draw.mainDeck,
         discardPile: draw.discardPile
       };
-      if (drawnCard && drawnDefinition?.type === "event" && state.settings.mixEventsIntoMainDeck) {
+      if (drawnCard && drawnDefinition?.type === "event" && state.settings.eventHandling === "mixedDeck") {
         nextState = spendAction(nextState, action.playerId);
         return resolveDrawnEvent(nextState, drawnCard, action.playerId);
       }

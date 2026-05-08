@@ -16,8 +16,8 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
-- Mix events into deck: off by default. If enabled, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Drawn events resolve immediately instead of going into hand.
-- Personal Supply Drops: off by default. If enabled with mixed events, a drawn Supply Drop only offers cards to the player who drew it.
+- Event handling: Start of each round by default. If set to Mixed into deck, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Drawn events resolve immediately instead of going into hand.
+- Personal Supply Drops: only available when Event handling is Mixed into deck. If enabled, a drawn Supply Drop only offers cards to the player who drew it.
 - The main deck and event deck are shuffled separately unless events are mixed into the main deck.
 - The first player is randomly selected by the app.
 
