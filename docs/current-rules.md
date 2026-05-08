@@ -53,7 +53,7 @@ Each living player acts once per round. After all living players have acted:
 ## Collapse
 
 - Starting at the end of Round 3, all living players take 1 collapse damage.
-- Starting at the end of Round 6, collapse damage becomes 2.
+- Starting at the end of Round 8, collapse damage becomes 2.
 - Pressure Zone can add 1 extra damage to players who did not attack that round.
 - Collapse is not an attack and cannot be blocked by normal defense cards.
 
@@ -115,13 +115,19 @@ Healing cannot exceed maximum health.
 ## Events
 
 - Pressure Zone: this round, players who did not attack take +1 collapse damage.
-- Supply Drop: reveal 3 main-deck cards. Players choose in lowest-health order; each may claim 1 card or pass.
+- Supply Drop: reveal 3 main-deck cards. Players choose in lowest-health order; each may claim 1 card or pass. Unclaimed cards are discarded.
 - Bounty: damaging the highest-health player draws 1 card.
 - High Ground: each player's first attack this round deals +1 damage.
 - Low Ammo: each player discards their highest-damage weapon from hand or takes 3 damage.
 - No Cover: block/reduction reactions prevent 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, and Revive are unaffected.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
-- Black Market: this round, players may use the configured market exchange. Standard is spend 1 action and discard 2 cards to reveal 3 cards, keep 1, and discard the rest. Presets and custom settings can change the action cost, discard cost, health cost, reveal count, and keep count.
+- Black Market: this round, players may use the configured market exchange. Unkept revealed cards are discarded.
+- Black Market Standard: risk 1 action and discard 2 cards; reward reveal 3 and keep 1.
+- Black Market Discount Market: risk 1 action and discard 1 card; reward reveal 3 and keep 1.
+- Black Market No-Action Market: risk discard 2 cards; reward reveal 3 and keep 1.
+- Black Market Bigger Market: risk 1 action and discard 2 cards; reward reveal 5 and keep 2.
+- Black Market Health-Pay Market: risk 1 action and 2 health; reward reveal 3 and keep 1.
+- Black Market Custom: host-defined action cost, discard cost, health cost, reveal count, and keep count.
 
 ## Elimination And Loot
 

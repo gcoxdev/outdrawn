@@ -582,9 +582,9 @@ export const eventDeckCards: Card[] = [
     timing: "immediate",
     target: "allPlayers",
     rarity: "uncommon",
-    icons: ["draw", "supply", "health-cost"],
+    icons: ["draw", "supply"],
     shortText: "Reveal 3 cards. Lowest health chooses first.",
-    rulesText: "Reveal 3 main-deck cards. Starting with the lowest-health player and proceeding upward, each player may take 1 card for free. A player may take additional revealed cards by paying each card's supply cost in health. Unclaimed cards are discarded.",
+    rulesText: "Reveal 3 main-deck cards. Starting with the lowest-health player and proceeding upward, each player may take 1 card or pass. Unclaimed cards are discarded.",
     flavorText: "Falling crates make rising tensions.",
     tags: ["event", "supply", "card-gain"]
   },
@@ -674,7 +674,7 @@ export const eventDeckCards: Card[] = [
     actionsCost: 1,
     icons: ["search", "discard", "action"],
     shortText: "Use the configured market exchange.",
-    rulesText: "This round, players may use the configured Black Market exchange to trade actions, cards, or health for revealed cards.",
+    rulesText: "This round, players may use the configured Black Market exchange to trade actions, cards, or health for revealed cards. Unkept revealed cards are discarded.",
     flavorText: "Everything is available. Nothing is free.",
     tags: ["event", "search", "card-selection"]
   }

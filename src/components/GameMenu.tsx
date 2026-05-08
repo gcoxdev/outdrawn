@@ -293,7 +293,7 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                         const status = getCardImplementationStatus(card);
                         const implementationNote = getCardImplementationNote(card);
                         return (
-                          <article className="catalog-card" key={card.id}>
+                          <article className={`catalog-card card-${card.type}`} key={card.id}>
                             <div>
                               <strong>{card.name}</strong>
                               <p>{card.rulesText}</p>
