@@ -332,12 +332,12 @@ function labelBlackMarketPreset(preset: BlackMarketPreset): string {
 }
 
 function summarizeBlackMarket(config: BlackMarketConfig): string {
-  const costs = [
+  const risks = [
     config.actionCost > 0 ? `${config.actionCost} action${config.actionCost === 1 ? "" : "s"}` : null,
     config.discardCost > 0 ? `discard ${config.discardCost} card${config.discardCost === 1 ? "" : "s"}` : null,
     config.healthCost > 0 ? `pay ${config.healthCost} health` : null
   ].filter(Boolean);
-  const costText = costs.length > 0 ? costs.join(", ") : "no extra cost";
+  const riskText = risks.length > 0 ? risks.join(", ") : "none";
 
-  return `${costText}; reveal ${config.revealCount}, keep ${config.keepCount}, discard the rest.`;
+  return `Risk: ${riskText}. Reward: reveal ${config.revealCount}, keep ${config.keepCount}.`;
 }
