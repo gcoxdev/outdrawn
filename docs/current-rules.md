@@ -15,6 +15,7 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Actions per turn: 2 by default.
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
+- Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against Ricochet damage and Grenade splash damage. Ricochet cannot be used again against secondary damage.
 - The main deck and event deck are shuffled separately.
 - The first player is randomly selected by the app.
 

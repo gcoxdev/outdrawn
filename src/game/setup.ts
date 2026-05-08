@@ -56,6 +56,7 @@ export function createNewGame(
     pendingSupplyDrop: null,
     pendingMarketSearch: null,
     pendingSteal: null,
+    pendingSecondaryDamage: null,
     selectedCardId: null,
     attackBonuses: {},
     reloadPlayerIds: [],

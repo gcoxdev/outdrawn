@@ -200,6 +200,10 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     return chooseReaction(state, strategy, random);
   }
 
+  if (state.pendingSecondaryDamage) {
+    return chooseReaction(state, strategy, random);
+  }
+
   if (state.pendingRedirect) {
     const attackerId = state.pendingRedirect.attackerId;
     const defenderId = state.pendingRedirect.defenderId;
@@ -314,6 +318,7 @@ export function getDecisionPlayerId(state: GameState): string {
   return (
     state.pendingReaction?.defenderId ??
     state.pendingRedirect?.defenderId ??
+    state.pendingSecondaryDamage?.defenderId ??
     state.pendingAttackCost?.attackerId ??
     state.pendingDiscard?.playerId ??
     state.pendingSearch?.playerId ??
@@ -325,10 +330,13 @@ export function getDecisionPlayerId(state: GameState): string {
 }
 
 function chooseReaction(state: GameState, strategy: StrategyLevel, random: () => number): GameAction {
-  const pending = state.pendingReaction!;
+  const pending = state.pendingReaction ?? state.pendingSecondaryDamage!;
   const defender = getPlayer(state, pending.defenderId)!;
   const reactionCards = defender.hand.filter((card) => {
     const definition = getCardDefinitionById(card.definitionId);
+    if (state.pendingSecondaryDamage && definition?.id === "defense_decoy") {
+      return false;
+    }
     if (definition?.id === "defense_decoy") {
       return state.players.some((player) => !player.eliminated && player.id !== pending.attackerId && player.id !== defender.id);
     }
@@ -336,12 +344,12 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
   });
 
   if (strategy === "beginner" && random() < 0.45) {
-    return { type: "SKIP_REACTION", defenderId: defender.id };
+    return { type: state.pendingSecondaryDamage ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: defender.id };
   }
 
   const lethal = reactionCards.find((card) => getCardDefinitionById(card.definitionId)?.isLethalDefense && pending.baseDamage >= defender.health);
   if (lethal) {
-    return { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: lethal.instanceId };
+    return { type: state.pendingSecondaryDamage ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: lethal.instanceId };
   }
 
   const scored = reactionCards
@@ -351,10 +359,14 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
 
   const threshold = strategy === "beginner" ? 5 : strategy === "novice" ? 3 : 1;
   if (scored[0] && scored[0].score >= threshold) {
-    return { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: scored[0].card.instanceId };
+    return {
+      type: state.pendingSecondaryDamage ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION",
+      defenderId: defender.id,
+      reactionCardInstanceId: scored[0].card.instanceId
+    };
   }
 
-  return { type: "SKIP_REACTION", defenderId: defender.id };
+  return { type: state.pendingSecondaryDamage ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: defender.id };
 }
 
 function chooseHealing(state: GameState, player: PlayerState, strategy: StrategyLevel, urgentOnly: boolean): CardInstance | null {

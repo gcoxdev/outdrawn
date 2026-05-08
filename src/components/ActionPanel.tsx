@@ -27,6 +27,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     state.phase === "action" &&
     !state.pendingReaction &&
     !state.pendingRedirect &&
+    !state.pendingSecondaryDamage &&
     !state.pendingAttackCost &&
     !state.pendingMultiHitAttack &&
     !state.pendingDiscard &&
@@ -39,6 +40,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     state.phase === "action" &&
     !state.pendingReaction &&
     !state.pendingRedirect &&
+    !state.pendingSecondaryDamage &&
     !state.pendingAttackCost &&
     !state.pendingMultiHitAttack &&
     !state.pendingDiscard &&
@@ -46,8 +48,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     !state.pendingSupplyDrop &&
     !state.pendingMarketSearch &&
     !state.pendingSteal;
-  const pendingDefender = state.pendingReaction ? getPlayer(state, state.pendingReaction.defenderId) : undefined;
-  const pendingAttacker = state.pendingReaction ? getPlayer(state, state.pendingReaction.attackerId) : undefined;
+  const activeReaction = state.pendingReaction ?? state.pendingSecondaryDamage;
+  const pendingDefender = activeReaction ? getPlayer(state, activeReaction.defenderId) : undefined;
+  const pendingAttacker = activeReaction ? getPlayer(state, activeReaction.attackerId) : undefined;
   const pendingRedirectDefender = state.pendingRedirect ? getPlayer(state, state.pendingRedirect.defenderId) : undefined;
   const pendingRedirectAttacker = state.pendingRedirect ? getPlayer(state, state.pendingRedirect.attackerId) : undefined;
   const pendingAttackCostPlayer = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.attackerId) : undefined;
@@ -66,12 +69,16 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
         return false;
       }
 
+      if (state.pendingSecondaryDamage && definition.id === "defense_decoy") {
+        return false;
+      }
+
       if (definition.isLethalDefense) {
-        return Boolean(state.pendingReaction && state.pendingReaction.baseDamage >= pendingDefender.health);
+        return Boolean(activeReaction && activeReaction.baseDamage >= pendingDefender.health);
       }
 
       if (definition.id === "defense_decoy") {
-        return state.players.some((player) => !player.eliminated && player.id !== state.pendingReaction?.attackerId && player.id !== pendingDefender.id);
+        return state.players.some((player) => !player.eliminated && player.id !== activeReaction?.attackerId && player.id !== pendingDefender.id);
       }
 
       return true;
@@ -98,20 +105,23 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
     );
   }
 
-  if (state.pendingReaction && pendingDefender && pendingAttacker) {
-    const weaponDefinition = getCardDefinitionById(state.pendingReaction.weapon.definitionId);
+  if (activeReaction && pendingDefender && pendingAttacker) {
+    const weaponDefinition = getCardDefinitionById(activeReaction.weapon.definitionId);
     const smgHitNumber =
-      state.pendingMultiHitAttack?.weapon.instanceId === state.pendingReaction.weapon.instanceId
+      state.pendingReaction && state.pendingMultiHitAttack?.weapon.instanceId === state.pendingReaction.weapon.instanceId
         ? 3 - state.pendingMultiHitAttack.hitsRemaining
         : null;
+    const isSecondary = Boolean(state.pendingSecondaryDamage);
 
     return (
       <section className="action-panel reaction-panel">
         <div>
-          <p className="eyebrow">Reaction</p>
+          <p className="eyebrow">{isSecondary ? "Secondary Defense" : "Reaction"}</p>
           <h2>{pendingDefender.name} is under attack</h2>
           <p>
-            {pendingAttacker.name} played {weaponDefinition?.name ?? "a weapon"} for {state.pendingReaction.baseDamage} base damage.
+            {isSecondary
+              ? `${pendingDefender.name} can defend against ${state.pendingSecondaryDamage?.source === "splash" ? "splash damage" : "Ricochet"} for ${activeReaction.baseDamage} base damage.`
+              : `${pendingAttacker.name} played ${weaponDefinition?.name ?? "a weapon"} for ${activeReaction.baseDamage} base damage.`}
             {smgHitNumber ? ` Hit ${smgHitNumber} of 2.` : ""}
           </p>
         </div>
@@ -124,7 +134,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
                 key={card.instanceId}
                 onClick={() =>
                   dispatch({
-                    type: "PLAY_REACTION",
+                    type: isSecondary ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION",
                     defenderId: pendingDefender.id,
                     reactionCardInstanceId: card.instanceId
                   })
@@ -135,7 +145,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
             ) : null;
           })}
         </div>
-        <button onClick={() => dispatch({ type: "SKIP_REACTION", defenderId: pendingDefender.id })}>Take Hit</button>
+        <button onClick={() => dispatch({ type: isSecondary ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: pendingDefender.id })}>
+          Take Hit
+        </button>
       </section>
     );
   }

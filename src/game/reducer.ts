@@ -4,7 +4,7 @@ import type { CardInstance, PlayerId } from "./types";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
-import { createPendingReaction, resolveAttack, resolveHealing } from "./combat";
+import { createPendingReaction, getGrenadeSplashTargets, resolveAttack, resolveHealing, resolveSecondaryDamage } from "./combat";
 import {
   canPlayerAct,
   getCardDefinitionById,
@@ -393,7 +393,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = getPlayer(state, action.playerId);
       const card = player?.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
 
-      if (!player || !card || state.pendingReaction || state.pendingRedirect || state.pendingAttackCost || state.pendingMultiHitAttack) {
+      if (
+        !player ||
+        !card ||
+        state.pendingReaction ||
+        state.pendingRedirect ||
+        state.pendingAttackCost ||
+        state.pendingMultiHitAttack ||
+        state.pendingSecondaryDamage
+      ) {
         return state;
       }
 
@@ -676,6 +684,39 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         )
       };
       const reloadActive = stateBeforeRedirect.reloadPlayerIds.includes(attacker.id);
+      if (state.settings.allowSecondaryDefense) {
+        const redirectedState = {
+          ...stateBeforeRedirect,
+          pendingSecondaryDamage: {
+            attackerId: attacker.id,
+            defenderId: target.id,
+            weapon: pending.weapon,
+            baseDamage: pending.baseDamage,
+            source: "ricochet" as const,
+            remaining: []
+          },
+          discardPile: [
+            ...stateBeforeRedirect.discardPile,
+            pending.decoy,
+            ...(reloadActive ? [] : [pending.weapon])
+          ],
+          reloadPlayerIds: reloadActive ? stateBeforeRedirect.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : stateBeforeRedirect.reloadPlayerIds,
+          attackBonuses: omitKey(stateBeforeRedirect.attackBonuses, attacker.id),
+          players: stateBeforeRedirect.players.map((player) =>
+            player.id === attacker.id
+              ? {
+                  ...player,
+                  hand: reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== pending.weapon.instanceId),
+                  attackedThisRound: true,
+                  actedThisRound: true,
+                  actionsRemaining: Math.max(0, player.actionsRemaining - 1)
+                }
+              : player
+          )
+        };
+        return log(redirectedState, `${defender.name} redirected ${attacker.name}'s attack to ${target.name}. ${target.name} may defend.`);
+      }
+
       const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy, {
         keepWeaponInHand: reloadActive
       });
@@ -741,6 +782,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         state.pendingRedirect ||
         state.pendingAttackCost ||
         state.pendingMultiHitAttack ||
+        state.pendingSecondaryDamage ||
         !weapon ||
         weaponDefinition?.type !== "weapon"
       ) {
@@ -860,6 +902,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const result = resolvePendingAttack(state, attacker, defender, pending.weapon, null);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
+    case "PLAY_SECONDARY_REACTION": {
+      const pending = state.pendingSecondaryDamage;
+      const defender = pending ? getPlayer(state, pending.defenderId) : undefined;
+      const reaction = defender?.hand.find((card) => card.instanceId === action.reactionCardInstanceId);
+      const reactionDefinition = reaction ? getCardDefinitionById(reaction.definitionId) : undefined;
+
+      if (
+        !pending ||
+        !defender ||
+        action.defenderId !== defender.id ||
+        !reaction ||
+        (reactionDefinition?.type !== "defense" && !reactionDefinition?.isLethalDefense) ||
+        reactionDefinition?.id === "defense_decoy"
+      ) {
+        return state;
+      }
+
+      if (reactionDefinition.isLethalDefense && pending.baseDamage < defender.health) {
+        return state;
+      }
+
+      const result = resolveCurrentSecondaryDamage(state, reaction);
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+    }
+    case "SKIP_SECONDARY_REACTION": {
+      const pending = state.pendingSecondaryDamage;
+      const defender = pending ? getPlayer(state, pending.defenderId) : undefined;
+
+      if (!pending || !defender || action.defenderId !== defender.id) {
+        return state;
+      }
+
+      const result = resolveCurrentSecondaryDamage(state, null);
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
+    }
     case "PASS_ACTION": {
       if (!canPlayerAct(state, action.playerId)) {
         return state;
@@ -913,12 +990,18 @@ function resolvePendingAttack(
 ) {
   const multiHit = state.pendingMultiHitAttack;
   const reloadActive = state.reloadPlayerIds.includes(attacker.id);
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  const deferSplash = state.settings.allowSecondaryDefense && weaponDefinition?.id === "weapon_grenade" && !multiHit;
 
   if (!multiHit || multiHit.weapon.instanceId !== weapon.instanceId) {
     const result = resolveAttack(state, attacker, defender, weapon, reaction, {
-      keepWeaponInHand: reloadActive
+      keepWeaponInHand: reloadActive,
+      resolveSplash: !deferSplash
     });
-    return reloadActive ? { ...result, state: consumeReload(result.state, attacker.id) } : result;
+    const stateAfterReload = reloadActive ? consumeReload(result.state, attacker.id) : result.state;
+    return deferSplash
+      ? enqueueGrenadeSplash(stateAfterReload, result.messages, state.players, attacker.id, defender.id, weapon)
+      : { ...result, state: stateAfterReload };
   }
 
   const isFinalHit = multiHit.hitsRemaining <= 1;
@@ -963,6 +1046,107 @@ function resolvePendingAttack(
       }
     },
     messages: [...result.messages, `${attacker.name}'s SMG fires again at ${defender.name}.`]
+  };
+}
+
+function enqueueGrenadeSplash(
+  state: GameState,
+  messages: string[],
+  beforePlayers: PlayerState[],
+  attackerId: PlayerId,
+  targetId: PlayerId,
+  weapon: CardInstance
+) {
+  if (state.phase === "gameOver") {
+    return { state, messages };
+  }
+
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  const splashDamage = weaponDefinition?.splashDamage ?? 0;
+  const splashTargets = getGrenadeSplashTargets(beforePlayers, attackerId, targetId)
+    .filter((target) => {
+      const current = getPlayer(state, target.id);
+      return current && !current.eliminated;
+    })
+    .map((target) => ({
+      defenderId: target.id,
+      baseDamage: splashDamage,
+      source: "splash" as const
+    }));
+
+  if (splashTargets.length === 0 || splashDamage <= 0) {
+    return { state, messages };
+  }
+
+  const [nextSplash, ...remaining] = splashTargets;
+  const defender = getPlayer(state, nextSplash.defenderId);
+  return {
+    state: {
+      ...state,
+      pendingSecondaryDamage: {
+        attackerId,
+        defenderId: nextSplash.defenderId,
+        weapon,
+        baseDamage: nextSplash.baseDamage,
+        source: nextSplash.source,
+        remaining
+      }
+    },
+    messages: [...messages, `${defender?.name ?? "A player"} may defend against Grenade splash damage.`]
+  };
+}
+
+function resolveCurrentSecondaryDamage(state: GameState, reaction: CardInstance | null) {
+  const pending = state.pendingSecondaryDamage;
+  const attacker = pending ? getPlayer(state, pending.attackerId) : undefined;
+  const defender = pending ? getPlayer(state, pending.defenderId) : undefined;
+
+  if (!pending || !attacker || !defender) {
+    return { state, messages: [] };
+  }
+
+  const baseState = { ...state, pendingSecondaryDamage: null };
+  const result = resolveSecondaryDamage(baseState, attacker, defender, pending.weapon, pending.baseDamage, pending.source, reaction);
+  if (result.state.phase === "gameOver" || pending.remaining.length === 0) {
+    return result;
+  }
+
+  const [next, ...remaining] = pending.remaining;
+  const nextDefender = getPlayer(result.state, next.defenderId);
+  if (!nextDefender || nextDefender.eliminated) {
+    return {
+      ...result,
+      state: {
+        ...result.state,
+        pendingSecondaryDamage:
+          remaining.length > 0
+            ? {
+                attackerId: pending.attackerId,
+                defenderId: remaining[0].defenderId,
+                weapon: pending.weapon,
+                baseDamage: remaining[0].baseDamage,
+                source: remaining[0].source,
+                remaining: remaining.slice(1)
+              }
+            : null
+      }
+    };
+  }
+
+  return {
+    ...result,
+    state: {
+      ...result.state,
+      pendingSecondaryDamage: {
+        attackerId: pending.attackerId,
+        defenderId: next.defenderId,
+        weapon: pending.weapon,
+        baseDamage: next.baseDamage,
+        source: next.source,
+        remaining
+      }
+    },
+    messages: [...result.messages, `${nextDefender.name} may defend against ${next.source === "splash" ? "splash damage" : "Ricochet"}.`]
   };
 }
 

@@ -14,6 +14,7 @@ export type GameSettings = {
   actionsPerTurn: number;
   turnOrder: TurnOrderMode;
   eliminationHealthReward: number;
+  allowSecondaryDefense: boolean;
   debugHandSnapshots: boolean;
   passDeviceMode: boolean;
 };
@@ -26,6 +27,7 @@ export const defaultGameSettings: GameSettings = {
   actionsPerTurn: ACTIONS_PER_TURN,
   turnOrder: "standard",
   eliminationHealthReward: 0,
+  allowSecondaryDefense: false,
   debugHandSnapshots: false,
   passDeviceMode: false
 };

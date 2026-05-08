@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mainDeckCards } from "../data/cards";
+import { defaultGameSettings } from "../data/constants";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
@@ -203,6 +204,47 @@ describe("remaining main deck card implementations", () => {
     expect(state.players.find((player) => player.id === target.id)!.health).toBe(16);
     expect(state.players.find((player) => player.id === splashTarget.id)!.health).toBe(18);
     expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
+  });
+
+  it("can allow defense against Grenade splash damage", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0, {
+      ...defaultGameSettings,
+      allowSecondaryDefense: true
+    });
+    const attacker = state.players[state.currentPlayerIndex];
+    const target = state.players[1];
+    const splashTarget = state.players[2];
+    const [grenade, shield] = instances(["weapon_grenade", "defense_shield_plate"]);
+    state = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === attacker.id
+          ? { ...player, hand: [grenade] }
+          : player.id === splashTarget.id
+            ? { ...player, hand: [shield] }
+            : player
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: grenade.instanceId
+    });
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: target.id });
+
+    expect(state.pendingSecondaryDamage?.defenderId).toBe(splashTarget.id);
+
+    state = gameReducer(state, {
+      type: "PLAY_SECONDARY_REACTION",
+      defenderId: splashTarget.id,
+      reactionCardInstanceId: shield.instanceId
+    });
+
+    expect(state.players.find((player) => player.id === target.id)!.health).toBe(16);
+    expect(state.players.find((player) => player.id === splashTarget.id)!.health).toBe(20);
+    expect(state.discardPile.map((card) => card.instanceId)).toContain(shield.instanceId);
   });
 
   it("Intimidate makes the target discard a card before attacking the intimidating player", () => {

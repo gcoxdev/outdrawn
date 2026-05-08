@@ -13,6 +13,7 @@ export type ResolveAttackOptions = {
   keepWeaponInHand?: boolean;
   spendAction?: boolean;
   clearAttackBonuses?: boolean;
+  resolveSplash?: boolean;
 };
 
 function getBaseAttackDamage(state: GameState, attacker: PlayerState, target: PlayerState, weaponDefinition: CardDefinition): number {
@@ -43,7 +44,10 @@ export function resolveAttack(
   const damage = reactionResult.damage;
   const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, target.health - damage);
   const eliminated = nextHealth === 0;
-  const splashTargets = weaponDefinition.id === "weapon_grenade" ? getGrenadeSplashTargets(state.players, attacker.id, target.id) : [];
+  const splashTargets =
+    weaponDefinition.id === "weapon_grenade" && options.resolveSplash !== false
+      ? getGrenadeSplashTargets(state.players, attacker.id, target.id)
+      : [];
   const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
   const attackerEliminations = (eliminated ? 1 : 0) + splashEliminations;
   const counterDamage = reactionResult.counterDamage;
@@ -192,6 +196,116 @@ export function resolveAttack(
   };
 }
 
+export function resolveSecondaryDamage(
+  state: GameState,
+  attacker: PlayerState,
+  defender: PlayerState,
+  weapon: CardInstance,
+  baseDamage: number,
+  source: "splash" | "ricochet",
+  reaction: CardInstance | null
+): AttackResult {
+  const weaponDefinition = getCardDefinitionById(weapon.definitionId);
+  if (!weaponDefinition || weaponDefinition.type !== "weapon") {
+    return { state, messages: [] };
+  }
+
+  const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
+  const reactionResult = resolveReactionDamage(baseDamage, defender.health, weaponDefinition, reactionDefinition, state.activeEvent?.card.definitionId);
+  const damage = reactionResult.damage;
+  const nextHealth = reactionResult.survivesLethal ? 1 : Math.max(0, defender.health - damage);
+  const eliminated = nextHealth === 0;
+  const counterDamage = reactionResult.counterDamage;
+  const counterEliminatesAttacker = counterDamage > 0 && attacker.health <= counterDamage;
+  const attackerHealthAfterCounter = Math.max(0, attacker.health - counterDamage);
+  const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, eliminated ? 1 : 0, state);
+  const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
+  const retainedCards = reactionResult.discardsDefenderHand
+    ? defender.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "healing")
+    : [];
+  const discardedByReaction = reactionResult.discardsDefenderHand
+    ? defender.hand.filter((card) => card.instanceId !== reaction?.instanceId && getCardDefinitionById(card.definitionId)?.type !== "healing")
+    : [];
+  const defenderHandAfterReaction = reactionResult.discardsDefenderHand
+    ? retainedCards
+    : reaction
+      ? defender.hand.filter((card) => card.instanceId !== reaction.instanceId)
+      : defender.hand;
+  const loot = eliminated ? defenderHandAfterReaction : [];
+  const sourceLabel = source === "splash" ? `splash damage from ${weaponDefinition.name}` : `Ricochet with ${weaponDefinition.name}`;
+  const messages = [`${defender.name} took ${damage} ${sourceLabel}.`];
+
+  if (reaction && reactionDefinition) {
+    messages.push(`${defender.name} played ${reactionDefinition.name}.`);
+  }
+
+  if (reactionResult.message) {
+    messages.push(reactionResult.message.replace("{defender}", defender.name));
+  }
+
+  if (counterDamage > 0) {
+    messages.push(`${defender.name} counterattacked ${attacker.name} for ${counterDamage} damage.`);
+  }
+
+  if (eliminated) {
+    messages.push(`${defender.name} was eliminated by ${source === "splash" ? "splash damage" : "Ricochet"}.`);
+  }
+
+  const players = state.players.map((player) => {
+    if (player.id === attacker.id) {
+      return {
+        ...player,
+        hand: [...player.hand, ...loot],
+        health: attackerRewardedHealth,
+        eliminated: attackerHealthAfterCounter === 0,
+        eliminations: player.eliminations + (eliminated ? 1 : 0)
+      };
+    }
+
+    if (player.id === defender.id) {
+      return {
+        ...player,
+        hand: eliminated ? [] : defenderHandAfterReaction,
+        health: defenderRewardedHealth,
+        eliminated,
+        eliminations: player.eliminations + (counterEliminatesAttacker ? 1 : 0)
+      };
+    }
+
+    return player;
+  });
+  let nextState: GameState = {
+    ...state,
+    players,
+    discardPile: [...state.discardPile, ...(reaction ? [reaction] : []), ...(reactionResult.discardsDefenderHand ? discardedByReaction : [])],
+    smokeProtectedPlayerIds:
+      reactionDefinition?.id === "defense_smoke_bomb"
+        ? Array.from(new Set([...state.smokeProtectedPlayerIds, defender.id]))
+        : state.smokeProtectedPlayerIds
+  };
+
+  const attackerRewardGain = attackerRewardedHealth - attackerHealthAfterCounter;
+  if (attackerRewardGain > 0) {
+    messages.push(`${attacker.name} recovered ${attackerRewardGain} health from elimination reward.`);
+  }
+  const defenderRewardGain = defenderRewardedHealth - nextHealth;
+  if (defenderRewardGain > 0) {
+    messages.push(`${defender.name} recovered ${defenderRewardGain} health from elimination reward.`);
+  }
+
+  const winner = getWinner(nextState);
+  if (winner) {
+    nextState = {
+      ...nextState,
+      phase: "gameOver",
+      winnerId: winner.id
+    };
+    messages.push(`${winner.name} is the last hand standing.`);
+  }
+
+  return { state: nextState, messages };
+}
+
 function applyEliminationHealthReward(health: number, eliminations: number, state: GameState): number {
   if (health <= 0 || eliminations <= 0 || state.settings.eliminationHealthReward <= 0) {
     return health;
@@ -298,7 +412,7 @@ function shouldRewardBounty(state: GameState, target: PlayerState, damage: numbe
   return target.health === highestHealth;
 }
 
-function getGrenadeSplashTargets(players: PlayerState[], attackerId: string, targetId: string): PlayerState[] {
+export function getGrenadeSplashTargets(players: PlayerState[], attackerId: string, targetId: string): PlayerState[] {
   const livingPlayers = players.filter((player) => !player.eliminated);
   if (livingPlayers.length <= 2) {
     return [];

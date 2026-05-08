@@ -41,6 +41,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const displayPlayer =
     state.players.find((player) => player.id === state.pendingReaction?.defenderId) ??
     state.players.find((player) => player.id === state.pendingRedirect?.defenderId) ??
+    state.players.find((player) => player.id === state.pendingSecondaryDamage?.defenderId) ??
     state.players.find((player) => player.id === state.pendingAttackCost?.attackerId) ??
     state.players.find((player) => player.id === state.pendingDiscard?.playerId) ??
     state.players.find((player) => player.id === state.pendingSearch?.playerId) ??
@@ -171,7 +172,9 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                     ? "Defender Hand"
                     : state.pendingRedirect
                       ? "Redirecting Hand"
-                      : state.pendingAttackCost
+                      : state.pendingSecondaryDamage
+                        ? "Secondary Defense"
+                        : state.pendingAttackCost
                         ? "Attack Cost"
                         : state.pendingDiscard
                           ? "Discarding Hand"
@@ -259,6 +262,10 @@ function getDecisionText(state: GameState, currentPlayerName: string, displayPla
 
   if (state.pendingRedirect) {
     return `${displayPlayerName} is redirecting`;
+  }
+
+  if (state.pendingSecondaryDamage) {
+    return `${displayPlayerName} is defending`;
   }
 
   if (state.pendingAttackCost) {

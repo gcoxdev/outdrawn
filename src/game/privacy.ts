@@ -43,6 +43,10 @@ function getPassDeviceReason(state: GameState): string {
     return "They played Ricochet and need to redirect the attack.";
   }
 
+  if (state.pendingSecondaryDamage) {
+    return "They can defend against secondary damage or take the hit.";
+  }
+
   if (state.pendingAttackCost) {
     return "They are attacking an intimidated player and must discard a card first.";
   }

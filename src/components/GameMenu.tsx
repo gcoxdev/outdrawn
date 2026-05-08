@@ -57,8 +57,13 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
     dispatch({ type: "UPDATE_SETTINGS", settings: normalized });
   }
 
-  function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode", value: boolean) {
+  function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode" | "allowSecondaryDefense", value: boolean) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
+  }
+
+  function startNewGame() {
+    dispatch({ type: "RESET_GAME" });
+    setIsOpen(false);
   }
 
   function updateTurnOrder(value: TurnOrderMode) {
@@ -101,7 +106,7 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
             {activeTab === "settings" && (
               <div className="menu-section settings-grid">
                 <div className="menu-actions">
-                  <button type="button" onClick={() => dispatch({ type: "RESET_GAME" })}>
+                  <button type="button" onClick={startNewGame}>
                     <Plus size={16} />
                     New Game
                   </button>
@@ -128,6 +133,14 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     <option value="standard">Standard</option>
                     <option value="roundRobin">Round robin</option>
                   </select>
+                </label>
+                <label className="setting-control setting-toggle">
+                  <span>Defense on secondary attacks</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.allowSecondaryDefense}
+                    onChange={(event) => updateBooleanSetting("allowSecondaryDefense", event.target.checked)}
+                  />
                 </label>
                 <label className="setting-control setting-toggle">
                   <span>Pass device mode</span>

@@ -34,6 +34,7 @@ export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
     !state.pendingSupplyDrop &&
     !state.pendingMarketSearch &&
     !state.pendingSteal &&
+    !state.pendingSecondaryDamage &&
     player.id === playerId &&
     !player.eliminated &&
     player.actionsRemaining > 0

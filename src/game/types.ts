@@ -114,6 +114,19 @@ export type PendingSteal = {
   targetPlayerId: PlayerId;
 };
 
+export type PendingSecondaryDamage = {
+  attackerId: PlayerId;
+  defenderId: PlayerId;
+  weapon: CardInstance;
+  baseDamage: number;
+  source: "splash" | "ricochet";
+  remaining: Array<{
+    defenderId: PlayerId;
+    baseDamage: number;
+    source: "splash" | "ricochet";
+  }>;
+};
+
 export type GamePhase = "setup" | "action" | "gameOver";
 
 export type GameState = {
@@ -137,6 +150,7 @@ export type GameState = {
   pendingSupplyDrop: PendingSupplyDrop | null;
   pendingMarketSearch: PendingMarketSearch | null;
   pendingSteal: PendingSteal | null;
+  pendingSecondaryDamage: PendingSecondaryDamage | null;
   selectedCardId: CardInstanceId | null;
   attackBonuses: Record<PlayerId, number>;
   reloadPlayerIds: PlayerId[];
