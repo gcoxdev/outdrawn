@@ -1,7 +1,14 @@
 import { Menu, Plus, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
-import { defaultGameSettings, type GameSettings, type TurnOrderMode } from "../data/constants";
+import {
+  blackMarketPresets,
+  defaultGameSettings,
+  type BlackMarketConfig,
+  type BlackMarketPreset,
+  type GameSettings,
+  type TurnOrderMode
+} from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
 import rulesText from "../../docs/current-rules.md?raw";
@@ -70,6 +77,24 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, turnOrder: value } });
   }
 
+  function updateBlackMarketPreset(value: BlackMarketPreset) {
+    dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, blackMarketPreset: value } });
+  }
+
+  function updateBlackMarketCustom(key: keyof BlackMarketConfig, value: number | BlackMarketConfig["unkeptCards"]) {
+    dispatch({
+      type: "UPDATE_SETTINGS",
+      settings: {
+        ...settings,
+        blackMarketPreset: "custom",
+        blackMarketCustom: {
+          ...settings.blackMarketCustom,
+          [key]: value
+        }
+      }
+    });
+  }
+
   return (
     <>
       <button
@@ -134,6 +159,81 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     <option value="roundRobin">Round robin</option>
                   </select>
                 </label>
+                <label className="setting-control">
+                  <span>Black Market</span>
+                  <select value={settings.blackMarketPreset} onChange={(event) => updateBlackMarketPreset(event.target.value as BlackMarketPreset)}>
+                    {Object.keys(blackMarketPresets).map((preset) => (
+                      <option key={preset} value={preset}>
+                        {labelBlackMarketPreset(preset as BlackMarketPreset)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="setting-control setting-control--wide">
+                  <span>Custom Black Market</span>
+                  <div className="market-custom-grid">
+                    <label>
+                      <span>Actions</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={4}
+                        value={settings.blackMarketCustom.actionCost}
+                        onChange={(event) => updateBlackMarketCustom("actionCost", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      <span>Discard</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={6}
+                        value={settings.blackMarketCustom.discardCost}
+                        onChange={(event) => updateBlackMarketCustom("discardCost", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      <span>Health</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={20}
+                        value={settings.blackMarketCustom.healthCost}
+                        onChange={(event) => updateBlackMarketCustom("healthCost", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      <span>Reveal</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={settings.blackMarketCustom.revealCount}
+                        onChange={(event) => updateBlackMarketCustom("revealCount", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      <span>Keep</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={settings.blackMarketCustom.keepCount}
+                        onChange={(event) => updateBlackMarketCustom("keepCount", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      <span>Unkept</span>
+                      <select
+                        value={settings.blackMarketCustom.unkeptCards}
+                        onChange={(event) => updateBlackMarketCustom("unkeptCards", event.target.value as BlackMarketConfig["unkeptCards"])}
+                      >
+                        <option value="discardAll">Discard all</option>
+                        <option value="discardOneReturnRest">Discard 1, return rest</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
                 <label className="setting-control setting-toggle">
                   <span>Defense on secondary attacks</span>
                   <input
@@ -219,4 +319,18 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
       )}
     </>
   );
+}
+
+function labelBlackMarketPreset(preset: BlackMarketPreset): string {
+  const labels: Record<BlackMarketPreset, string> = {
+    standard: "Standard",
+    discount: "Discount Market",
+    noAction: "No-Action Market",
+    bigger: "Bigger Market",
+    buyOneRiskOne: "Buy One, Risk One",
+    healthPay: "Health-Pay Market",
+    custom: "Custom"
+  };
+
+  return labels[preset];
 }

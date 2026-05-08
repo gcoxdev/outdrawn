@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardDefinitionById, getPlayer } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
@@ -20,6 +21,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
   const selectedIsTargetedAbility = selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer";
   const selectedWeaponHitsEveryone = selectedDefinition?.type === "weapon" && selectedDefinition.target === "allPlayers";
   const overHandLimit = currentPlayer.hand.length > state.settings.maxHandSize;
+  const blackMarketConfig =
+    state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
   const livingTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
   );
@@ -357,29 +360,55 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
       <section className="action-panel reaction-panel">
         <div>
           <p className="eyebrow">Black Market</p>
-          <h2>{pendingMarketPlayer.name}, keep 1 card</h2>
-          <p>Choose one revealed card to add to your hand. The rest go to discard.</p>
+          <h2>{pendingMarketPlayer.name}, keep {state.pendingMarketSearch.keepCount}</h2>
+          <p>
+            Choose {state.pendingMarketSearch.keepCount} revealed card{state.pendingMarketSearch.keepCount === 1 ? "" : "s"} to add to your hand.
+            {state.pendingMarketSearch.unkeptCards === "discardOneReturnRest" ? " One unkept card is discarded and the rest return to the deck." : " The rest go to discard."}
+          </p>
         </div>
         <div className="pending-discard-list">
           {state.pendingMarketSearch.cards.map((card) => {
             const definition = getCardDefinitionById(card.definitionId);
+            const isSelected = marketSelection.includes(card.instanceId);
             return definition ? (
               <button
-                className="reaction-card-button"
+                className={`reaction-card-button${isSelected ? " is-selected" : ""}`}
                 key={card.instanceId}
                 onClick={() =>
-                  dispatch({
-                    type: "RESOLVE_MARKET_SEARCH",
-                    playerId: pendingMarketPlayer.id,
-                    keepCardInstanceId: card.instanceId
+                  setMarketSelection((current) => {
+                    if (current.includes(card.instanceId)) {
+                      return current.filter((id) => id !== card.instanceId);
+                    }
+
+                    if (current.length >= state.pendingMarketSearch!.keepCount) {
+                      return [...current.slice(1), card.instanceId];
+                    }
+
+                    return [...current, card.instanceId];
                   })
                 }
               >
-                <CardView card={definition} mode="board" />
+                <CardView card={definition} mode="board" isSelected={isSelected} />
               </button>
             ) : null;
           })}
         </div>
+        <p className="menu-note">
+          Selected {marketSelection.length} of {state.pendingMarketSearch.keepCount}.
+        </p>
+        <button
+          disabled={marketSelection.length !== state.pendingMarketSearch.keepCount}
+          onClick={() => {
+            dispatch({
+              type: "RESOLVE_MARKET_SEARCH",
+              playerId: pendingMarketPlayer.id,
+              keepCardInstanceIds: marketSelection
+            });
+            setMarketSelection([]);
+          }}
+        >
+          Confirm Market Pick
+        </button>
       </section>
     );
   }
@@ -573,7 +602,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           {state.activeEvent?.card.definitionId === "event_black_market" && (
             <div className="attack-box">
               <h2>Black Market</h2>
-              <p>Select 2 cards from your hand, spend 1 action, and keep 1 of 3 revealed cards.</p>
+              <p>{getBlackMarketSummary(blackMarketConfig)}</p>
               <div className="pending-discard-list">
                 {currentPlayer.hand.map((card) => {
                   const definition = getCardDefinitionById(card.definitionId);
@@ -589,7 +618,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
                             return current.filter((id) => id !== card.instanceId);
                           }
 
-                          if (current.length >= 2) {
+                          if (current.length >= blackMarketConfig.discardCost) {
                             return [...current.slice(1), card.instanceId];
                           }
 
@@ -603,7 +632,13 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
                 })}
               </div>
               <button
-                disabled={!canAct || marketSelection.length !== 2 || state.mainDeck.length + state.discardPile.length === 0}
+                disabled={
+                  !canAct ||
+                  currentPlayer.actionsRemaining < blackMarketConfig.actionCost ||
+                  currentPlayer.health <= blackMarketConfig.healthCost ||
+                  marketSelection.length !== blackMarketConfig.discardCost ||
+                  state.mainDeck.length + state.discardPile.length === 0
+                }
                 onClick={() => {
                   dispatch({
                     type: "START_BLACK_MARKET",
@@ -637,4 +672,15 @@ function getSecondarySourceLabel(source: string | undefined): string {
   }
 
   return source === "backfire" ? "Backfire damage" : "Counterattack damage";
+}
+
+function getBlackMarketSummary(config: BlackMarketConfig) {
+  const costs = [
+    config.actionCost > 0 ? `spend ${config.actionCost} action${config.actionCost === 1 ? "" : "s"}` : null,
+    config.discardCost > 0 ? `discard ${config.discardCost} card${config.discardCost === 1 ? "" : "s"}` : null,
+    config.healthCost > 0 ? `pay ${config.healthCost} health` : null
+  ].filter(Boolean);
+  const costText = costs.length > 0 ? costs.join(", ") : "pay no extra cost";
+  const unkept = config.unkeptCards === "discardOneReturnRest" ? "discard 1 unkept card and return the rest" : "discard the rest";
+  return `${costText}; reveal ${config.revealCount}, keep ${config.keepCount}, ${unkept}.`;
 }

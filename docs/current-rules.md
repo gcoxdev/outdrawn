@@ -121,7 +121,7 @@ Healing cannot exceed maximum health.
 - Low Ammo: each player discards their highest-damage weapon from hand or takes 3 damage.
 - No Cover: block/reduction reactions prevent 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, and Revive are unaffected.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
-- Black Market: this round, players may spend 1 action and discard 2 cards to reveal 3 cards, keep 1, and discard the rest.
+- Black Market: this round, players may use the configured market exchange. Standard is spend 1 action and discard 2 cards to reveal 3 cards, keep 1, and discard the rest. Presets and custom settings can change the action cost, discard cost, health cost, reveal count, keep count, and what happens to unkept cards.
 
 ## Elimination And Loot
 

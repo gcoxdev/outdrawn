@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { eventDeckCards, mainDeckCards } from "../data/cards";
+import { defaultGameSettings } from "../data/constants";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
@@ -339,7 +340,7 @@ describe("event cards", () => {
     state = gameReducer(state, {
       type: "RESOLVE_MARKET_SEARCH",
       playerId: player.id,
-      keepCardInstanceId: shotgun.instanceId
+      keepCardInstanceIds: [shotgun.instanceId]
     });
 
     const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
@@ -348,5 +349,65 @@ describe("event cards", () => {
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(
       expect.arrayContaining([firstDiscard.instanceId, secondDiscard.instanceId, pistol.instanceId, shield.instanceId])
     );
+  });
+
+  it("Black Market bigger preset keeps two revealed cards", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, blackMarketPreset: "bigger" });
+    const player = state.players[state.currentPlayerIndex];
+    const firstDiscard = main("weapon_pistol");
+    const secondDiscard = main("weapon_knife");
+    const revealed = [main("weapon_pistol"), main("weapon_shotgun"), main("defense_shield_plate"), main("weapon_smg"), main("healing_bandage")];
+    state = {
+      ...state,
+      activeEvent: { card: event("event_black_market"), timing: "thisRound" },
+      mainDeck: revealed,
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "START_BLACK_MARKET",
+      playerId: player.id,
+      cardInstanceIds: [firstDiscard.instanceId, secondDiscard.instanceId]
+    });
+
+    expect(state.pendingMarketSearch?.keepCount).toBe(2);
+    expect(state.pendingMarketSearch?.cards).toHaveLength(5);
+
+    state = gameReducer(state, {
+      type: "RESOLVE_MARKET_SEARCH",
+      playerId: player.id,
+      keepCardInstanceIds: [revealed[1].instanceId, revealed[3].instanceId]
+    });
+
+    const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
+    expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([revealed[1].instanceId, revealed[3].instanceId]);
+    expect(updatedPlayer.actionsRemaining).toBe(1);
+  });
+
+  it("Black Market health-pay preset pays health instead of cards", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, blackMarketPreset: "healthPay" });
+    const player = state.players[state.currentPlayerIndex];
+    const pistol = main("weapon_pistol");
+    const shotgun = main("weapon_shotgun");
+    const shield = main("defense_shield_plate");
+    state = {
+      ...state,
+      activeEvent: { card: event("event_black_market"), timing: "thisRound" },
+      mainDeck: [pistol, shotgun, shield],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, {
+      type: "START_BLACK_MARKET",
+      playerId: player.id,
+      cardInstanceIds: []
+    });
+
+    const payingPlayer = state.players.find((candidate) => candidate.id === player.id)!;
+    expect(payingPlayer.health).toBe(18);
+    expect(payingPlayer.actionsRemaining).toBe(1);
+    expect(state.pendingMarketSearch?.keepCount).toBe(1);
   });
 });

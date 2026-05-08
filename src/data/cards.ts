@@ -673,8 +673,8 @@ export const eventDeckCards: Card[] = [
     discard: 2,
     actionsCost: 1,
     icons: ["search", "discard", "action"],
-    shortText: "Spend 1 action and discard 2 to search for 1 card.",
-    rulesText: "This round, players may spend 1 action and discard 2 cards to search the deck for 1 card, reveal it, add it to hand, then shuffle the deck.",
+    shortText: "Use the configured market exchange.",
+    rulesText: "This round, players may use the configured Black Market exchange to trade actions, cards, or health for revealed cards.",
     flavorText: "Everything is available. Nothing is free.",
     tags: ["event", "search", "card-selection"]
   }

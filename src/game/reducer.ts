@@ -1,4 +1,5 @@
 import { allCards } from "../data/cards";
+import { blackMarketPresets } from "../data/constants";
 import { drawCardsWithRefill } from "./deck";
 import type { CardInstance, PlayerId, SecondaryDamageItem, SecondaryDamageSource } from "./types";
 import type { GameAction } from "./actions";
@@ -359,6 +360,10 @@ function currentPlayerOverHandLimit(state: GameState): boolean {
   return getCurrentPlayer(state).hand.length > state.settings.maxHandSize;
 }
 
+function getBlackMarketConfig(state: GameState) {
+  return state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
+}
+
 export function gameReducer(state: GameState, action: GameAction): GameState {
   if (state.phase === "gameOver" && action.type !== "RESET_GAME" && action.type !== "UPDATE_SETTINGS") {
     return state;
@@ -524,61 +529,74 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const player = getCurrentPlayer(state);
-      const selectedIds = action.cardInstanceIds.slice(0, 2);
+      const marketConfig = getBlackMarketConfig(state);
+      const selectedIds = action.cardInstanceIds.slice(0, marketConfig.discardCost);
       const selected = player.hand.filter((card) => selectedIds.includes(card.instanceId));
 
-      if (selected.length !== 2 || new Set(selectedIds).size !== 2) {
+      if (
+        player.actionsRemaining < marketConfig.actionCost ||
+        player.health <= marketConfig.healthCost ||
+        selected.length !== marketConfig.discardCost ||
+        new Set(selectedIds).size !== marketConfig.discardCost
+      ) {
         return state;
       }
 
-      const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, 3);
+      const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, marketConfig.revealCount);
       const nextState = {
         ...state,
         mainDeck: reveal.mainDeck,
         discardPile: [...reveal.discardPile, ...selected],
         pendingMarketSearch: {
           playerId: player.id,
-          cards: reveal.drawn
+          cards: reveal.drawn,
+          keepCount: Math.min(marketConfig.keepCount, reveal.drawn.length),
+          unkeptCards: marketConfig.unkeptCards
         },
         players: state.players.map((candidate) =>
           candidate.id === player.id
             ? {
                 ...candidate,
                 hand: candidate.hand.filter((card) => !selectedIds.includes(card.instanceId)),
-                actionsRemaining: Math.max(0, candidate.actionsRemaining - 1),
+                health: candidate.health - marketConfig.healthCost,
+                actionsRemaining: Math.max(0, candidate.actionsRemaining - marketConfig.actionCost),
                 actedThisRound: true
               }
             : candidate
         )
       };
 
-      return log(nextState, `${player.name} used the Black Market and must choose 1 card.`);
+      return log(nextState, `${player.name} used the Black Market and must choose ${marketConfig.keepCount} card${marketConfig.keepCount === 1 ? "" : "s"}.`);
     }
     case "RESOLVE_MARKET_SEARCH": {
       const pending = state.pendingMarketSearch;
       const player = pending ? getPlayer(state, pending.playerId) : undefined;
-      const kept = pending?.cards.find((card) => card.instanceId === action.keepCardInstanceId);
+      const keepIds = action.keepCardInstanceIds.slice(0, pending?.keepCount ?? 0);
+      const kept = pending?.cards.filter((card) => keepIds.includes(card.instanceId)) ?? [];
 
-      if (!pending || !player || action.playerId !== player.id || !kept) {
+      if (!pending || !player || action.playerId !== player.id || kept.length !== pending.keepCount || new Set(keepIds).size !== pending.keepCount) {
         return state;
       }
 
-      const discarded = pending.cards.filter((card) => card.instanceId !== kept.instanceId);
+      const unkept = pending.cards.filter((card) => !keepIds.includes(card.instanceId));
+      const discarded = pending.unkeptCards === "discardOneReturnRest" ? unkept.slice(0, 1) : unkept;
+      const returned = pending.unkeptCards === "discardOneReturnRest" ? unkept.slice(1) : [];
       const nextState = {
         ...state,
         pendingMarketSearch: null,
         discardPile: [...state.discardPile, ...discarded],
+        mainDeck: [...state.mainDeck, ...returned],
         players: state.players.map((candidate) =>
           candidate.id === player.id
             ? {
                 ...candidate,
-                hand: [...candidate.hand, kept]
+                hand: [...candidate.hand, ...kept]
               }
             : candidate
         )
       };
 
-      return log(enforceHandLimit(nextState, player.id), `${player.name} bought 1 Black Market card and discarded ${discarded.length}.`);
+      return log(enforceHandLimit(nextState, player.id), `${player.name} bought ${kept.length} Black Market card${kept.length === 1 ? "" : "s"} and discarded ${discarded.length}.`);
     }
     case "RESOLVE_PENDING_STEAL": {
       const pending = state.pendingSteal;

@@ -1,5 +1,5 @@
 import { mainDeckCards } from "../data/cards";
-import { defaultGameSettings, type GameSettings } from "../data/constants";
+import { blackMarketPresets, defaultGameSettings, type GameSettings } from "../data/constants";
 import type { GameAction } from "./actions";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
@@ -247,7 +247,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     return {
       type: "RESOLVE_MARKET_SEARCH",
       playerId: state.pendingMarketSearch.playerId,
-      keepCardInstanceId: pickBestCard(state.pendingMarketSearch.cards, strategy, random).instanceId
+      keepCardInstanceIds: pickBestCards(state.pendingMarketSearch.cards, state.pendingMarketSearch.keepCount, strategy, random).map((card) => card.instanceId)
     };
   }
 
@@ -478,11 +478,18 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
     }
   }
 
-  if (state.activeEvent?.card.definitionId === "event_black_market" && player.actionsRemaining > 0 && player.hand.length >= 2) {
+  const marketConfig =
+    state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
+  if (
+    state.activeEvent?.card.definitionId === "event_black_market" &&
+    player.actionsRemaining >= marketConfig.actionCost &&
+    player.health > marketConfig.healthCost &&
+    player.hand.length >= marketConfig.discardCost
+  ) {
     return {
       type: "START_BLACK_MARKET",
       playerId: player.id,
-      cardInstanceIds: pickLowestCards(player.hand, 2, strategy, random).map((card) => card.instanceId)
+      cardInstanceIds: pickLowestCards(player.hand, marketConfig.discardCost, strategy, random).map((card) => card.instanceId)
     };
   }
 
@@ -781,6 +788,18 @@ function pickBestCard(cards: CardInstance[], strategy: StrategyLevel, random: ()
   }
 
   return bestCard(cards);
+}
+
+function pickBestCards(cards: CardInstance[], count: number, strategy: StrategyLevel, random: () => number): CardInstance[] {
+  if (strategy === "beginner") {
+    return shuffle(cards, random).slice(0, count);
+  }
+
+  if (strategy === "novice") {
+    return shuffle(sortByCardValue(cards).slice(-Math.min(cards.length, count + 1)), random).slice(0, count);
+  }
+
+  return sortByCardValue(cards).slice(-count);
 }
 
 function pickLowestCards(cards: CardInstance[], count: number, strategy: StrategyLevel, random: () => number): CardInstance[] {
