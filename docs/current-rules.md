@@ -89,7 +89,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Ricochet: redirect the attack to another valid player other than the attacker.
 - Backfire: cancel incoming attack damage and deal that much damage to the attacker.
 - Brace: reduce damage by half, rounded down.
-- Revive: when an attack would eliminate you, survive at 1 health. Keep healing cards and discard the rest of your hand.
+- Revive: when an attack would eliminate you, survive at 1 health. Immediately consume healing cards in your hand for their healing, then discard your hand.
 
 ## Abilities
 

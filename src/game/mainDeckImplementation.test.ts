@@ -18,11 +18,11 @@ function instances(definitionIds: string[]) {
 }
 
 describe("remaining main deck card implementations", () => {
-  it("Revive can be played as lethal defense and discards the defender hand", () => {
+  it("Revive applies healing cards and discards the defender hand", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
     const defender = state.players.find((player) => player.id !== attacker.id)!;
-    const [weapon, revive, extraCard] = instances(["weapon_pistol", "defense_fake_death", "weapon_knife"]);
+    const [weapon, revive, medkit, bandage, extraCard] = instances(["weapon_pistol", "defense_fake_death", "healing_medkit", "healing_bandage", "weapon_knife"]);
     state = {
       ...state,
       round: 3,
@@ -30,7 +30,7 @@ describe("remaining main deck card implementations", () => {
         player.id === attacker.id
           ? { ...player, hand: [weapon] }
           : player.id === defender.id
-            ? { ...player, health: 3, hand: [revive, extraCard] }
+            ? { ...player, health: 3, hand: [revive, medkit, bandage, extraCard] }
             : player
       )
     };
@@ -49,9 +49,11 @@ describe("remaining main deck card implementations", () => {
 
     const updatedDefender = state.players.find((player) => player.id === defender.id)!;
     expect(updatedDefender.eliminated).toBe(false);
-    expect(updatedDefender.health).toBe(1);
+    expect(updatedDefender.health).toBe(10);
     expect(updatedDefender.hand).toHaveLength(0);
-    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([revive.instanceId, extraCard.instanceId]));
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(
+      expect.arrayContaining([revive.instanceId, medkit.instanceId, bandage.instanceId, extraCard.instanceId])
+    );
   });
 
   it("Reload keeps the next weapon in hand after it resolves", () => {

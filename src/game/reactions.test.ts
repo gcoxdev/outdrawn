@@ -53,14 +53,15 @@ describe("reaction defense cards", () => {
     expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(17);
   });
 
-  it("Revive prevents lethal attack damage and keeps only healing cards", () => {
+  it("Revive prevents lethal attack damage and applies healing cards", () => {
     const { state, target, reaction, extras } = attackWithReaction("defense_fake_death", 3, ["healing_bandage", "weapon_knife"]);
     const defender = state.players.find((player) => player.id === target.id)!;
 
     expect(defender.eliminated).toBe(false);
-    expect(defender.health).toBe(1);
-    expect(defender.hand.map((cardInstance) => cardInstance.instanceId)).toEqual([extras[0].instanceId]);
+    expect(defender.health).toBe(4);
+    expect(defender.hand).toHaveLength(0);
     expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === reaction.instanceId)).toBe(true);
+    expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === extras[0].instanceId)).toBe(true);
     expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === extras[1].instanceId)).toBe(true);
   });
 });
