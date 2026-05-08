@@ -41,6 +41,7 @@ const settingFields: Array<{
 export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
+  const blackMarketConfig = settings.blackMarketPreset === "custom" ? settings.blackMarketCustom : blackMarketPresets[settings.blackMarketPreset];
   const cardsByType = useMemo(
     () =>
       allCards.reduce<Record<string, typeof allCards>>((groups, card) => {
@@ -169,6 +170,10 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     ))}
                   </select>
                 </label>
+                <div className="setting-control setting-control--wide market-summary">
+                  <span>{labelBlackMarketPreset(settings.blackMarketPreset)}</span>
+                  <p>{summarizeBlackMarket(blackMarketConfig)}</p>
+                </div>
                 {settings.blackMarketPreset === "custom" && (
                   <div className="setting-control setting-control--wide">
                     <span>Custom Black Market</span>
@@ -324,4 +329,15 @@ function labelBlackMarketPreset(preset: BlackMarketPreset): string {
   };
 
   return labels[preset];
+}
+
+function summarizeBlackMarket(config: BlackMarketConfig): string {
+  const costs = [
+    config.actionCost > 0 ? `${config.actionCost} action${config.actionCost === 1 ? "" : "s"}` : null,
+    config.discardCost > 0 ? `discard ${config.discardCost} card${config.discardCost === 1 ? "" : "s"}` : null,
+    config.healthCost > 0 ? `pay ${config.healthCost} health` : null
+  ].filter(Boolean);
+  const costText = costs.length > 0 ? costs.join(", ") : "no extra cost";
+
+  return `${costText}; reveal ${config.revealCount}, keep ${config.keepCount}, discard the rest.`;
 }
