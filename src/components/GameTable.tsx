@@ -1,5 +1,5 @@
 import { Eye } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
 import type { GameAction } from "../game/actions";
@@ -34,6 +34,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
   const [sidebarPlayerPercent, setSidebarPlayerPercent] = useState(62);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const lastToastedLogId = useRef(state.log[state.log.length - 1]?.id ?? null);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
@@ -64,12 +65,17 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   }, [decisionPlayerId]);
 
   useEffect(() => {
-    const latest = state.log[state.log.length - 1]?.message;
-    if (!latest || !isNegativeLogMessage(latest)) {
+    const latest = state.log[state.log.length - 1];
+    if (!latest || latest.id === lastToastedLogId.current) {
       return;
     }
 
-    setAlertMessage(latest);
+    lastToastedLogId.current = latest.id;
+    if (!isNegativeLogMessage(latest.message)) {
+      return;
+    }
+
+    setAlertMessage(latest.message);
     const timeoutId = window.setTimeout(() => setAlertMessage(null), 4200);
     return () => window.clearTimeout(timeoutId);
   }, [state.log]);
