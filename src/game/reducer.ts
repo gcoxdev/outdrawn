@@ -333,6 +333,10 @@ function currentPlayerOverHandLimit(state: GameState): boolean {
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (state.phase === "gameOver" && action.type !== "RESET_GAME" && action.type !== "UPDATE_SETTINGS") {
+    return state;
+  }
+
   switch (action.type) {
     case "START_GAME":
       return createNewGame(action.playerSetups ?? action.playerNames, Math.random, action.settings ?? state.settings);

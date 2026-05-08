@@ -364,7 +364,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           Pass
         </button>
         <button
-          disabled={currentPlayer.hand.length > state.settings.maxHandSize}
+          disabled={!canAct || currentPlayer.hand.length > state.settings.maxHandSize}
           onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
         >
           End Turn

@@ -127,8 +127,8 @@ export const mainDeckCards: Card[] = [
     splashDamage: 2,
     supplyCost: 2,
     icons: ["damage", "splash", "target"],
-    shortText: "Deal 4 to target and 2 splash to adjacent players.",
-    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the next living player clockwise and counterclockwise from the target in seating order. The attacker is not hit by their own Grenade unless a card says otherwise. Dodge cancels damage only to the dodging player; splash still resolves.",
+    shortText: "Deal 4 damage, plus 2 splash to target's neighbors.",
+    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the next living player on each side of that target in seating order. The attacker is not hit by their own Grenade.",
     flavorText: "Nobody is standing far enough away.",
     tags: ["weapon", "splash", "area"]
   },
@@ -262,7 +262,7 @@ export const mainDeckCards: Card[] = [
     isReaction: true,
     icons: ["reaction", "cancel", "stealth"],
     shortText: "Cancel damage and become untargetable.",
-    rulesText: "Cancel damage to yourself from one attack. Until your next turn, you cannot be targeted except by splash or event damage.",
+    rulesText: "Cancel damage to yourself from one attack. Until your next turn, attacks and targeted abilities cannot choose you. Splash and event damage still affect you.",
     flavorText: "A cloud of smoke can be a wall.",
     tags: ["defense", "reaction", "cancel", "stealth"]
   },
@@ -421,8 +421,8 @@ export const mainDeckCards: Card[] = [
     discard: 2,
     supplyCost: 2,
     icons: ["discard", "hand"],
-    shortText: "Target discards 2 cards of their choice.",
-    rulesText: "Choose one player. They discard 2 cards of their choice.",
+    shortText: "Target discards up to 2 cards of their choice.",
+    rulesText: "Choose one player. They discard up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.",
     flavorText: "Plans burn faster than supplies.",
     tags: ["ability", "control", "discard"]
   },

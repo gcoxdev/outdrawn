@@ -68,7 +68,7 @@ Each living player acts once per round. After all living players have acted:
 - Shotgun: deal 6 damage, then discard.
 - Sniper Rifle: deal 8 damage.
 - Knife: deal 2 damage.
-- Grenade: deal 4 damage to the target and 2 splash damage to the next living player clockwise and counterclockwise from the target in seating order.
+- Grenade: deal 4 damage to the target and 2 splash damage to the next living player on each side of that target in seating order. The attacker is not hit by their own Grenade.
 - Crossbow: deal 4 damage and ignores Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
 - Minigun: deal 2 damage to every other living player. It does not choose a target and has no reaction window.
@@ -81,7 +81,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Shield Plate: block 4 damage.
 - Dodge: cancel damage to yourself from one attack.
 - Counterattack: after taking damage, deal 3 damage back to the attacker.
-- Smoke Bomb: cancel damage and become untargetable until your next turn, except by splash or event damage.
+- Smoke Bomb: cancel damage and become untargetable until your next turn. Attacks and targeted abilities cannot choose you. Splash and event damage still affect you.
 - Ricochet: redirect the attack to another valid player.
 - Backfire: cancel incoming attack damage and deal that much damage to the attacker.
 - Brace: reduce damage by half, rounded down.
@@ -94,7 +94,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Steal: take 1 card from another player's hand.
 - Search: draw 3, keep 1, discard the rest.
 - Reload: your next weapon attack this turn stays in your hand instead of being discarded after it resolves.
-- Sabotage: target discards 2 cards of their choice.
+- Sabotage: target discards up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.
 - Mark Target: attacks against the target deal +1 damage this round.
 - Intimidate: target must discard 1 card to attack you before your next turn.
 - Adrenaline: gain 1 net action this turn and lose 2 health.

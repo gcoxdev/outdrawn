@@ -70,4 +70,19 @@ describe("game reducer turns and combat", () => {
     expect(getCurrentPlayer(state).actionsRemaining).toBe(ACTIONS_PER_TURN);
     expect(state.players.every((player) => !player.actedThisRound)).toBe(true);
   });
+
+  it("ignores table actions after the game is over", () => {
+    const state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = getCurrentPlayer(state);
+    const gameOverState = {
+      ...state,
+      phase: "gameOver" as const,
+      winnerId: player.id
+    };
+
+    const next = gameReducer(gameOverState, { type: "END_TURN", playerId: player.id });
+
+    expect(next).toBe(gameOverState);
+    expect(next.log).toHaveLength(gameOverState.log.length);
+  });
 });
