@@ -550,8 +550,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         pendingMarketSearch: {
           playerId: player.id,
           cards: reveal.drawn,
-          keepCount: Math.min(marketConfig.keepCount, reveal.drawn.length),
-          unkeptCards: marketConfig.unkeptCards
+          keepCount: Math.min(marketConfig.keepCount, reveal.drawn.length)
         },
         players: state.players.map((candidate) =>
           candidate.id === player.id
@@ -579,13 +578,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const unkept = pending.cards.filter((card) => !keepIds.includes(card.instanceId));
-      const discarded = pending.unkeptCards === "discardOneReturnRest" ? unkept.slice(0, 1) : unkept;
-      const returned = pending.unkeptCards === "discardOneReturnRest" ? unkept.slice(1) : [];
       const nextState = {
         ...state,
         pendingMarketSearch: null,
-        discardPile: [...state.discardPile, ...discarded],
-        mainDeck: [...state.mainDeck, ...returned],
+        discardPile: [...state.discardPile, ...unkept],
         players: state.players.map((candidate) =>
           candidate.id === player.id
             ? {
@@ -596,7 +592,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         )
       };
 
-      return log(enforceHandLimit(nextState, player.id), `${player.name} bought ${kept.length} Black Market card${kept.length === 1 ? "" : "s"} and discarded ${discarded.length}.`);
+      return log(enforceHandLimit(nextState, player.id), `${player.name} bought ${kept.length} Black Market card${kept.length === 1 ? "" : "s"} and discarded ${unkept.length}.`);
     }
     case "RESOLVE_PENDING_STEAL": {
       const pending = state.pendingSteal;

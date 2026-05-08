@@ -108,7 +108,6 @@ export type PendingMarketSearch = {
   playerId: PlayerId;
   cards: CardInstance[];
   keepCount: number;
-  unkeptCards: "discardAll" | "discardOneReturnRest";
 };
 
 export type PendingSteal = {

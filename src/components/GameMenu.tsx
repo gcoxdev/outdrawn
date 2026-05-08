@@ -81,7 +81,7 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, blackMarketPreset: value } });
   }
 
-  function updateBlackMarketCustom(key: keyof BlackMarketConfig, value: number | BlackMarketConfig["unkeptCards"]) {
+  function updateBlackMarketCustom(key: keyof BlackMarketConfig, value: number) {
     dispatch({
       type: "UPDATE_SETTINGS",
       settings: {
@@ -223,16 +223,6 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                           onChange={(event) => updateBlackMarketCustom("keepCount", Number(event.target.value))}
                         />
                       </label>
-                      <label>
-                        <span>Unkept</span>
-                        <select
-                          value={settings.blackMarketCustom.unkeptCards}
-                          onChange={(event) => updateBlackMarketCustom("unkeptCards", event.target.value as BlackMarketConfig["unkeptCards"])}
-                        >
-                          <option value="discardAll">Discard all</option>
-                          <option value="discardOneReturnRest">Discard 1, return rest</option>
-                        </select>
-                      </label>
                     </div>
                   </div>
                 )}
@@ -329,7 +319,6 @@ function labelBlackMarketPreset(preset: BlackMarketPreset): string {
     discount: "Discount Market",
     noAction: "No-Action Market",
     bigger: "Bigger Market",
-    buyOneRiskOne: "Buy One, Risk One",
     healthPay: "Health-Pay Market",
     custom: "Custom"
   };

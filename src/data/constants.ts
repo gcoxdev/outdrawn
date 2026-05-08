@@ -5,7 +5,7 @@ export const MAX_HAND_SIZE = 7;
 export const ACTIONS_PER_TURN = 2;
 
 export type TurnOrderMode = "standard" | "roundRobin";
-export type BlackMarketPreset = "standard" | "discount" | "noAction" | "bigger" | "buyOneRiskOne" | "healthPay" | "custom";
+export type BlackMarketPreset = "standard" | "discount" | "noAction" | "bigger" | "healthPay" | "custom";
 
 export type BlackMarketConfig = {
   actionCost: number;
@@ -13,7 +13,6 @@ export type BlackMarketConfig = {
   healthCost: number;
   revealCount: number;
   keepCount: number;
-  unkeptCards: "discardAll" | "discardOneReturnRest";
 };
 
 export type GameSettings = {
@@ -32,13 +31,12 @@ export type GameSettings = {
 };
 
 export const blackMarketPresets: Record<BlackMarketPreset, BlackMarketConfig> = {
-  standard: { actionCost: 1, discardCost: 2, healthCost: 0, revealCount: 3, keepCount: 1, unkeptCards: "discardAll" },
-  discount: { actionCost: 1, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1, unkeptCards: "discardAll" },
-  noAction: { actionCost: 0, discardCost: 2, healthCost: 0, revealCount: 3, keepCount: 1, unkeptCards: "discardAll" },
-  bigger: { actionCost: 1, discardCost: 2, healthCost: 0, revealCount: 5, keepCount: 2, unkeptCards: "discardAll" },
-  buyOneRiskOne: { actionCost: 1, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1, unkeptCards: "discardOneReturnRest" },
-  healthPay: { actionCost: 1, discardCost: 0, healthCost: 2, revealCount: 3, keepCount: 1, unkeptCards: "discardAll" },
-  custom: { actionCost: 1, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1, unkeptCards: "discardAll" }
+  standard: { actionCost: 1, discardCost: 2, healthCost: 0, revealCount: 3, keepCount: 1 },
+  discount: { actionCost: 1, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1 },
+  noAction: { actionCost: 0, discardCost: 2, healthCost: 0, revealCount: 3, keepCount: 1 },
+  bigger: { actionCost: 1, discardCost: 2, healthCost: 0, revealCount: 5, keepCount: 2 },
+  healthPay: { actionCost: 1, discardCost: 0, healthCost: 2, revealCount: 3, keepCount: 1 },
+  custom: { actionCost: 1, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1 }
 };
 
 export const defaultGameSettings: GameSettings = {

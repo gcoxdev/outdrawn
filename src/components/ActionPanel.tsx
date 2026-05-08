@@ -362,8 +362,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
           <p className="eyebrow">Black Market</p>
           <h2>{pendingMarketPlayer.name}, keep {state.pendingMarketSearch.keepCount}</h2>
           <p>
-            Choose {state.pendingMarketSearch.keepCount} revealed card{state.pendingMarketSearch.keepCount === 1 ? "" : "s"} to add to your hand.
-            {state.pendingMarketSearch.unkeptCards === "discardOneReturnRest" ? " One unkept card is discarded and the rest return to the deck." : " The rest go to discard."}
+            Choose {state.pendingMarketSearch.keepCount} revealed card{state.pendingMarketSearch.keepCount === 1 ? "" : "s"} to add to your hand. The rest go to discard.
           </p>
         </div>
         <div className="pending-discard-list">
@@ -681,6 +680,5 @@ function getBlackMarketSummary(config: BlackMarketConfig) {
     config.healthCost > 0 ? `pay ${config.healthCost} health` : null
   ].filter(Boolean);
   const costText = costs.length > 0 ? costs.join(", ") : "pay no extra cost";
-  const unkept = config.unkeptCards === "discardOneReturnRest" ? "discard 1 unkept card and return the rest" : "discard the rest";
-  return `${costText}; reveal ${config.revealCount}, keep ${config.keepCount}, ${unkept}.`;
+  return `${costText}; reveal ${config.revealCount}, keep ${config.keepCount}, discard the rest.`;
 }
