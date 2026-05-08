@@ -95,7 +95,7 @@ describe("event cards", () => {
 
     expect(state.activeEvent?.card.instanceId).toBe(highGround.instanceId);
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(0);
-    expect(state.players.find((candidate) => candidate.id === player.id)?.actionsRemaining).toBe(1);
+    expect(state.players.find((candidate) => candidate.id === player.id)?.actionsRemaining).toBe(2);
     expect(state.log.at(-1)?.message).toContain("drew High Ground");
   });
 
@@ -278,6 +278,32 @@ describe("event cards", () => {
     state = endCurrentRound(state);
 
     expect(state.players.map((player) => player.health)).toEqual([20, 19, 19]);
+  });
+
+  it("does not punish the mixed Pressure Zone drawer if they had no action opportunity", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      eventHandling: "mixedDeck"
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const search = main("ability_search");
+    const pressureZone = event("event_pressure_zone");
+    const pistol = main("weapon_pistol");
+    const shield = main("defense_shield_plate");
+    const knife = main("weapon_knife");
+    state = {
+      ...state,
+      mainDeck: [pressureZone, pistol, shield, knife],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [search], actionsRemaining: 1, actedThisRound: true } : { ...candidate, actedThisRound: true }
+      )
+    };
+
+    state = gameReducer(state, { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: search.instanceId });
+    state = gameReducer(state, { type: "END_TURN", playerId: player.id });
+
+    expect(state.players.find((candidate) => candidate.id === player.id)?.health).toBe(20);
+    expect(state.players.filter((candidate) => candidate.id !== player.id).map((candidate) => candidate.health)).toEqual([19, 19]);
   });
 
   it("collapse damage starts at the end of round 3", () => {

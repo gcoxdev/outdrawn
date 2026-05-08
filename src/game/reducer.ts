@@ -322,10 +322,11 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
 }
 
 function applyPressureZone(state: GameState): GameState {
+  const exemptPlayerIds = state.activeEvent?.card.definitionId === "event_pressure_zone" ? (state.activeEvent.exemptPlayerIds ?? []) : [];
   return {
     ...state,
     players: state.players.map((player) => {
-      if (player.eliminated || player.attackedThisRound) {
+      if (player.eliminated || player.attackedThisRound || exemptPlayerIds.includes(player.id)) {
         return player;
       }
 
@@ -412,13 +413,15 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
   }
 
   if (definition.timing === "thisRound" || definition.timing === "ongoing") {
+    const sourcePlayer = getPlayer(stateWithoutActiveEvent, playerId);
     return log(
       {
         ...stateWithoutActiveEvent,
         activeEvent: {
           card: eventCard,
           timing: definition.timing,
-          sourcePlayerId: playerId
+          sourcePlayerId: playerId,
+          exemptPlayerIds: definition.id === "event_pressure_zone" && (sourcePlayer?.actionsRemaining ?? 0) <= 0 ? [playerId] : []
         }
       },
       `${player.name} drew ${definition.name}. Event: ${definition.name}.`
@@ -500,8 +503,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         ...player,
         hand: [...player.hand, ...draw.drawn]
       }));
+      if (draw.drawn.length === 0) {
+        return nextState;
+      }
+
       nextState = spendAction(nextState, action.playerId);
-      return draw.drawn.length > 0 ? log(nextState, `${getCurrentPlayer(state).name} drew 1 card.`) : nextState;
+      return log(nextState, `${getCurrentPlayer(state).name} drew 1 card.`);
     }
     case "DISCARD_CARD": {
       const player = getPlayer(state, action.playerId);

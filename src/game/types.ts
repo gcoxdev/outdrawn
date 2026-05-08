@@ -41,6 +41,7 @@ export type ActiveEvent = {
   card: CardInstance;
   timing: Extract<CardTiming, "thisRound" | "ongoing">;
   sourcePlayerId?: PlayerId;
+  exemptPlayerIds?: PlayerId[];
 };
 
 export type LogEntry = {

@@ -16,7 +16,7 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
-- Event handling: Start of each round by default. If set to Mixed into deck, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Events drawn or revealed from the main deck resolve immediately instead of going into hand.
+- Event handling: Start of each round by default. If set to Mixed into deck, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Events drawn or revealed from the main deck resolve immediately instead of going into hand. Drawing an event does not cost an action.
 - Personal Supply Drops: only available when Event handling is Mixed into deck. If enabled, a drawn Supply Drop only offers cards to the player who drew it.
 - The main deck and event deck are shuffled separately unless events are mixed into the main deck.
 - The first player is randomly selected by the app.
@@ -118,7 +118,7 @@ Healing cannot exceed maximum health.
 
 ## Events
 
-- Pressure Zone: this round, players who did not attack take +1 collapse damage.
+- Pressure Zone: this round, players who did not attack take +1 collapse damage. In mixed-deck mode, if a player reveals Pressure Zone after spending their last action, that player is exempt from that specific Pressure Zone.
 - Supply Drop: reveal 3 main-deck cards. Players choose in lowest-health order; each may claim 1 card or pass. Unclaimed cards are discarded. If Personal Supply Drops is enabled and Supply Drop was drawn from the mixed main deck, only the drawing player may claim 1 card or pass; if they are already at max hand size, the claimed card is discarded.
 - Bounty: damaging the highest-health player draws 1 card.
 - High Ground: each player's first attack this round deals +1 damage.
