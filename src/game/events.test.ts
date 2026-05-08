@@ -99,6 +99,53 @@ describe("event cards", () => {
     expect(state.log.at(-1)?.message).toContain("drew High Ground");
   });
 
+  it("expires a mixed this-round event when the drawing player draws again", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      eventHandling: "mixedDeck"
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const highGround = event("event_high_ground");
+    const pistol = main("weapon_pistol");
+    state = {
+      ...state,
+      mainDeck: [highGround, pistol],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+    expect(state.activeEvent?.card.instanceId).toBe(highGround.instanceId);
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(state.activeEvent).toBeNull();
+    expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(highGround.instanceId);
+    expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([pistol.instanceId]);
+  });
+
+  it("auto-resolves mixed event cards revealed by Search instead of offering them as choices", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      eventHandling: "mixedDeck"
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const search = main("ability_search");
+    const highGround = event("event_high_ground");
+    const pistol = main("weapon_pistol");
+    const shield = main("defense_shield_plate");
+    const knife = main("weapon_knife");
+    state = {
+      ...state,
+      mainDeck: [highGround, pistol, shield, knife],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [search], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: search.instanceId });
+
+    expect(state.activeEvent?.card.instanceId).toBe(highGround.instanceId);
+    expect(state.pendingSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shield.instanceId, knife.instanceId]);
+  });
+
   it("High Ground adds 1 damage to a player's first attack this round", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
@@ -392,6 +439,30 @@ describe("event cards", () => {
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([shield.instanceId]);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([pistol.instanceId, search.instanceId]));
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(supplyDrop.instanceId);
+  });
+
+  it("auto-resolves mixed event cards revealed by Supply Drop instead of offering them", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      eventHandling: "mixedDeck",
+      personalSupplyDrops: true
+    });
+    const player = state.players[state.currentPlayerIndex];
+    const supplyDrop = event("event_supply_drop");
+    const highGround = event("event_high_ground");
+    const pistol = main("weapon_pistol");
+    const shield = main("defense_shield_plate");
+    const knife = main("weapon_knife");
+    state = {
+      ...state,
+      mainDeck: [supplyDrop, highGround, pistol, shield, knife],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(state.activeEvent?.card.instanceId).toBe(highGround.instanceId);
+    expect(state.pendingSupplyDrop?.revealedCards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shield.instanceId, knife.instanceId]);
   });
 
   it("personal Supply Drop discards overflow instead of prompting discard-down", () => {

@@ -16,7 +16,7 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
-- Event handling: Start of each round by default. If set to Mixed into deck, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Drawn events resolve immediately instead of going into hand.
+- Event handling: Start of each round by default. If set to Mixed into deck, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Events drawn or revealed from the main deck resolve immediately instead of going into hand.
 - Personal Supply Drops: only available when Event handling is Mixed into deck. If enabled, a drawn Supply Drop only offers cards to the player who drew it.
 - The main deck and event deck are shuffled separately unless events are mixed into the main deck.
 - The first player is randomly selected by the app.
@@ -52,7 +52,7 @@ Each living player acts once per round. After all living players have acted:
 4. The first player marker advances clockwise to the next living player.
 5. A new event is revealed starting on Round 2.
 
-If events are mixed into the main deck, step 5 is skipped. This-round events drawn from the main deck stay active until the next round transition clears them or until another drawn this-round event replaces them.
+If events are mixed into the main deck, step 5 is skipped. One-time events resolve immediately and are discarded. This-round or ongoing events drawn from the main deck stay active until the drawing player draws again, until the next round transition clears them, or until another drawn this-round or ongoing event replaces them. If a reveal effect such as Search, Supply Drop, or Black Market reveals an event, that event resolves immediately and the reveal continues until it has the expected number of non-event cards or the deck is exhausted.
 
 ## Collapse
 

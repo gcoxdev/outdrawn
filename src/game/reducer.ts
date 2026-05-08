@@ -244,7 +244,13 @@ function resolveRoundTransition(state: GameState): GameState {
 
 function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?: PlayerId): GameState {
   if (eventId === "event_supply_drop") {
-    const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, 3);
+    const reveal =
+      state.settings.eventHandling === "mixedDeck" && sourcePlayerId
+        ? drawCardsResolvingMixedEvents(state, 3, sourcePlayerId, true)
+        : (() => {
+            const draw = drawCardsWithRefill(state.mainDeck, state.discardPile, 3);
+            return { state: { ...state, mainDeck: draw.mainDeck, discardPile: draw.discardPile }, drawn: draw.drawn };
+          })();
     const playerOrder =
       state.settings.personalSupplyDrops && sourcePlayerId
         ? [sourcePlayerId]
@@ -253,9 +259,7 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
             .sort((left, right) => left.health - right.health)
             .map((player) => player.id);
     return {
-      ...state,
-      mainDeck: reveal.mainDeck,
-      discardPile: reveal.discardPile,
+      ...reveal.state,
       pendingSupplyDrop: {
         playerOrder,
         currentIndex: 0,
@@ -335,6 +339,53 @@ function applyPressureZone(state: GameState): GameState {
   };
 }
 
+function expireActiveEventForDrawer(state: GameState, playerId: PlayerId): GameState {
+  if (state.settings.eventHandling !== "mixedDeck" || state.activeEvent?.sourcePlayerId !== playerId) {
+    return state;
+  }
+
+  return {
+    ...state,
+    activeEvent: null,
+    eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
+  };
+}
+
+function drawCardsResolvingMixedEvents(state: GameState, count: number, playerId: PlayerId, replaceEvents: boolean) {
+  const drawn: CardInstance[] = [];
+  let nextState = state;
+
+  while (drawn.length < count && (nextState.mainDeck.length > 0 || nextState.discardPile.length > 0)) {
+    const draw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
+    const card = draw.drawn[0];
+    const definition = getCardDefinitionById(card?.definitionId ?? "");
+    nextState = {
+      ...nextState,
+      mainDeck: draw.mainDeck,
+      discardPile: draw.discardPile
+    };
+
+    if (!card) {
+      break;
+    }
+
+    if (definition?.type === "event" && nextState.settings.eventHandling === "mixedDeck") {
+      nextState = resolveDrawnEvent(nextState, card, playerId);
+      if (!replaceEvents) {
+        break;
+      }
+      continue;
+    }
+
+    drawn.push(card);
+  }
+
+  return {
+    state: nextState,
+    drawn
+  };
+}
+
 function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: PlayerId): GameState {
   const definition = getCardDefinitionById(eventCard.definitionId);
   const player = getPlayer(state, playerId);
@@ -366,7 +417,8 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
         ...stateWithoutActiveEvent,
         activeEvent: {
           card: eventCard,
-          timing: definition.timing
+          timing: definition.timing,
+          sourcePlayerId: playerId
         }
       },
       `${player.name} drew ${definition.name}. Event: ${definition.name}.`
@@ -441,25 +493,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      const draw = drawCardsWithRefill(state.mainDeck, state.discardPile, 1);
-      const drawnCard = draw.drawn[0];
-      const drawnDefinition = getCardDefinitionById(drawnCard?.definitionId ?? "");
-      let nextState = {
-        ...state,
-        mainDeck: draw.mainDeck,
-        discardPile: draw.discardPile
-      };
-      if (drawnCard && drawnDefinition?.type === "event" && state.settings.eventHandling === "mixedDeck") {
-        nextState = spendAction(nextState, action.playerId);
-        return resolveDrawnEvent(nextState, drawnCard, action.playerId);
-      }
+      const draw = drawCardsResolvingMixedEvents(expireActiveEventForDrawer(state, action.playerId), 1, action.playerId, false);
+      let nextState = draw.state;
 
       nextState = updatePlayer(nextState, action.playerId, (player) => ({
         ...player,
         hand: [...player.hand, ...draw.drawn]
       }));
       nextState = spendAction(nextState, action.playerId);
-      return log(nextState, `${getCurrentPlayer(state).name} drew 1 card.`);
+      return draw.drawn.length > 0 ? log(nextState, `${getCurrentPlayer(state).name} drew 1 card.`) : nextState;
     }
     case "DISCARD_CARD": {
       const player = getPlayer(state, action.playerId);
@@ -614,11 +656,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      const reveal = drawCardsWithRefill(state.mainDeck, state.discardPile, marketConfig.revealCount);
+      const reveal =
+        state.settings.eventHandling === "mixedDeck"
+          ? drawCardsResolvingMixedEvents(state, marketConfig.revealCount, player.id, true)
+          : (() => {
+              const draw = drawCardsWithRefill(state.mainDeck, state.discardPile, marketConfig.revealCount);
+              return { state: { ...state, mainDeck: draw.mainDeck, discardPile: draw.discardPile }, drawn: draw.drawn };
+            })();
       const nextState = {
-        ...state,
-        mainDeck: reveal.mainDeck,
-        discardPile: [...reveal.discardPile, ...selected],
+        ...reveal.state,
+        discardPile: [...reveal.state.discardPile, ...selected],
         pendingMarketSearch: {
           playerId: player.id,
           cards: reveal.drawn,
@@ -1462,11 +1509,16 @@ function resolveAbility(
 
   if (definitionId === "ability_search") {
     const discardWithoutSearch = nextState.discardPile.filter((discardedCard) => discardedCard.instanceId !== card.instanceId);
-    const searchDraw = drawCardsWithRefill(nextState.mainDeck, discardWithoutSearch, 3);
+    const searchDraw =
+      nextState.settings.eventHandling === "mixedDeck"
+        ? drawCardsResolvingMixedEvents({ ...nextState, discardPile: discardWithoutSearch }, 3, player.id, true)
+        : (() => {
+            const draw = drawCardsWithRefill(nextState.mainDeck, discardWithoutSearch, 3);
+            return { state: { ...nextState, mainDeck: draw.mainDeck, discardPile: draw.discardPile }, drawn: draw.drawn };
+          })();
     nextState = {
-      ...nextState,
-      mainDeck: searchDraw.mainDeck,
-      discardPile: [...searchDraw.discardPile, card],
+      ...searchDraw.state,
+      discardPile: [...searchDraw.state.discardPile, card],
       pendingSearch: {
         playerId: player.id,
         cards: searchDraw.drawn
