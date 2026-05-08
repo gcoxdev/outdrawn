@@ -157,6 +157,9 @@ button {
 }
 
 .menu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   grid-column: 1 / -1;
 }
 

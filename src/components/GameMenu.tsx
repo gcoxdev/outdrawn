@@ -1,4 +1,4 @@
-import { Menu, RotateCcw, X } from "lucide-react";
+import { Menu, Plus, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
 import { defaultGameSettings, type GameSettings } from "../data/constants";
@@ -97,7 +97,7 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
               <div className="menu-section settings-grid">
                 <div className="menu-actions">
                   <button type="button" onClick={() => dispatch({ type: "RESET_GAME" })}>
-                    <RotateCcw size={16} />
+                    <Plus size={16} />
                     New Game
                   </button>
                   <button type="button" onClick={() => dispatch({ type: "UPDATE_SETTINGS", settings: defaultGameSettings })}>
