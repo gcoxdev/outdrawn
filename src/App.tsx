@@ -35,7 +35,8 @@ const initialState: GameState = {
   smokeProtectedPlayerIds: [],
   intimidations: {},
   log: [],
-  winnerId: null
+  winnerId: null,
+  winnerTeamId: null
 };
 
 export default function App() {

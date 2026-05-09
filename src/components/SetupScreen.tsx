@@ -9,7 +9,7 @@ import {
   type TurnOrderMode
 } from "../data/constants";
 import type { GameAction } from "../game/actions";
-import type { PlayerSetup, StrategyLevel } from "../game/types";
+import type { PlayerSetup, StrategyLevel, TeamId } from "../game/types";
 import { GameMenu } from "./GameMenu";
 
 type SetupScreenProps = {
@@ -20,6 +20,7 @@ type SetupScreenProps = {
 
 const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "expert", "master"];
 type ControlChoice = "human" | `computer:${StrategyLevel}`;
+type LobbyMode = "ffa" | "2v2" | "3v3";
 type NumericSettingKey = {
   [Key in keyof GameSettings]: GameSettings[Key] extends number ? Key : never;
 }[keyof GameSettings];
@@ -40,6 +41,7 @@ const settingFields: Array<{
 
 export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
   const [playerCount, setPlayerCount] = useState(4);
+  const [lobbyMode, setLobbyMode] = useState<LobbyMode>("ffa");
   const [names, setNames] = useState(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn"]);
   const [controls, setControls] = useState<ControlChoice[]>([
     "human",
@@ -49,14 +51,16 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     "computer:competent",
     "computer:competent"
   ]);
+  const [teams, setTeams] = useState<TeamId[]>(["team_a", "team_b", "team_a", "team_b", "team_a", "team_b"]);
   const activeNames = useMemo(() => names.slice(0, playerCount), [names, playerCount]);
   const activePlayers = useMemo<PlayerSetup[]>(
     () =>
       activeNames.map((name, index) => ({
         name,
-        controller: controlToController(controls[index])
+        controller: controlToController(controls[index]),
+        teamId: lobbyMode === "ffa" ? undefined : teams[index]
       })),
-    [activeNames, controls]
+    [activeNames, controls, lobbyMode, teams]
   );
   const blackMarketConfig = settings.blackMarketPreset === "custom" ? settings.blackMarketCustom : blackMarketPresets[settings.blackMarketPreset];
 
@@ -80,7 +84,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, turnOrder: value } });
   }
 
-  function updateBooleanSetting(key: "allowSecondaryDefense", value: boolean) {
+  function updateBooleanSetting(key: "allowSecondaryDefense" | "allowTeamHealing" | "allowTeamCardTransfer", value: boolean) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
@@ -102,6 +106,15 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     });
   }
 
+  function updateLobbyMode(value: LobbyMode) {
+    setLobbyMode(value);
+    if (value === "2v2") {
+      setPlayerCount(4);
+    } else if (value === "3v3") {
+      setPlayerCount(6);
+    }
+  }
+
   return (
     <main className="setup-screen">
       <GameMenu settings={settings} dispatch={dispatch} />
@@ -112,20 +125,34 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
           <section className="lobby-section lobby-section--players">
             <div className="lobby-section__header">
               <p className="eyebrow">Player Configuration</p>
-              <label className="field lobby-player-count">
-                <span>Players</span>
-                <select value={playerCount} onChange={(event) => setPlayerCount(Number(event.target.value))}>
-                  {[3, 4, 5, 6].map((count) => (
-                    <option key={count} value={count}>
-                      {count}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="lobby-player-controls">
+                <label className="field">
+                  <span>Mode</span>
+                  <select value={lobbyMode} onChange={(event) => updateLobbyMode(event.target.value as LobbyMode)}>
+                    <option value="ffa">Free-for-all</option>
+                    <option value="2v2">2v2 Teams</option>
+                    <option value="3v3">3v3 Teams</option>
+                  </select>
+                </label>
+                <label className="field lobby-player-count">
+                  <span>Players</span>
+                  <select
+                    value={playerCount}
+                    onChange={(event) => setPlayerCount(Number(event.target.value))}
+                    disabled={lobbyMode !== "ffa"}
+                  >
+                    {(lobbyMode === "3v3" ? [6] : lobbyMode === "2v2" ? [4] : [3, 4, 5, 6]).map((count) => (
+                      <option key={count} value={count}>
+                        {count}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             </div>
             <div className="setup-screen__names">
               {activeNames.map((name, index) => (
-                <div className="setup-player" key={index}>
+                <div className={lobbyMode === "ffa" ? "setup-player" : "setup-player setup-player--team"} key={index}>
                   <label className="field">
                     <span>Player {index + 1}</span>
                     <input
@@ -153,6 +180,20 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                       ))}
                     </select>
                   </label>
+                  {lobbyMode !== "ffa" && (
+                    <label className="field">
+                      <span>Team</span>
+                      <select
+                        value={teams[index]}
+                        onChange={(event) =>
+                          setTeams((current) => current.map((team, teamIndex) => (teamIndex === index ? (event.target.value as TeamId) : team)))
+                        }
+                      >
+                        <option value="team_a">Team A</option>
+                        <option value="team_b">Team B</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
               ))}
             </div>
@@ -195,6 +236,26 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                     onChange={(event) => updateBooleanSetting("allowSecondaryDefense", event.target.checked)}
                   />
                 </label>
+                {lobbyMode !== "ffa" && (
+                  <>
+                    <label className="setting-control setting-toggle">
+                      <span>Teammate healing</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.allowTeamHealing}
+                        onChange={(event) => updateBooleanSetting("allowTeamHealing", event.target.checked)}
+                      />
+                    </label>
+                    <label className="setting-control setting-toggle">
+                      <span>Card transfer</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.allowTeamCardTransfer}
+                        onChange={(event) => updateBooleanSetting("allowTeamCardTransfer", event.target.checked)}
+                      />
+                    </label>
+                  </>
+                )}
                 <div className="setting-control setting-control--wide market-control">
                   <label>
                     <span>Black Market</span>

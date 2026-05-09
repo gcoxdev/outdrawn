@@ -7,7 +7,8 @@ export type GameAction =
   | { type: "SELECT_CARD"; cardInstanceId: CardInstanceId | null }
   | { type: "DRAW_CARD"; playerId: PlayerId }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
-  | { type: "PLAY_HEALING"; playerId: PlayerId; cardInstanceId: CardInstanceId }
+  | { type: "PLAY_HEALING"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
+  | { type: "TRANSFER_CARD"; playerId: PlayerId; targetPlayerId: PlayerId; cardInstanceId: CardInstanceId }
   | { type: "PLAY_ABILITY"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
   | { type: "RESOLVE_PENDING_DISCARD"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
   | { type: "RESOLVE_PENDING_SEARCH"; playerId: PlayerId; keepCardInstanceId: CardInstanceId }

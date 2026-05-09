@@ -1,5 +1,5 @@
 import { allCards } from "../data/cards";
-import type { CardInstanceId, GameState, PlayerId, PlayerState } from "./types";
+import type { CardInstanceId, GameState, PlayerId, PlayerState, TeamId } from "./types";
 
 export function getLivingPlayers(state: GameState): PlayerState[] {
   return state.players.filter((player) => !player.eliminated);
@@ -42,10 +42,33 @@ export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
 }
 
 export function isGameOver(state: GameState): boolean {
-  return getLivingPlayers(state).length <= 1;
+  return getLivingPlayers(state).length <= 1 || Boolean(getWinningTeamId(state));
 }
 
 export function getWinner(state: GameState): PlayerState | null {
   const livingPlayers = getLivingPlayers(state);
   return livingPlayers.length === 1 ? livingPlayers[0] : null;
+}
+
+export function getWinningTeamId(state: GameState): TeamId | null {
+  const livingPlayers = getLivingPlayers(state);
+  const livingTeamIds = new Set(livingPlayers.map((player) => player.teamId).filter((teamId): teamId is TeamId => Boolean(teamId)));
+
+  return livingPlayers.length >= 1 && livingTeamIds.size === 1 && livingPlayers.every((player) => player.teamId) ? [...livingTeamIds][0] : null;
+}
+
+export function getTeamMembers(state: GameState, teamId: TeamId): PlayerState[] {
+  return state.players.filter((player) => player.teamId === teamId);
+}
+
+export function areTeammates(left: PlayerState | undefined, right: PlayerState | undefined): boolean {
+  return Boolean(left?.teamId && right?.teamId && left.teamId === right.teamId);
+}
+
+export function isHostileTarget(attacker: PlayerState, target: PlayerState): boolean {
+  return attacker.id !== target.id && !areTeammates(attacker, target);
+}
+
+export function labelTeam(teamId: TeamId): string {
+  return teamId === "team_a" ? "Team A" : "Team B";
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameState, PlayerState } from "../game/types";
-import { shouldShowToastForLog } from "./GameTable";
+import { canRevealTableHand, shouldShowToastForLog } from "./GameTable";
 
 function player(name: string, controller: PlayerState["controller"]): GameState["players"][number] {
   return {
@@ -35,5 +35,20 @@ describe("game table toast filtering", () => {
 
   it("does not show toasts for non-negative log messages", () => {
     expect(shouldShowToastForLog("Ari drew 1 card.", [human, computer])).toBe(false);
+  });
+});
+
+describe("game table team hand visibility", () => {
+  const teamHuman = { ...player("Ari", { type: "human" }), id: "player_1", teamId: "team_a" as const };
+  const teamComputer = { ...player("Casey", { type: "computer", strategy: "competent" }), id: "player_3", teamId: "team_a" as const };
+  const opponentComputer = { ...player("Blake", { type: "computer", strategy: "competent" }), id: "player_2", teamId: "team_b" as const };
+  const teamState = { players: [teamHuman, opponentComputer, teamComputer], phase: "action" } as GameState;
+
+  it("reveals the only human player's computer teammate", () => {
+    expect(canRevealTableHand(teamState, teamComputer, teamComputer, false)).toBe(true);
+  });
+
+  it("keeps opposing computer team hands face down", () => {
+    expect(canRevealTableHand(teamState, opponentComputer, opponentComputer, false)).toBe(false);
   });
 });

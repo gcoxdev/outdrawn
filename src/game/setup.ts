@@ -23,6 +23,7 @@ export function createNewGame(
       id: `player_${index + 1}`,
       name: setup.name,
       controller: setup.controller,
+      teamId: setup.teamId,
       health: settings.startingHealth,
       hand: draw.drawn,
       eliminated: false,
@@ -72,7 +73,8 @@ export function createNewGame(
         handSnapshots: import.meta.env.DEV && settings.debugHandSnapshots ? getHandSnapshots(players) : []
       }
     ],
-    winnerId: null
+    winnerId: null,
+    winnerTeamId: null
   };
 }
 
@@ -94,7 +96,8 @@ function normalizePlayerSetups(playerInputs: string[] | PlayerSetup[]): PlayerSe
 
       return {
         ...input,
-        name: input.name.trim()
+        name: input.name.trim(),
+        teamId: input.teamId
       };
     })
     .filter((setup) => setup.name);

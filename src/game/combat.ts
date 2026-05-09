@@ -1,6 +1,6 @@
 import { allCards } from "../data/cards";
 import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState, SecondaryDamageSource } from "./types";
-import { getCardDefinitionById, getWinner } from "./rules";
+import { areTeammates, getCardDefinitionById, getWinner, getWinningTeamId, labelTeam } from "./rules";
 import { drawCardsWithRefill } from "./deck";
 
 export type AttackResult = {
@@ -49,6 +49,7 @@ export function resolveAttack(
   const splashTargets =
     weaponDefinition.id === "weapon_grenade" && options.resolveSplash !== false
       ? getGrenadeSplashTargets(state.players, attacker.id, target.id)
+          .filter((splashTarget) => !areTeammates(attacker, splashTarget))
       : [];
   const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
   const attackerEliminations = (eliminated ? 1 : 0) + splashEliminations;
@@ -168,11 +169,12 @@ export function resolveAttack(
     }
   }
   const winner = getWinner(nextState);
+  const winnerTeamId = getWinningTeamId(nextState);
 
-  if (winner) {
-    winnerId = winner.id;
+  if (winner || winnerTeamId) {
+    winnerId = winner?.id ?? nextState.players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null;
     phase = "gameOver";
-    messages.push(`${winner.name} is the last hand standing.`);
+    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} is the last hand standing.`);
   }
 
   return {
@@ -192,7 +194,8 @@ export function resolveAttack(
         ...(reactionResult.discardsDefenderHand ? revivedDiscardedCards : [])
       ],
       phase,
-      winnerId
+      winnerId,
+      winnerTeamId
     },
     messages
   };
@@ -298,13 +301,15 @@ export function resolveSecondaryDamage(
   }
 
   const winner = getWinner(nextState);
-  if (winner) {
+  const winnerTeamId = getWinningTeamId(nextState);
+  if (winner || winnerTeamId) {
     nextState = {
       ...nextState,
       phase: "gameOver",
-      winnerId: winner.id
+      winnerId: winner?.id ?? nextState.players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null,
+      winnerTeamId
     };
-    messages.push(`${winner.name} is the last hand standing.`);
+    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} is the last hand standing.`);
   }
 
   return { state: nextState, messages };
@@ -524,14 +529,20 @@ export function resolveHealing(
   state: GameState,
   player: PlayerState,
   card: CardInstance,
-  definition: CardDefinition
+  definition: CardDefinition,
+  target: PlayerState = player
 ): AttackResult {
   const heal = definition.heal ?? 0;
   const draw = definition.draw ?? 0;
   const actionsCost = definition.actionsCost ?? 1;
-  const nextHealth = Math.min(state.settings.maxHealth, player.health + heal);
+  const nextHealth = Math.min(state.settings.maxHealth, target.health + heal);
   const deckDraw = drawCardsWithRefill(state.mainDeck, state.discardPile, draw);
-  const messages = [`${player.name} played ${definition.name} and healed ${nextHealth - player.health}.`];
+  const healedAmount = nextHealth - target.health;
+  const messages = [
+    player.id === target.id
+      ? `${player.name} played ${definition.name} and healed ${healedAmount}.`
+      : `${player.name} played ${definition.name} on ${target.name} and healed ${healedAmount}.`
+  ];
 
   return {
     state: {
@@ -542,11 +553,16 @@ export function resolveHealing(
         candidate.id === player.id
           ? {
               ...candidate,
-              health: nextHealth,
+              health: candidate.id === target.id ? nextHealth : candidate.health,
               hand: [...candidate.hand.filter((handCard) => handCard.instanceId !== card.instanceId), ...deckDraw.drawn],
               actionsRemaining: Math.max(0, candidate.actionsRemaining - actionsCost),
               actedThisRound: true
             }
+          : candidate.id === target.id
+            ? {
+                ...candidate,
+                health: nextHealth
+              }
           : candidate
       )
     },

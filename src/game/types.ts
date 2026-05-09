@@ -2,6 +2,7 @@ import type { Card, CardTiming } from "../data/cards";
 import type { GameSettings } from "../data/constants";
 
 export type PlayerId = string;
+export type TeamId = "team_a" | "team_b";
 export type CardInstanceId = string;
 export type StrategyLevel = "beginner" | "novice" | "competent" | "expert" | "master";
 
@@ -15,6 +16,7 @@ export type PlayerController =
 export type PlayerSetup = {
   name: string;
   controller: PlayerController;
+  teamId?: TeamId;
 };
 
 export type CardDefinition = Card;
@@ -28,6 +30,7 @@ export type PlayerState = {
   id: PlayerId;
   name: string;
   controller: PlayerController;
+  teamId?: TeamId;
   health: number;
   hand: CardInstance[];
   eliminated: boolean;
@@ -163,4 +166,5 @@ export type GameState = {
   intimidations: Record<PlayerId, PlayerId[]>;
   log: LogEntry[];
   winnerId: PlayerId | null;
+  winnerTeamId: TeamId | null;
 };

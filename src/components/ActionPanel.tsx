@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
-import { getCardDefinitionById, getPlayer } from "../game/rules";
+import { getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
 import { CardBack, CardView } from "./CardView";
 
@@ -24,7 +24,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
   const blackMarketConfig =
     state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
   const livingTargets = state.players.filter(
-    (player) => !player.eliminated && player.id !== currentPlayer.id && !state.smokeProtectedPlayerIds.includes(player.id)
+    (player) => !player.eliminated && isHostileTarget(currentPlayer, player) && !state.smokeProtectedPlayerIds.includes(player.id)
+  );
+  const teammateTargets = state.players.filter(
+    (player) => !player.eliminated && player.id !== currentPlayer.id && currentPlayer.teamId && player.teamId === currentPlayer.teamId
   );
   const canAct =
     state.phase === "action" &&
@@ -81,7 +84,14 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
       }
 
       if (definition.id === "defense_decoy") {
-        return state.players.some((player) => !player.eliminated && player.id !== activeReaction?.attackerId && player.id !== pendingDefender.id);
+        return state.players.some(
+          (player) =>
+            activeReaction &&
+            !player.eliminated &&
+            player.id !== activeReaction.attackerId &&
+            player.id !== pendingDefender.id &&
+            isHostileTarget(pendingDefender, player)
+        );
       }
 
       return true;
@@ -158,7 +168,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
   if (state.pendingRedirect && pendingRedirectDefender && pendingRedirectAttacker) {
     const weaponDefinition = getCardDefinitionById(state.pendingRedirect.weapon.definitionId);
     const redirectTargets = state.players.filter(
-      (player) => !player.eliminated && player.id !== pendingRedirectAttacker.id && player.id !== pendingRedirectDefender.id
+      (player) => !player.eliminated && player.id !== pendingRedirectAttacker.id && player.id !== pendingRedirectDefender.id && isHostileTarget(pendingRedirectDefender, player)
     );
 
     return (
@@ -589,6 +599,55 @@ export function ActionPanel({ state, currentPlayer, selectedCard, isComputerDeci
                         playerId: currentPlayer.id,
                         cardInstanceId: selectedCard.instanceId,
                         targetPlayerId: target.id
+                      })
+                    }
+                  >
+                    {target.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {selectedDefinition?.type === "healing" && teammateTargets.length > 0 && state.settings.allowTeamHealing && (
+            <div className="attack-box">
+              <h2>Heal Teammate</h2>
+              <p>Choose a teammate to receive {selectedDefinition.name}.</p>
+              <div className="target-list">
+                {teammateTargets.map((target) => (
+                  <button
+                    disabled={!canAct || !selectedCard || currentPlayer.actionsRemaining < (selectedDefinition.actionsCost ?? 1)}
+                    key={target.id}
+                    onClick={() =>
+                      selectedCard &&
+                      dispatch({
+                        type: "PLAY_HEALING",
+                        playerId: currentPlayer.id,
+                        targetPlayerId: target.id,
+                        cardInstanceId: selectedCard.instanceId
+                      })
+                    }
+                  >
+                    {target.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {selectedCard && teammateTargets.length > 0 && state.settings.allowTeamCardTransfer && (
+            <div className="attack-box">
+              <h2>Transfer</h2>
+              <p>Give this card to a teammate as 1 action.</p>
+              <div className="target-list">
+                {teammateTargets.map((target) => (
+                  <button
+                    disabled={!canAct || currentPlayer.actionsRemaining < 1}
+                    key={target.id}
+                    onClick={() =>
+                      dispatch({
+                        type: "TRANSFER_CARD",
+                        playerId: currentPlayer.id,
+                        targetPlayerId: target.id,
+                        cardInstanceId: selectedCard.instanceId
                       })
                     }
                   >

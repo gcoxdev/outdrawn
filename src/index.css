@@ -446,9 +446,15 @@ p {
   min-width: 0;
 }
 
+.lobby-player-controls {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(90px, 0.55fr);
+  gap: 10px;
+  width: min(280px, 100%);
+}
+
 .lobby-player-count {
-  width: min(140px, 100%);
-  min-width: 110px;
+  min-width: 0;
 }
 
 .lobby-section {
@@ -476,6 +482,10 @@ p {
   border-radius: 8px;
   padding: 12px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.setup-player--team {
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.78fr) minmax(96px, 0.42fr);
 }
 
 .field {
@@ -849,6 +859,30 @@ p {
 .board-heading strong {
   color: var(--green);
   font-size: 1.3rem;
+}
+
+.board-heading__meta {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.board-heading__meta label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.board-heading__meta select {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #171613;
+  color: var(--text);
+  padding: 0 10px;
 }
 
 .empty-slot,
@@ -1482,7 +1516,9 @@ p {
 
   .lobby-grid,
   .lobby-settings-grid,
-  .market-control {
+  .market-control,
+  .setup-player,
+  .setup-player--team {
     grid-template-columns: 1fr;
   }
 

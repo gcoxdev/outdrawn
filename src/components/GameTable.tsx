@@ -4,7 +4,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
 import type { GameAction } from "../game/actions";
 import { getPassDeviceContext } from "../game/privacy";
-import { getCurrentPlayer } from "../game/rules";
+import { getCurrentPlayer, getTeamMembers, labelTeam } from "../game/rules";
 import { getDecisionPlayerId } from "../game/simulator";
 import type { CardInstance, GameState, PlayerId } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
@@ -34,6 +34,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
   const [sidebarPlayerPercent, setSidebarPlayerPercent] = useState(62);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [handViewerId, setHandViewerId] = useState<PlayerId | null>(null);
   const lastToastedLogId = useRef(state.log[state.log.length - 1]?.id ?? null);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
@@ -50,11 +51,33 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingSteal?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
+  const hasPendingDecision =
+    Boolean(
+      state.pendingReaction ||
+        state.pendingRedirect ||
+        state.pendingSecondaryDamage ||
+        state.pendingAttackCost ||
+        state.pendingDiscard ||
+        state.pendingSearch ||
+        state.pendingSupplyDrop ||
+        state.pendingMarketSearch ||
+        state.pendingSteal
+    );
+  const teamHandViewers =
+    displayPlayer.teamId && !hasPendingDecision
+      ? getTeamMembers(state, displayPlayer.teamId).filter((player) => !player.eliminated)
+      : [];
+  const handDisplayPlayer =
+    teamHandViewers.find((player) => player.id === handViewerId) ?? displayPlayer;
   const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === decisionPlayerId;
-  const onlyComputersRemain = state.players.every((player) => player.eliminated || player.controller.type === "computer");
   const privacyGateActive = Boolean(passDeviceContext);
-  const shouldRevealDisplayHand = (displayPlayer.controller.type === "human" && !privacyGateActive) || onlyComputersRemain;
-  const canSelectDisplayHand = displayPlayer.controller.type === "human" && !isComputerDecision && !privacyGateActive && state.phase !== "gameOver";
+  const shouldRevealDisplayHand = canRevealTableHand(state, displayPlayer, handDisplayPlayer, privacyGateActive);
+  const canSelectDisplayHand =
+    handDisplayPlayer.id === displayPlayer.id &&
+    displayPlayer.controller.type === "human" &&
+    !isComputerDecision &&
+    !privacyGateActive &&
+    state.phase !== "gameOver";
   const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
   const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
   const visibleEventDefinition = activeEventDefinition ?? (state.pendingSupplyDrop ? definitionById("event_supply_drop") : undefined);
@@ -64,6 +87,10 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   useEffect(() => {
     setActiveMobileTab("play");
   }, [decisionPlayerId]);
+
+  useEffect(() => {
+    setHandViewerId(null);
+  }, [decisionPlayerId, hasPendingDecision]);
 
   useEffect(() => {
     const latest = state.log[state.log.length - 1];
@@ -106,7 +133,14 @@ export function GameTable({ state, dispatch }: GameTableProps) {
 
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
-      {state.phase === "gameOver" && <WinnerModal winner={winner} dispatch={dispatch} />}
+      {state.phase === "gameOver" && (
+        <WinnerModal
+          winner={winner}
+          winnerTeamId={state.winnerTeamId}
+          winnerTeamMembers={state.winnerTeamId ? getTeamMembers(state, state.winnerTeamId) : []}
+          dispatch={dispatch}
+        />
+      )}
       {alertMessage && <div className="negative-action-toast">{alertMessage}</div>}
       <GameMenu settings={state.settings} dispatch={dispatch} />
 
@@ -187,13 +221,27 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                                   ? "Stealing"
                                   : "Current Player"}
                 </p>
-                <h2>{displayPlayer.name}</h2>
+                <h2>{handDisplayPlayer.name}</h2>
               </div>
-              <strong>{displayPlayer.health} HP</strong>
+              <div className="board-heading__meta">
+                {teamHandViewers.length > 1 && (
+                  <label>
+                    <span>{displayPlayer.teamId ? labelTeam(displayPlayer.teamId) : "Team"}</span>
+                    <select value={handDisplayPlayer.id} onChange={(event) => setHandViewerId(event.target.value)}>
+                      {teamHandViewers.map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <strong>{handDisplayPlayer.health} HP</strong>
+              </div>
             </div>
             <div className="hand-rail">
               {shouldRevealDisplayHand ? (
-                displayPlayer.hand.map((card) => {
+                handDisplayPlayer.hand.map((card) => {
                   const definition = definitionFor(card);
                   return definition ? (
                     <CardView
@@ -213,7 +261,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                   ) : null;
                 })
               ) : (
-                displayPlayer.hand.map((card) => <CardBack key={card.instanceId} />)
+                handDisplayPlayer.hand.map((card) => <CardBack key={card.instanceId} />)
               )}
             </div>
           </section>
@@ -252,6 +300,32 @@ export function shouldShowToastForLog(message: string, players: GameState["playe
   }
 
   return players.some((player) => player.controller.type === "human" && isAffectedPlayerInMessage(message, player.name));
+}
+
+export function canRevealTableHand(
+  state: GameState,
+  displayPlayer: GameState["players"][number],
+  handDisplayPlayer: GameState["players"][number],
+  privacyGateActive: boolean
+): boolean {
+  if (state.players.every((player) => player.eliminated || player.controller.type === "computer")) {
+    return true;
+  }
+
+  if (privacyGateActive) {
+    return false;
+  }
+
+  if (handDisplayPlayer.controller.type === "human") {
+    return true;
+  }
+
+  const livingHumans = state.players.filter((player) => !player.eliminated && player.controller.type === "human");
+  const singleHumanTeamId = livingHumans.length === 1 ? livingHumans[0].teamId : undefined;
+  const activeHumanTeamId = displayPlayer.controller.type === "human" ? displayPlayer.teamId : undefined;
+  const visibleTeamId = singleHumanTeamId ?? activeHumanTeamId;
+
+  return Boolean(visibleTeamId && handDisplayPlayer.teamId === visibleTeamId);
 }
 
 function isNegativeLogMessage(message: string): boolean {

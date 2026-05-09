@@ -1,3 +1,4 @@
+import { labelTeam } from "../game/rules";
 import type { GameState, PlayerId, PlayerState } from "../game/types";
 
 type PlayerRosterProps = {
@@ -51,6 +52,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
               </div>
             </dl>
             <div className="player-roster-card__chips">
+              {player.teamId && <span>{labelTeam(player.teamId)}</span>}
               {player.id === decisionPlayerId && <span>Decision</span>}
               {player.id === currentPlayerId && <span>Turn</span>}
               {state.smokeProtectedPlayerIds.includes(player.id) && <span>Smoke</span>}

@@ -4,9 +4,9 @@
 
 - Support arbitrary player counts beyond the current 3-6 player setup.
 - Design large-table battle royale pacing, deck scaling, event scaling, and UI behavior for high player counts such as 20, 50, or 100 players.
-- Add team modes such as 2v2, 3v3, and large-team formats.
-- Define team visibility rules, including whether teammates can see each other's hands and when pass-device privacy should trigger.
-- Add roster grouping for team games with expand/collapse team sections.
+- Extend team modes beyond the current 2v2 and 3v3 foundation into larger team formats.
+- Revisit pass-device privacy for multi-human teams now that teammates can see each other's hands.
+- Add roster grouping for larger team games with expand/collapse team sections.
 - Simulate larger player counts and team modes before changing card counts or balance assumptions.
 - Add deck configuration support so a game can use predefined decks or a custom deck with selected card types/cards enabled.
 - Add custom card definition support so hosts can create card templates with type, count, timing, target rules, damage, defense/block, healing, draw, discard, steal, splash/area effects, action cost, hand-limit behavior, reaction eligibility, and conditions such as low health, attacker/defender role, seating adjacency, team membership, or prior eliminations.
@@ -81,6 +81,7 @@ Healing/support candidates:
 
 Team-mode candidates:
 
+- Current team foundation: 2v2 and 3v3 setup, teammate hand visibility, team win condition, no friendly fire on area damage, optional teammate healing, and optional card transfer are implemented.
 - Cover Ally: when a teammate is attacked, reduce that damage by 3.
 - Intercept: take an attack meant for a teammate, then reduce that damage by 2.
 - Coordinated Strike: you and a teammate each discard 1 card; deal bonus damage to one shared target.

@@ -24,6 +24,8 @@ export type GameSettings = {
   turnOrder: TurnOrderMode;
   eliminationHealthReward: number;
   allowSecondaryDefense: boolean;
+  allowTeamHealing: boolean;
+  allowTeamCardTransfer: boolean;
   blackMarketPreset: BlackMarketPreset;
   blackMarketCustom: BlackMarketConfig;
   debugHandSnapshots: boolean;
@@ -48,6 +50,8 @@ export const defaultGameSettings: GameSettings = {
   turnOrder: "standard",
   eliminationHealthReward: 0,
   allowSecondaryDefense: false,
+  allowTeamHealing: true,
+  allowTeamCardTransfer: true,
   blackMarketPreset: "standard",
   blackMarketCustom: blackMarketPresets.custom,
   debugHandSnapshots: false,

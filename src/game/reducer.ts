@@ -8,10 +8,14 @@ import type { GameState, PlayerState } from "./types";
 import { createPendingReaction, getGrenadeSplashTargets, resolveAttack, resolveHealing, resolveSecondaryDamage } from "./combat";
 import {
   canPlayerAct,
+  areTeammates,
   getCardDefinitionById,
   getCurrentPlayer,
   getPlayer,
-  getWinner
+  getWinner,
+  getWinningTeamId,
+  isHostileTarget,
+  labelTeam
 } from "./rules";
 
 function log(state: GameState, message: string): GameState {
@@ -72,8 +76,8 @@ function spendAction(state: GameState, playerId: string): GameState {
 
 function advanceTurn(state: GameState): GameState {
   const livingPlayers = state.players.filter((player) => !player.eliminated);
-  if (livingPlayers.length <= 1) {
-    return completeGame(state, getWinner(state));
+  if (livingPlayers.length <= 1 || getWinningTeamId(state)) {
+    return completeGame(state, getWinner(state), getWinningTeamId(state));
   }
 
   const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
@@ -138,21 +142,31 @@ function advanceTurn(state: GameState): GameState {
 }
 
 function completeGameIfOver(state: GameState, beforePlayers: PlayerState[]): GameState | null {
-  if (state.players.filter((player) => !player.eliminated).length > 1) {
+  const winnerTeamId = getWinningTeamId(state);
+  if (state.players.filter((player) => !player.eliminated).length > 1 && !winnerTeamId) {
     return null;
   }
 
-  return completeGame(state, getWinner(state) ?? breakEliminationTie(beforePlayers));
+  return completeGame(state, getWinner(state) ?? breakEliminationTie(beforePlayers), winnerTeamId);
 }
 
-function completeGame(state: GameState, winner: PlayerState | null): GameState {
+function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId = getWinningTeamId(state)): GameState {
+  const teamWinner = winnerTeamId ? state.players.find((player) => player.teamId === winnerTeamId && !player.eliminated) : null;
   const gameOverState = {
     ...state,
     phase: "gameOver" as const,
-    winnerId: winner?.id ?? null
+    winnerId: winner?.id ?? teamWinner?.id ?? null,
+    winnerTeamId
   };
 
-  return log(gameOverState, winner ? `${winner.name} is the last hand standing.` : "No winner remains.");
+  return log(
+    gameOverState,
+    winnerTeamId
+      ? `${labelTeam(winnerTeamId)} is the last team standing.`
+      : winner
+        ? `${winner.name} is the last hand standing.`
+        : "No winner remains."
+  );
 }
 
 function logPlayerHealthChanges(beforePlayers: PlayerState[], afterState: GameState, source: string): GameState {
@@ -521,6 +535,53 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         `${player.name} discarded ${getCardDefinitionById(card.definitionId)?.name ?? "a card"}.`
       );
     }
+    case "TRANSFER_CARD": {
+      if (!canPlayerAct(state, action.playerId)) {
+        return state;
+      }
+
+      const player = getCurrentPlayer(state);
+      const target = getPlayer(state, action.targetPlayerId);
+      const card = player.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
+
+      if (
+        !target ||
+        !card ||
+        target.eliminated ||
+        target.id === player.id ||
+        !areTeammates(player, target) ||
+        !state.settings.allowTeamCardTransfer
+      ) {
+        return state;
+      }
+
+      return log(
+        {
+          ...state,
+          selectedCardId: state.selectedCardId === card.instanceId ? null : state.selectedCardId,
+          players: state.players.map((candidate) => {
+            if (candidate.id === player.id) {
+              return {
+                ...candidate,
+                hand: candidate.hand.filter((handCard) => handCard.instanceId !== card.instanceId),
+                actionsRemaining: Math.max(0, candidate.actionsRemaining - 1),
+                actedThisRound: true
+              };
+            }
+
+            if (candidate.id === target.id) {
+              return {
+                ...candidate,
+                hand: [...candidate.hand, card]
+              };
+            }
+
+            return candidate;
+          })
+        },
+        `${player.name} transferred ${getCardDefinitionById(card.definitionId)?.name ?? "a card"} to ${target.name}.`
+      );
+    }
     case "RESOLVE_PENDING_DISCARD": {
       const pendingDiscard = state.pendingDiscard;
       const player = pendingDiscard ? getPlayer(state, pendingDiscard.playerId) : undefined;
@@ -726,16 +787,26 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const player = getCurrentPlayer(state);
       const card = player.hand.find((handCard) => handCard.instanceId === action.cardInstanceId);
       const definition = card ? getCardDefinitionById(card.definitionId) : undefined;
+      const target = action.targetPlayerId ? getPlayer(state, action.targetPlayerId) : player;
 
-      if (!card || !definition || definition.type !== "healing" || player.actionsRemaining < (definition.actionsCost ?? 1)) {
+      if (
+        !card ||
+        !definition ||
+        definition.type !== "healing" ||
+        !target ||
+        target.eliminated ||
+        (target.id !== player.id && !areTeammates(player, target)) ||
+        (target.id !== player.id && !state.settings.allowTeamHealing) ||
+        player.actionsRemaining < (definition.actionsCost ?? 1)
+      ) {
         return state;
       }
 
-      if ((definition.heal ?? 0) > 0 && player.health >= state.settings.maxHealth && !definition.draw) {
+      if ((definition.heal ?? 0) > 0 && target.health >= state.settings.maxHealth && !definition.draw) {
         return state;
       }
 
-      const result = resolveHealing(state, player, card, definition);
+      const result = resolveHealing(state, player, card, definition, target);
       return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
     case "PLAY_ABILITY": {
@@ -752,7 +823,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      if (definition.target === "onePlayer" && (!target || target.eliminated || target.id === player.id)) {
+      if (definition.target === "onePlayer" && (!target || target.eliminated || !isHostileTarget(player, target))) {
         return state;
       }
 
@@ -776,7 +847,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         action.defenderId !== defender.id ||
         target.eliminated ||
         target.id === attacker.id ||
-        target.id === defender.id
+        target.id === defender.id ||
+        areTeammates(defender, target)
       ) {
         return state;
       }
@@ -904,7 +976,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
       }
 
-      if (!target || target.eliminated || target.id === attacker.id || state.smokeProtectedPlayerIds.includes(target.id)) {
+      if (!target || target.eliminated || !isHostileTarget(attacker, target) || state.smokeProtectedPlayerIds.includes(target.id)) {
         return state;
       }
 
@@ -1189,7 +1261,8 @@ function getGrenadeSplashItems(
   return getGrenadeSplashTargets(beforePlayers, attackerId, targetId)
     .filter((target) => {
       const current = getPlayer(state, target.id);
-      return current && !current.eliminated;
+      const attacker = getPlayer(state, attackerId);
+      return current && attacker && !current.eliminated && !areTeammates(attacker, current);
     })
     .map((target) => ({
       attackerId,
@@ -1308,7 +1381,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   const damage = weaponDefinition?.damage ?? 1;
   const reloadActive = state.reloadPlayerIds.includes(attacker.id);
   const damagedPlayerIds = state.players
-    .filter((player) => !player.eliminated && player.id !== attacker.id && !state.smokeProtectedPlayerIds.includes(player.id))
+    .filter((player) => !player.eliminated && isHostileTarget(attacker, player) && !state.smokeProtectedPlayerIds.includes(player.id))
     .map((player) => player.id);
   if (state.settings.allowSecondaryDefense) {
     const baseState: GameState = {
@@ -1379,6 +1452,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     attackBonuses: omitKey(state.attackBonuses, attacker.id)
   };
   const winner = getWinner(nextState);
+  const winnerTeamId = getWinningTeamId(nextState);
   const messages = [`${attacker.name} swept the field with Minigun for ${damage} damage to each other player.`];
 
   players
@@ -1391,13 +1465,14 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     messages.push(`${attacker.name} recovered ${rewardGain} health from elimination reward.`);
   }
 
-  if (winner) {
+  if (winner || winnerTeamId) {
     nextState = {
       ...nextState,
       phase: "gameOver",
-      winnerId: winner.id
+      winnerId: winner?.id ?? players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null,
+      winnerTeamId
     };
-    messages.push(`${winner.name} is the last hand standing.`);
+    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} is the last hand standing.`);
   }
 
   return {

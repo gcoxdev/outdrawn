@@ -4,7 +4,7 @@ import type { GameAction } from "./actions";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
 import type { CardInstance, GameState, PlayerState, StrategyLevel } from "./types";
-import { getCardDefinitionById, getCurrentPlayer, getPlayer } from "./rules";
+import { getCardDefinitionById, getCurrentPlayer, getPlayer, isHostileTarget } from "./rules";
 
 export type SimulationSummary = {
   gamesPlayed: number;
@@ -396,7 +396,7 @@ function chooseSetupAbility(state: GameState, player: PlayerState, strategy: Str
   }
 
   const livingTargets = state.players.filter(
-    (candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id)
+    (candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id)
   );
   const ambush = player.hand.find((card) => card.definitionId === "ability_ambush");
   if (ambush) {
@@ -421,7 +421,7 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
 
   const abilities = player.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "ability");
   const livingTargets = state.players.filter(
-    (candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id)
+    (candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id)
   );
 
   for (const card of abilities) {
@@ -514,7 +514,7 @@ function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyL
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   const damagePotential = getWeaponDamagePotential(state, player, weapon);
   const validTargets = state.players
-    .filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
+    .filter((candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id))
     .filter((candidate) => {
       const intimidationSources = state.intimidations[player.id] ?? [];
       return !intimidationSources.includes(candidate.id) || player.hand.some((card) => card.instanceId !== weapon.instanceId);
@@ -568,7 +568,7 @@ function chooseMasterAttack(state: GameState, player: PlayerState, weapons: Card
 
 function getValidAttackTargets(state: GameState, player: PlayerState, weapon: CardInstance): PlayerState[] {
   return state.players
-    .filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
+    .filter((candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id))
     .filter((candidate) => {
       const intimidationSources = state.intimidations[player.id] ?? [];
       return !intimidationSources.includes(candidate.id) || player.hand.some((card) => card.instanceId !== weapon.instanceId);
@@ -578,7 +578,7 @@ function getValidAttackTargets(state: GameState, player: PlayerState, weapon: Ca
 function getWeaponDamagePotential(state: GameState, player: PlayerState, weapon: CardInstance): number {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (weaponDefinition?.id === "weapon_minigun") {
-    return state.players.filter((candidate) => !candidate.eliminated && candidate.id !== player.id && !state.smokeProtectedPlayerIds.includes(candidate.id))
+    return state.players.filter((candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id))
       .length;
   }
   return (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) + (state.attackBonuses[player.id] ?? 0);
@@ -707,7 +707,8 @@ function chooseRedirectTarget(
   strategy: StrategyLevel,
   random: () => number
 ): PlayerState {
-  const targets = state.players.filter((player) => !player.eliminated && player.id !== attackerId && player.id !== defenderId);
+  const attacker = getPlayer(state, attackerId);
+  const targets = state.players.filter((player) => attacker && !player.eliminated && player.id !== attackerId && player.id !== defenderId && isHostileTarget(attacker, player));
   if (strategy === "beginner" || strategy === "novice") {
     return randomItem(targets, random);
   }
