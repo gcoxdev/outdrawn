@@ -14,6 +14,15 @@
 - Generate AI-rendered PNG card faces, not SVG or rasterized SVG, following the root reference examples and preserving 2.5" x 3.5" width/height.
 - Consider a round-start draw-up rule where all living players draw up to max hand size, while still only playing 2 or configured actions; likely requires higher HP and fresh simulations.
 
+## Rules To Clarify
+
+- Decide whether current events should be represented as full cards in the play area or remain compact event summaries near the log.
+- Revisit area-damage cards like Minigun for large player counts, since their value scales with the number of opponents.
+- Simulate and compare pure round-robin turn order against the standard round model with a moving starting player.
+- Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.
+- Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.
+- Add leaderboard and player stat tracking, especially for online play history, rankings, and lobby records.
+
 ## Deck Presets
 
 - Default Battle Royale: current balanced prototype deck.
@@ -100,12 +109,3 @@ Event candidates:
 - Exposed Hands: each player reveals one random card from hand until round end.
 - Forced March: players with more than max hand size take damage before discarding.
 - Bad Intel: the first ability played this round targets a random valid player instead.
-
-## Rules To Clarify
-
-- Decide whether current events should be represented as full cards in the play area or remain compact event summaries near the log.
-- Revisit area-damage cards like Minigun for large player counts, since their value scales with the number of opponents.
-- Simulate and compare pure round-robin turn order against the standard round model with a moving starting player.
-- Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.
-- Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.
-- Add leaderboard and player stat tracking, especially for online play history, rankings, and lobby records.

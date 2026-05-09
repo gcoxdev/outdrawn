@@ -72,7 +72,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     }
 
     lastToastedLogId.current = latest.id;
-    if (!isNegativeLogMessage(latest.message)) {
+    if (!shouldShowToastForLog(latest.message, state.players)) {
       return;
     }
 
@@ -246,8 +246,28 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   );
 }
 
+export function shouldShowToastForLog(message: string, players: GameState["players"]): boolean {
+  if (!isNegativeLogMessage(message)) {
+    return false;
+  }
+
+  return players.some((player) => player.controller.type === "human" && isAffectedPlayerInMessage(message, player.name));
+}
+
 function isNegativeLogMessage(message: string): boolean {
   return /\b(took|eliminated|stole|stolen|discarded|disarmed|sabotaged|damaged|hit by)\b/i.test(message);
+}
+
+function isAffectedPlayerInMessage(message: string, playerName: string): boolean {
+  const name = escapeRegExp(playerName);
+  const directPlayerEvent = new RegExp(`^${name}\\b.*\\b(took|was eliminated|was hit by|discarded|damaged)\\b`, "i");
+  const targetedPlayerEvent = new RegExp(`\\b(disarmed|sabotaged)\\s+${name}\\b|\\bstole\\b.*\\bfrom\\s+${name}\\b|\\bstolen\\b.*\\bfrom\\s+${name}\\b`, "i");
+
+  return directPlayerEvent.test(message) || targetedPlayerEvent.test(message);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {

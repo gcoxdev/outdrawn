@@ -94,7 +94,7 @@ button {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   width: min(720px, calc(100vw - 20px));
   height: 100vh;
   border-left: 1px solid var(--line);
@@ -121,6 +121,23 @@ button {
   min-height: 40px;
   place-items: center;
   padding: 0;
+}
+
+.menu-primary-action {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.menu-primary-action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+  background: #3a3428;
+  color: var(--amber);
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .menu-tabs {
@@ -224,7 +241,8 @@ button {
   font-weight: 900;
 }
 
-.setting-control input {
+.setting-control input,
+.setting-control select {
   width: 100%;
   min-height: 40px;
   border: 1px solid var(--line);
@@ -401,36 +419,58 @@ p {
 }
 
 .setup-screen__panel {
-  width: min(720px, 100%);
+  width: min(1120px, 100%);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: clamp(24px, 5vw, 48px);
+  padding: clamp(20px, 4vw, 42px);
   background: linear-gradient(145deg, rgba(45, 43, 38, 0.96), rgba(22, 21, 19, 0.98));
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
 }
 
 .setup-screen h1 {
-  margin-bottom: 10px;
-  font-size: clamp(2.25rem, 8vw, 5.8rem);
-  line-height: 0.9;
+  margin-bottom: 0;
+  font-size: clamp(2rem, 5vw, 3.9rem);
+  line-height: 1;
   text-transform: uppercase;
 }
 
-.setup-screen__copy {
-  max-width: 54ch;
-  color: var(--muted);
+.lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.lobby-settings-column {
+  min-width: 0;
+}
+
+.lobby-player-count {
+  width: min(140px, 100%);
+  min-width: 110px;
+}
+
+.lobby-section {
+  min-width: 0;
+}
+
+.lobby-section__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  min-height: 72px;
+  margin-bottom: 8px;
 }
 
 .setup-screen__names {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
-  margin: 20px 0;
 }
 
 .setup-player {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.85fr);
   gap: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -460,11 +500,47 @@ p {
 
 .primary-command {
   width: 100%;
+  margin-top: 20px;
   min-height: 52px;
   background: var(--danger);
   border-color: rgba(255, 255, 255, 0.16);
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.secondary-command {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  background: #3a3428;
+  color: var(--amber);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.lobby-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.market-control {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.market-control label {
+  display: grid;
+  gap: 6px;
+}
+
+.market-summary {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border-left: 1px solid var(--line);
+  padding-left: 14px;
 }
 
 .game-table {
@@ -1400,8 +1476,25 @@ p {
     padding: 6px;
   }
 
-  .setup-player {
+  .setup-screen {
+    padding: 10px;
+  }
+
+  .lobby-grid,
+  .lobby-settings-grid,
+  .market-control {
     grid-template-columns: 1fr;
+  }
+
+  .lobby-section__header {
+    align-items: end;
+  }
+
+  .market-summary {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+    padding-top: 12px;
+    padding-left: 0;
   }
 
   .mobile-board-tabs {
