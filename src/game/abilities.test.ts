@@ -60,6 +60,45 @@ describe("ability cards", () => {
     expect(state.attackBonuses[current.id]).toBeUndefined();
   });
 
+  it("uses Ambush to boost Minigun damage against every target", () => {
+    let { state, current } = stateWithHands(["ability_ambush", "weapon_minigun"]);
+    const ambush = state.players[state.currentPlayerIndex].hand[0];
+    const minigun = state.players[state.currentPlayerIndex].hand[1];
+
+    state = gameReducer(state, { type: "PLAY_ABILITY", playerId: current.id, cardInstanceId: ambush.instanceId });
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: current.id,
+      weaponInstanceId: minigun.instanceId
+    });
+
+    state.players
+      .filter((player) => player.id !== current.id)
+      .forEach((player) => expect(player.health).toBe(15));
+    expect(state.attackBonuses[current.id]).toBeUndefined();
+  });
+
+  it("uses Ambush on the first SMG hit and not the follow-up hit", () => {
+    let { state, current, target } = stateWithHands(["ability_ambush", "weapon_smg"]);
+    const ambush = state.players[state.currentPlayerIndex].hand[0];
+    const smg = state.players[state.currentPlayerIndex].hand[1];
+
+    state = gameReducer(state, { type: "PLAY_ABILITY", playerId: current.id, cardInstanceId: ambush.instanceId });
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: current.id,
+      targetPlayerId: target.id,
+      weaponInstanceId: smg.instanceId
+    });
+
+    expect(state.pendingReaction?.baseDamage).toBe(5);
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: target.id });
+
+    expect(state.players.find((player) => player.id === target.id)!.health).toBe(15);
+    expect(state.pendingReaction?.baseDamage).toBe(2);
+    expect(state.attackBonuses[current.id]).toBeUndefined();
+  });
+
   it("uses Adrenaline to gain a net action and lose health", () => {
     let { state, current } = stateWithHands(["ability_adrenaline"]);
     const adrenaline = state.players[state.currentPlayerIndex].hand[0];

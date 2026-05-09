@@ -1,4 +1,4 @@
-import type { Card, CardTiming } from "../data/cards";
+import type { Card, CardTiming, CardType } from "../data/cards";
 import type { GameSettings } from "../data/constants";
 
 export type PlayerId = string;
@@ -45,6 +45,11 @@ export type ActiveEvent = {
   timing: Extract<CardTiming, "thisRound" | "ongoing">;
   sourcePlayerId?: PlayerId;
   exemptPlayerIds?: PlayerId[];
+};
+
+export type PendingEventDialog = {
+  card: CardInstance;
+  playerId: PlayerId;
 };
 
 export type LogEntry = {
@@ -96,6 +101,13 @@ export type PendingDiscard = {
   playerId: PlayerId;
   count: number;
   reason: string;
+  allowedCardInstanceIds?: CardInstanceId[];
+  continuation?: {
+    type: "forced_discard";
+    remainingPlayerIds: PlayerId[];
+    cardType: CardType;
+    reason: string;
+  };
 };
 
 export type PendingSearch = {
@@ -113,6 +125,12 @@ export type PendingMarketSearch = {
   playerId: PlayerId;
   cards: CardInstance[];
   keepCount: number;
+};
+
+export type PendingBlackMarket = {
+  card: CardInstance;
+  playerOrder: PlayerId[];
+  currentIndex: number;
 };
 
 export type PendingSteal = {
@@ -148,6 +166,7 @@ export type GameState = {
   discardPile: CardInstance[];
   eventDiscardPile: CardInstance[];
   activeEvent: ActiveEvent | null;
+  pendingEventDialog: PendingEventDialog | null;
   pendingReaction: PendingReaction | null;
   pendingRedirect: PendingRedirect | null;
   pendingAttackCost: PendingAttackCost | null;
@@ -156,6 +175,7 @@ export type GameState = {
   pendingSearch: PendingSearch | null;
   pendingSupplyDrop: PendingSupplyDrop | null;
   pendingMarketSearch: PendingMarketSearch | null;
+  pendingBlackMarket: PendingBlackMarket | null;
   pendingSteal: PendingSteal | null;
   pendingSecondaryDamage: PendingSecondaryDamage | null;
   selectedCardId: CardInstanceId | null;

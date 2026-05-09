@@ -117,9 +117,11 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
 
   return (
     <main className="setup-screen">
-      <GameMenu settings={settings} dispatch={dispatch} />
+      <GameMenu settings={settings} dispatch={dispatch} phase="setup" />
       <section className="setup-screen__panel">
-        <h1>Outdrawn</h1>
+        <h1 className="setup-screen__logo-title">
+          <img src="/branding/logos/outdrawn-logo-dark-01.png" alt="Outdrawn" />
+        </h1>
 
         <div className="lobby-grid">
           <section className="lobby-section lobby-section--players">
@@ -276,16 +278,6 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                     <span>Custom Black Market</span>
                     <div className="market-custom-grid">
                       <label>
-                        <span>Actions</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={4}
-                          value={settings.blackMarketCustom.actionCost}
-                          onChange={(event) => updateBlackMarketCustom("actionCost", Number(event.target.value))}
-                        />
-                      </label>
-                      <label>
                         <span>Discard</span>
                         <input
                           type="number"
@@ -360,7 +352,6 @@ function labelBlackMarketPreset(preset: BlackMarketPreset): string {
   const labels: Record<BlackMarketPreset, string> = {
     standard: "Standard",
     discount: "Discount Market",
-    noAction: "No-Action Market",
     bigger: "Bigger Market",
     healthPay: "Health-Pay Market",
     custom: "Custom"
@@ -371,7 +362,6 @@ function labelBlackMarketPreset(preset: BlackMarketPreset): string {
 
 function summarizeBlackMarket(config: BlackMarketConfig): string {
   const risks = [
-    config.actionCost > 0 ? `${config.actionCost} action${config.actionCost === 1 ? "" : "s"}` : null,
     config.discardCost > 0 ? `discard ${config.discardCost} card${config.discardCost === 1 ? "" : "s"}` : null,
     config.healthCost > 0 ? `pay ${config.healthCost} health` : null
   ].filter(Boolean);

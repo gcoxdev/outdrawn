@@ -7,6 +7,7 @@ export type GameAction =
   | { type: "SELECT_CARD"; cardInstanceId: CardInstanceId | null }
   | { type: "DRAW_CARD"; playerId: PlayerId }
   | { type: "DISCARD_CARD"; playerId: PlayerId; cardInstanceId: CardInstanceId }
+  | { type: "DISCARD_CARDS"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
   | { type: "PLAY_HEALING"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
   | { type: "TRANSFER_CARD"; playerId: PlayerId; targetPlayerId: PlayerId; cardInstanceId: CardInstanceId }
   | { type: "PLAY_ABILITY"; playerId: PlayerId; cardInstanceId: CardInstanceId; targetPlayerId?: PlayerId }
@@ -17,7 +18,9 @@ export type GameAction =
   | { type: "RESOLVE_SUPPLY_DROP_PICK"; playerId: PlayerId; cardInstanceId: CardInstanceId | null }
   | { type: "START_BLACK_MARKET"; playerId: PlayerId; cardInstanceIds: CardInstanceId[] }
   | { type: "RESOLVE_MARKET_SEARCH"; playerId: PlayerId; keepCardInstanceIds: CardInstanceId[] }
+  | { type: "PASS_BLACK_MARKET"; playerId: PlayerId }
   | { type: "RESOLVE_PENDING_STEAL"; playerId: PlayerId; targetPlayerId: PlayerId; cardInstanceId: CardInstanceId }
+  | { type: "ACKNOWLEDGE_EVENT_DIALOG" }
   | { type: "PLAY_SECONDARY_REACTION"; defenderId: PlayerId; reactionCardInstanceId: CardInstanceId }
   | { type: "SKIP_SECONDARY_REACTION"; defenderId: PlayerId }
   | {
@@ -30,4 +33,5 @@ export type GameAction =
   | { type: "SKIP_REACTION"; defenderId: PlayerId }
   | { type: "PASS_ACTION"; playerId: PlayerId }
   | { type: "END_TURN"; playerId: PlayerId }
-  | { type: "RESET_GAME" };
+  | { type: "RESET_GAME" }
+  | { type: "RESTART_GAME" };

@@ -584,7 +584,7 @@ export const eventDeckCards: Card[] = [
     rarity: "uncommon",
     icons: ["draw", "supply"],
     shortText: "Draw 3 cards.",
-    rulesText: "Draw 3 cards. If this puts you over max hand size, discard down before your next action.",
+    rulesText: "Draw 3 cards. You may exceed max hand size during play, but must discard down before ending your turn.",
     flavorText: "Falling crates make rising tensions.",
     tags: ["event", "supply", "card-gain"]
   },
@@ -613,7 +613,7 @@ export const eventDeckCards: Card[] = [
     damage: 1,
     icons: ["damage", "first-attack"],
     shortText: "Each living player draws 1 card.",
-    rulesText: "Each living player draws 1 card. Players over max hand size must discard down.",
+    rulesText: "Each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.",
     flavorText: "Position decides the opening shot.",
     tags: ["event", "damage-buff", "tempo"]
   },
@@ -629,7 +629,7 @@ export const eventDeckCards: Card[] = [
     discard: 1,
     icons: ["discard", "weapon", "damage"],
     shortText: "Discard a weapon or take 3 damage.",
-    rulesText: "Each player must discard one weapon from hand. Players who cannot discard a weapon take 3 damage.",
+    rulesText: "Each player chooses one weapon from hand to discard. Players who cannot discard a weapon take 3 damage.",
     flavorText: "The loudest guns run dry first.",
     tags: ["event", "weapon-pressure", "damage"]
   },
@@ -643,7 +643,7 @@ export const eventDeckCards: Card[] = [
     rarity: "common",
     icons: ["defense-down", "reaction"],
     shortText: "Discard a defense or take 2 damage.",
-    rulesText: "Each player must discard one defense card from hand. Players who cannot discard a defense card take 2 damage.",
+    rulesText: "Each player chooses one defense card from hand to discard. Players who cannot discard a defense card take 2 damage.",
     flavorText: "Every hiding place has an angle.",
     tags: ["event", "defense-nerf"]
   },
@@ -671,10 +671,9 @@ export const eventDeckCards: Card[] = [
     target: "allPlayers",
     rarity: "uncommon",
     discard: 2,
-    actionsCost: 1,
     icons: ["search", "discard", "action"],
-    shortText: "Open the configured market.",
-    rulesText: "Open the configured Black Market exchange. Unkept revealed cards are discarded.",
+    shortText: "Each player may trade once.",
+    rulesText: "Each living player may make the configured Black Market exchange once, then the event is discarded. Unkept revealed cards are discarded.",
     flavorText: "Everything is available. Nothing is free.",
     tags: ["event", "search", "card-selection"]
   }

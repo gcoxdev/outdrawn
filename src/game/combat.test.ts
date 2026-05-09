@@ -257,4 +257,31 @@ describe("combat and healing", () => {
     const ended = gameReducer(state, { type: "END_TURN", playerId: player.id });
     expect(ended.currentPlayerIndex).not.toBe(state.currentPlayerIndex);
   });
+
+  it("allows drawing over the hand limit but blocks ending turn until discard-down", () => {
+    let state = stateWithCurrentPlayerCards([
+      "weapon_pistol",
+      "weapon_pistol",
+      "weapon_pistol",
+      "weapon_pistol",
+      "weapon_pistol",
+      "weapon_pistol",
+      "weapon_knife"
+    ]);
+    const player = state.players[state.currentPlayerIndex];
+    const drawnCard = cardInstance("weapon_knife");
+    state = {
+      ...state,
+      mainDeck: [drawnCard],
+      discardPile: []
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(state.players[state.currentPlayerIndex].hand).toHaveLength(8);
+    expect(state.pendingDiscard).toBeNull();
+
+    const blocked = gameReducer(state, { type: "END_TURN", playerId: player.id });
+    expect(blocked.currentPlayerIndex).toBe(state.currentPlayerIndex);
+  });
 });

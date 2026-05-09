@@ -10,6 +10,7 @@ import {
   CircleHelp,
   Zap
 } from "lucide-react";
+import { useState } from "react";
 import type { Card } from "../data/cards";
 
 const typeIcons = {
@@ -28,7 +29,31 @@ type CardViewProps = {
   onClick?: () => void;
 };
 
+type RulesAnchorRect = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
+
+export function getRulesPopoverPosition(
+  rect: RulesAnchorRect,
+  viewportWidth: number,
+  viewportHeight: number,
+  preferredWidth = 260,
+  margin = 8
+) {
+  const width = Math.min(preferredWidth, viewportWidth - margin * 2);
+  const center = (rect.left + rect.right) / 2;
+  const left = Math.min(Math.max(margin, center - width / 2), viewportWidth - width - margin);
+  const hasRoomAbove = rect.top > 96;
+  const top = hasRoomAbove ? rect.top - margin : Math.min(viewportHeight - margin, rect.bottom + margin);
+
+  return {
+    left,
+    top,
+    width,
+    placement: hasRoomAbove ? "above" : "below"
+  };
+}
+
 export function CardView({ card, mode = "hand", isSelected = false, isDisabled = false, onClick }: CardViewProps) {
+  const [rulesPosition, setRulesPosition] = useState<ReturnType<typeof getRulesPopoverPosition> | null>(null);
   const TypeIcon = typeIcons[card.type];
   const className = `card-view card-${card.type} card-${mode}${isSelected ? " is-selected" : ""}`;
   const stats = [
@@ -72,11 +97,34 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       </footer>
       <span
         className="card-view__rules"
-        data-rules={card.rulesText}
         title={card.rulesText}
         aria-label={`Rules for ${card.name}: ${card.rulesText}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          setRulesPosition((current) =>
+            current
+              ? null
+              : getRulesPopoverPosition(event.currentTarget.getBoundingClientRect(), window.innerWidth, window.innerHeight)
+          );
+        }}
+        onPointerEnter={(event) =>
+          setRulesPosition(getRulesPopoverPosition(event.currentTarget.getBoundingClientRect(), window.innerWidth, window.innerHeight))
+        }
+        onPointerLeave={() => setRulesPosition(null)}
       >
         <CircleHelp size={14} />
+        {rulesPosition && (
+          <span
+            className={`card-view__rules-popover card-view__rules-popover--${rulesPosition.placement}`}
+            style={{
+              left: rulesPosition.left,
+              top: rulesPosition.top,
+              width: rulesPosition.width
+            }}
+          >
+            {card.rulesText}
+          </span>
+        )}
       </span>
     </>
   );
@@ -99,7 +147,7 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
 export function CardBack() {
   return (
     <div className="card-back" aria-label="Hidden card">
-      <img className="card-back__image" src="/cards/backs/outdrawn-back-dark-01.png" alt="" aria-hidden="true" />
+      <img className="card-back__image" src="/cards/backs/outdrawn-back-dark-logo-01.png" alt="" aria-hidden="true" />
     </div>
   );
 }

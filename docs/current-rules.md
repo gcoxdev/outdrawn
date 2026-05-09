@@ -35,12 +35,11 @@ On a player's turn, they may spend actions to:
 - Play a weapon as an attack.
 - Play an ability.
 - Play a healing card.
-- Use Black Market if the Black Market event is active.
 - Pass.
 
 A player may not end their turn while above the maximum hand size.
 
-If a draw or reveal effect finds an event card, resolve that event immediately and continue revealing until the effect has the expected number of non-event cards or the deck is exhausted. Black Market is the exception: it opens the configured exchange instead of being discarded immediately.
+If a draw or reveal effect finds an event card, resolve that event immediately and continue revealing until the effect has the expected number of non-event cards or the deck is exhausted. Events are one-time effects when drawn and do not remain active after their immediate resolution.
 
 ## Round Structure
 
@@ -114,19 +113,18 @@ Healing cannot exceed maximum health.
 ## Events
 
 - Pressure Zone: all living players take 1 damage.
-- Supply Drop: draw 3 cards. If this puts you over max hand size, discard down before your next action.
+- Supply Drop: draw 3 cards. You may exceed max hand size during play, but must discard down before ending your turn.
 - Bounty: the highest-health living player takes 2 damage. If tied, each tied highest-health player takes 2 damage.
-- High Ground: each living player draws 1 card. Players over max hand size must discard down.
-- Low Ammo: each player discards their highest-damage weapon from hand or takes 3 damage.
-- No Cover: each player discards one defense card from hand or takes 2 damage.
+- High Ground: each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.
+- Low Ammo: each player chooses one weapon from hand to discard or takes 3 damage if they have no weapon.
+- No Cover: each player chooses one defense card from hand to discard or takes 2 damage if they have no defense.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
-- Black Market: opens the configured market exchange. Unkept revealed cards are discarded.
-- Black Market Standard: risk 1 action and discard 2 cards; reward reveal 3 and keep 1.
-- Black Market Discount Market: risk 1 action and discard 1 card; reward reveal 3 and keep 1.
-- Black Market No-Action Market: risk discard 2 cards; reward reveal 3 and keep 1.
-- Black Market Bigger Market: risk 1 action and discard 2 cards; reward reveal 5 and keep 2.
-- Black Market Health-Pay Market: risk 1 action and 2 health; reward reveal 3 and keep 1.
-- Black Market Custom: host-defined action cost, discard cost, health cost, reveal count, and keep count.
+- Black Market: each living player may make the configured market exchange once, then the event is discarded. Unkept revealed cards are discarded.
+- Black Market Standard: risk discard 2 cards; reward reveal 3 and keep 1.
+- Black Market Discount Market: risk discard 1 card; reward reveal 3 and keep 1.
+- Black Market Bigger Market: risk discard 2 cards; reward reveal 5 and keep 2.
+- Black Market Health-Pay Market: risk 2 health; reward reveal 3 and keep 1.
+- Black Market Custom: host-defined discard cost, health cost, reveal count, and keep count.
 
 ## Elimination And Loot
 
@@ -144,7 +142,7 @@ If a player is eliminated by event or collapse damage:
 
 ## Hand Limit
 
-Players must discard down to the maximum hand size before ending their turn. Off-turn card gains such as Supply Drop, Search, and Black Market can create an immediate discard-down prompt.
+Players may exceed maximum hand size during play. They must discard down to the maximum hand size before ending their turn.
 
 ## Tie Scenarios
 

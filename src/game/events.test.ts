@@ -59,7 +59,66 @@ describe("event cards", () => {
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(0);
     expect(state.players.map((candidate) => candidate.health)).toEqual([19, 19, 19]);
     expect(state.players.find((candidate) => candidate.id === player.id)?.actionsRemaining).toBe(2);
-    expect(state.log.at(-1)?.message).toContain("drew Pressure Zone");
+    expect(state.pendingEventDialog).toMatchObject({
+      card: pressureZone,
+      playerId: player.id
+    });
+    const messages = state.log.map((entry) => entry.message);
+    expect(messages.indexOf("Ari drew Pressure Zone.")).toBeLessThan(messages.indexOf("Ari took 1 Pressure Zone damage."));
+  });
+
+  it("clears the drawn event dialog when acknowledged", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    state = {
+      ...state,
+      mainDeck: [event("event_bounty")]
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+    expect(state.pendingEventDialog).not.toBeNull();
+
+    state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
+
+    expect(state.pendingEventDialog).toBeNull();
+  });
+
+  it("does not show event dialogs when only computers remain", () => {
+    let state = createNewGame([
+      { name: "Ari", controller: { type: "computer", strategy: "competent" } },
+      { name: "Blake", controller: { type: "computer", strategy: "competent" } },
+      { name: "Casey", controller: { type: "computer", strategy: "competent" } }
+    ], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    state = {
+      ...state,
+      mainDeck: [event("event_pressure_zone")],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(state.pendingEventDialog).toBeNull();
+  });
+
+  it("pauses gameplay actions while an event dialog is awaiting acknowledgement", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    state = {
+      ...state,
+      mainDeck: [event("event_bounty"), main("weapon_pistol")],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+    const pausedState = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(pausedState).toBe(state);
+
+    const resumedState = gameReducer(pausedState, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
+    const afterDraw = gameReducer(resumedState, { type: "DRAW_CARD", playerId: player.id });
+
+    expect(afterDraw.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(1);
   });
 
   it("does not leave an immediate event active when the drawing player draws again", () => {
@@ -75,6 +134,7 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
     expect(state.activeEvent).toBeNull();
+    state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
@@ -125,41 +185,79 @@ describe("event cards", () => {
     ]);
   });
 
-  it("No Cover makes each player discard defense or take damage", () => {
+  it("High Ground can put players over max hand size until their turns end", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const rewards = [main("weapon_pistol"), main("weapon_knife"), main("defense_shield_plate")];
+    const fullHands = Array.from({ length: state.settings.maxHandSize }, () => main("weapon_pistol"));
+    state = {
+      ...state,
+      mainDeck: [event("event_high_ground"), ...rewards],
+      players: state.players.map((player, index) => ({
+        ...player,
+        hand: index < 2 ? fullHands.map((card, cardIndex) => ({ ...card, instanceId: `${card.instanceId}_${index}_${cardIndex}` })) : []
+      }))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[state.currentPlayerIndex].id });
+
+    expect(state.players[0].hand).toHaveLength(8);
+    expect(state.players[1].hand).toHaveLength(8);
+    expect(state.pendingDiscard).toBeNull();
+  });
+
+  it("No Cover lets each player choose a defense to discard or take damage", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const shield = main("defense_shield_plate");
     const dodge = main("defense_dodge");
+    const brace = main("defense_brace");
     state = {
       ...state,
       mainDeck: [event("event_no_cover")],
-      players: state.players.map((player, index) => ({ ...player, hand: index === 0 ? [shield] : index === 1 ? [dodge] : [] }))
+      players: state.players.map((player, index) => ({ ...player, hand: index === 0 ? [shield, brace] : index === 1 ? [dodge] : [] }))
     };
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[state.currentPlayerIndex].id });
 
     expect(state.players.map((player) => player.health)).toEqual([20, 20, 18]);
-    expect(state.players[0].hand).toHaveLength(0);
+    expect(state.pendingDiscard).toMatchObject({ playerId: state.players[0].id, count: 1, reason: "No Cover" });
+    expect(state.pendingDiscard?.allowedCardInstanceIds).toEqual(expect.arrayContaining([shield.instanceId, brace.instanceId]));
+
+    state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
+    state = gameReducer(state, { type: "RESOLVE_PENDING_DISCARD", playerId: state.players[0].id, cardInstanceIds: [brace.instanceId] });
+
+    expect(state.players[0].hand.map((card) => card.instanceId)).toEqual([shield.instanceId]);
+    expect(state.pendingDiscard).toMatchObject({ playerId: state.players[1].id, count: 1, reason: "No Cover" });
+    state = gameReducer(state, { type: "RESOLVE_PENDING_DISCARD", playerId: state.players[1].id, cardInstanceIds: [dodge.instanceId] });
+
+    expect(state.pendingDiscard).toBeNull();
     expect(state.players[1].hand).toHaveLength(0);
-    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([shield.instanceId, dodge.instanceId]));
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([brace.instanceId, dodge.instanceId]));
   });
 
-  it("Low Ammo makes each player discard a weapon or take damage", () => {
+  it("Low Ammo lets players choose a weapon to discard or take damage", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const pistol = main("weapon_pistol");
+    const knife = main("weapon_knife");
     const lowAmmo = event("event_low_ammo");
     state = {
       ...state,
       mainDeck: [lowAmmo],
-      players: state.players.map((player, index) => (index === 0 ? { ...player, hand: [pistol] } : { ...player, hand: [] }))
+      players: state.players.map((player, index) => (index === 0 ? { ...player, hand: [pistol, knife] } : { ...player, hand: [] }))
     };
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[state.currentPlayerIndex].id });
 
-    expect(state.players[0].hand).toHaveLength(0);
+    expect(state.pendingDiscard).toMatchObject({ playerId: state.players[0].id, count: 1, reason: "Low Ammo" });
+    expect(state.pendingDiscard?.allowedCardInstanceIds).toEqual(expect.arrayContaining([pistol.instanceId, knife.instanceId]));
+
+    state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
+    state = gameReducer(state, { type: "RESOLVE_PENDING_DISCARD", playerId: state.players[0].id, cardInstanceIds: [knife.instanceId] });
+
+    expect(state.players[0].hand.map((card) => card.instanceId)).toEqual([pistol.instanceId]);
     expect(state.players[0].health).toBe(20);
     expect(state.players[1].health).toBe(17);
     expect(state.players[2].health).toBe(17);
-    expect(state.discardPile.map((card) => card.instanceId)).toContain(pistol.instanceId);
+    expect(state.discardPile.map((card) => card.instanceId)).toContain(knife.instanceId);
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(lowAmmo.instanceId);
     expect(state.log.map((entry) => entry.message)).toEqual(expect.arrayContaining([
       "Blake took 3 Low Ammo damage.",
@@ -179,9 +277,24 @@ describe("event cards", () => {
 
     expect(state.players.map((player) => player.health)).toEqual([11, 9, 2]);
     expect(state.log.map((entry) => entry.message)).toEqual(expect.arrayContaining([
+      "Critical Condition affected Blake for 1 damage and Casey for 2 damage.",
       "Blake took 1 Critical Condition damage.",
       "Casey took 2 Critical Condition damage."
     ]));
+  });
+
+  it("Critical Condition logs when no players are affected", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    state = {
+      ...state,
+      mainDeck: [event("event_critical_condition")],
+      players: state.players.map((player) => ({ ...player, health: 11 }))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[state.currentPlayerIndex].id });
+
+    expect(state.players.map((player) => player.health)).toEqual([11, 11, 11]);
+    expect(state.log.map((entry) => entry.message)).toContain("Critical Condition affected no one.");
   });
 
   it("Bounty immediately damages the highest-health player", () => {
@@ -195,6 +308,8 @@ describe("event cards", () => {
     state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[state.currentPlayerIndex].id });
 
     expect(state.players.map((player) => player.health)).toEqual([14, 18, 12]);
+    const messages = state.log.map((entry) => entry.message);
+    expect(messages.indexOf("Ari drew Bounty.")).toBeLessThan(messages.indexOf("Blake took 2 Bounty damage."));
   });
 
   it("Pressure Zone immediately damages every living player", () => {
@@ -310,7 +425,7 @@ describe("event cards", () => {
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(supplyDrop.instanceId);
   });
 
-  it("Supply Drop forces discard-down when drawing over max hand size", () => {
+  it("Supply Drop can put the drawing player over max hand size until turn end", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = state.players[state.currentPlayerIndex];
     const supplyDrop = event("event_supply_drop");
@@ -332,9 +447,8 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.pendingDiscard?.playerId).toBe(player.id);
-    expect(state.pendingDiscard?.count).toBe(3);
-    expect(state.pendingDiscard?.reason).toBe("hand limit");
+    expect(state.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(10);
+    expect(state.pendingDiscard).toBeNull();
   });
 
   it("auto-resolves event cards drawn by Supply Drop", () => {
@@ -363,7 +477,7 @@ describe("event cards", () => {
     ]);
   });
 
-  it("Black Market opens the configured exchange when drawn", () => {
+  it("Black Market offers a one-time trade to each living player when drawn", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = state.players[state.currentPlayerIndex];
     const blackMarket = event("event_black_market");
@@ -375,8 +489,51 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.activeEvent?.card.definitionId).toBe("event_black_market");
+    expect(state.activeEvent).toBeNull();
+    expect(state.pendingBlackMarket).toMatchObject({
+      card: blackMarket,
+      currentIndex: 0,
+      playerOrder: state.players.map((candidate) => candidate.id)
+    });
+    expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(blackMarket.instanceId);
     expect(state.players.find((candidate) => candidate.id === player.id)?.actionsRemaining).toBe(2);
+  });
+
+  it("Black Market offer order starts with the drawing player and wraps seating order", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const blackMarket = event("event_black_market");
+    state = {
+      ...state,
+      currentPlayerIndex: 1,
+      mainDeck: [blackMarket],
+      players: state.players.map((candidate, index) => (index === 1 ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[1].id });
+
+    expect(state.pendingBlackMarket?.playerOrder).toEqual([state.players[1].id, state.players[2].id, state.players[0].id]);
+    expect(state.pendingBlackMarket?.currentIndex).toBe(0);
+  });
+
+  it("Black Market can be passed until the one-time event is done", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const playerIds = state.players.map((player) => player.id);
+    state = {
+      ...state,
+      pendingBlackMarket: {
+        card: event("event_black_market"),
+        playerOrder: playerIds,
+        currentIndex: 0
+      }
+    };
+
+    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: playerIds[0] });
+    expect(state.pendingBlackMarket?.currentIndex).toBe(1);
+
+    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: playerIds[1] });
+    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: playerIds[2] });
+
+    expect(state.pendingBlackMarket).toBeNull();
   });
 
   it("Black Market lets a player discard two cards and choose one revealed deck card", () => {
@@ -389,7 +546,7 @@ describe("event cards", () => {
     const shield = main("defense_shield_plate");
     state = {
       ...state,
-      activeEvent: { card: event("event_black_market"), timing: "thisRound" },
+      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
       mainDeck: [pistol, shotgun, shield],
       players: state.players.map((candidate) =>
         candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
@@ -412,7 +569,8 @@ describe("event cards", () => {
 
     const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
     expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([shotgun.instanceId]);
-    expect(updatedPlayer.actionsRemaining).toBe(1);
+    expect(updatedPlayer.actionsRemaining).toBe(2);
+    expect(state.pendingBlackMarket).toBeNull();
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(
       expect.arrayContaining([firstDiscard.instanceId, secondDiscard.instanceId, pistol.instanceId, shield.instanceId])
     );
@@ -426,7 +584,7 @@ describe("event cards", () => {
     const revealed = [main("weapon_pistol"), main("weapon_shotgun"), main("defense_shield_plate"), main("weapon_smg"), main("healing_bandage")];
     state = {
       ...state,
-      activeEvent: { card: event("event_black_market"), timing: "thisRound" },
+      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
       mainDeck: revealed,
       players: state.players.map((candidate) =>
         candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
@@ -450,7 +608,7 @@ describe("event cards", () => {
 
     const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
     expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([revealed[1].instanceId, revealed[3].instanceId]);
-    expect(updatedPlayer.actionsRemaining).toBe(1);
+    expect(updatedPlayer.actionsRemaining).toBe(2);
   });
 
   it("Black Market health-pay preset pays health instead of cards", () => {
@@ -461,7 +619,7 @@ describe("event cards", () => {
     const shield = main("defense_shield_plate");
     state = {
       ...state,
-      activeEvent: { card: event("event_black_market"), timing: "thisRound" },
+      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
       mainDeck: [pistol, shotgun, shield],
       players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
     };
@@ -474,7 +632,31 @@ describe("event cards", () => {
 
     const payingPlayer = state.players.find((candidate) => candidate.id === player.id)!;
     expect(payingPlayer.health).toBe(18);
-    expect(payingPlayer.actionsRemaining).toBe(1);
+    expect(payingPlayer.actionsRemaining).toBe(2);
     expect(state.pendingMarketSearch?.keepCount).toBe(1);
+  });
+
+  it("Black Market can be used off-turn without available actions", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[1];
+    const firstDiscard = main("weapon_pistol");
+    const secondDiscard = main("weapon_knife");
+    const reward = main("weapon_shotgun");
+    state = {
+      ...state,
+      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
+      mainDeck: [reward],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 0 } : candidate
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "START_BLACK_MARKET",
+      playerId: player.id,
+      cardInstanceIds: [firstDiscard.instanceId, secondDiscard.instanceId]
+    });
+
+    expect(state.pendingMarketSearch?.playerId).toBe(player.id);
   });
 });

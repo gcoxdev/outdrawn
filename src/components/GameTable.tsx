@@ -1,7 +1,8 @@
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
+import { blackMarketPresets } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getPassDeviceContext } from "../game/privacy";
 import { getCurrentPlayer, getTeamMembers, labelTeam } from "../game/rules";
@@ -18,10 +19,6 @@ function definitionFor(card: CardInstance | null) {
   return card ? allCards.find((definition) => definition.id === card.definitionId) : undefined;
 }
 
-function definitionById(definitionId: string) {
-  return allCards.find((definition) => definition.id === definitionId);
-}
-
 type GameTableProps = {
   state: GameState;
   dispatch: (action: GameAction) => void;
@@ -33,10 +30,9 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("play");
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
   const [sidebarPlayerPercent, setSidebarPlayerPercent] = useState(62);
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [handViewerId, setHandViewerId] = useState<PlayerId | null>(null);
   const [hiddenHandPlayerIds, setHiddenHandPlayerIds] = useState<Set<PlayerId>>(() => new Set());
-  const lastToastedLogId = useRef(state.log[state.log.length - 1]?.id ?? null);
+  const [selectedDiscardIds, setSelectedDiscardIds] = useState<string[]>([]);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
@@ -49,6 +45,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingSearch?.playerId) ??
     state.players.find((player) => player.id === state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex]) ??
     state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
+    state.players.find((player) => player.id === state.pendingBlackMarket?.playerOrder[state.pendingBlackMarket.currentIndex]) ??
     state.players.find((player) => player.id === state.pendingSteal?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
@@ -62,6 +59,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         state.pendingSearch ||
         state.pendingSupplyDrop ||
         state.pendingMarketSearch ||
+        state.pendingBlackMarket ||
         state.pendingSteal
     );
   const teamHandViewers =
@@ -73,6 +71,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === decisionPlayerId;
   const privacyGateActive = Boolean(passDeviceContext);
   const shouldRevealDisplayHand = canRevealTableHand(state, displayPlayer, handDisplayPlayer, privacyGateActive);
+  const canToggleDisplayHandPrivacy = canToggleHandPrivacy(state, displayPlayer, handDisplayPlayer, privacyGateActive);
   const isHandManuallyHidden = hiddenHandPlayerIds.has(handDisplayPlayer.id);
   const shouldShowDisplayHand = shouldRevealDisplayHand && !isHandManuallyHidden;
   const canSelectDisplayHand =
@@ -82,9 +81,9 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     !isComputerDecision &&
     !privacyGateActive &&
     state.phase !== "gameOver";
-  const selectedDefinition = canSelectDisplayHand ? definitionFor(selectedCard) : undefined;
-  const activeEventDefinition = definitionFor(state.activeEvent?.card ?? null);
-  const visibleEventDefinition = activeEventDefinition ?? (state.pendingSupplyDrop ? definitionById("event_supply_drop") : undefined);
+  const handDiscardRequirement = getHandDiscardRequirement(state, currentPlayer, handDisplayPlayer);
+  const selectedDiscardCards = handDisplayPlayer.hand.filter((card) => selectedDiscardIds.includes(card.instanceId));
+  const selectedDefinition = canSelectDisplayHand && !handDiscardRequirement ? definitionFor(selectedCard) : undefined;
   const winner = state.players.find((player) => player.id === state.winnerId);
   const decisionText = getDecisionText(state, currentPlayer.name, displayPlayer.name, winner?.name);
 
@@ -97,20 +96,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   }, [decisionPlayerId, hasPendingDecision]);
 
   useEffect(() => {
-    const latest = state.log[state.log.length - 1];
-    if (!latest || latest.id === lastToastedLogId.current) {
-      return;
-    }
-
-    lastToastedLogId.current = latest.id;
-    if (!shouldShowToastForLog(latest.message, state.players)) {
-      return;
-    }
-
-    setAlertMessage(latest.message);
-    const timeoutId = window.setTimeout(() => setAlertMessage(null), 4200);
-    return () => window.clearTimeout(timeoutId);
-  }, [state.log]);
+    setSelectedDiscardIds((current) => current.filter((id) => handDisplayPlayer.hand.some((card) => card.instanceId === id)));
+  }, [handDisplayPlayer.id, handDisplayPlayer.hand.length]);
 
   function startSidebarResize(event: ReactPointerEvent<HTMLDivElement>) {
     const sidebar = event.currentTarget.closest(".operations-sidebar");
@@ -137,16 +124,17 @@ export function GameTable({ state, dispatch }: GameTableProps) {
 
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
-      {state.phase === "gameOver" && (
+      {state.pendingEventDialog ? (
+        <EventDialog state={state} dispatch={dispatch} />
+      ) : state.phase === "gameOver" ? (
         <WinnerModal
           winner={winner}
           winnerTeamId={state.winnerTeamId}
           winnerTeamMembers={state.winnerTeamId ? getTeamMembers(state, state.winnerTeamId) : []}
           dispatch={dispatch}
         />
-      )}
-      {alertMessage && <div className="negative-action-toast">{alertMessage}</div>}
-      <GameMenu settings={state.settings} dispatch={dispatch} />
+      ) : null}
+      <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} />
 
       <nav className="mobile-board-tabs" aria-label="Board sections">
         {(["play", "players", "log"] as MobileTab[]).map((tab) => (
@@ -154,7 +142,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             {tab}
           </button>
         ))}
-        <GameMenu settings={state.settings} dispatch={dispatch} variant="mobileIcon" />
+        <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} variant="mobileIcon" />
       </nav>
 
       <section className="game-shell">
@@ -181,14 +169,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             <div className="log-panel__meta">
               <span>{state.mainDeck.length} deck</span>
               <span>{state.discardPile.length} discard</span>
-              <span className="log-panel__event">{visibleEventDefinition ? visibleEventDefinition.name : "No event"}</span>
             </div>
-            {visibleEventDefinition && (
-              <div className="current-event-summary">
-                <strong>{visibleEventDefinition.name}</strong>
-                <p>{visibleEventDefinition.rulesText}</p>
-              </div>
-            )}
             <GameLog entries={state.log} players={state.players.map((player) => ({ id: player.id, name: player.name }))} />
           </div>
         </aside>
@@ -221,9 +202,11 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                               ? "Supply Drop"
                               : state.pendingMarketSearch
                                 ? "Black Market"
-                                : state.pendingSteal
-                                  ? "Stealing"
-                                  : "Current Player"}
+                                : state.pendingBlackMarket
+                                  ? "Black Market"
+                                  : state.pendingSteal
+                                    ? "Stealing"
+                                    : "Current Player"}
                 </p>
                 <h2>{handDisplayPlayer.name}</h2>
               </div>
@@ -244,7 +227,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                     </select>
                   </label>
                 )}
-                {shouldRevealDisplayHand && (
+                {canToggleDisplayHandPrivacy && (
                   <button
                     aria-label={isHandManuallyHidden ? `Show ${handDisplayPlayer.name}'s hand` : `Hide ${handDisplayPlayer.name}'s hand`}
                     aria-pressed={isHandManuallyHidden}
@@ -275,18 +258,45 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               {shouldShowDisplayHand ? (
                 handDisplayPlayer.hand.map((card) => {
                   const definition = definitionFor(card);
+                  const canSelectDiscard =
+                    !handDiscardRequirement?.allowedCardInstanceIds ||
+                    handDiscardRequirement.allowedCardInstanceIds.includes(card.instanceId);
                   return definition ? (
                     <CardView
                       card={definition}
-                      isSelected={state.selectedCardId === card.instanceId}
+                      isDisabled={Boolean(handDiscardRequirement && !canSelectDiscard)}
+                      isSelected={handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : state.selectedCardId === card.instanceId}
                       key={card.instanceId}
                       onClick={
-                        canSelectDisplayHand
-                          ? () =>
+                        canSelectDisplayHand ||
+                        (shouldShowDisplayHand &&
+                          handDisplayPlayer.controller.type === "human" &&
+                          handDiscardRequirement?.playerId === handDisplayPlayer.id)
+                          ? () => {
+                              if (handDiscardRequirement) {
+                                if (!canSelectDiscard) {
+                                  return;
+                                }
+
+                                dispatch({ type: "SELECT_CARD", cardInstanceId: null });
+                                setSelectedDiscardIds((current) => {
+                                  if (current.includes(card.instanceId)) {
+                                    return current.filter((id) => id !== card.instanceId);
+                                  }
+
+                                  return current.length >= handDiscardRequirement.count
+                                    ? [...current.slice(1), card.instanceId]
+                                    : [...current, card.instanceId];
+                                });
+                                return;
+                              }
+
+                              setSelectedDiscardIds([]);
                               dispatch({
                                 type: "SELECT_CARD",
                                 cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
-                              })
+                              });
+                            }
                           : undefined
                       }
                     />
@@ -302,6 +312,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             state={state}
             currentPlayer={currentPlayer}
             selectedCard={selectedDefinition ? selectedCard : null}
+            selectedDiscardCards={selectedDiscardCards}
+            discardRequirement={handDiscardRequirement}
             isComputerDecision={isComputerDecision || privacyGateActive}
             dispatch={dispatch}
           />
@@ -324,14 +336,6 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       )}
     </main>
   );
-}
-
-export function shouldShowToastForLog(message: string, players: GameState["players"]): boolean {
-  if (!isNegativeLogMessage(message)) {
-    return false;
-  }
-
-  return players.some((player) => player.controller.type === "human" && isAffectedPlayerInMessage(message, player.name));
 }
 
 export function canRevealTableHand(
@@ -360,20 +364,85 @@ export function canRevealTableHand(
   return Boolean(visibleTeamId && handDisplayPlayer.teamId === visibleTeamId);
 }
 
-function isNegativeLogMessage(message: string): boolean {
-  return /\b(took|eliminated|stole|stolen|discarded|disarmed|sabotaged|damaged|hit by)\b/i.test(message);
+export function canToggleHandPrivacy(
+  state: GameState,
+  displayPlayer: GameState["players"][number],
+  handDisplayPlayer: GameState["players"][number],
+  privacyGateActive: boolean
+): boolean {
+  const hasLivingHuman = state.players.some((player) => !player.eliminated && player.controller.type === "human");
+  return (
+    hasLivingHuman &&
+    !privacyGateActive &&
+    displayPlayer.id === handDisplayPlayer.id &&
+    handDisplayPlayer.controller.type === "human"
+  );
 }
 
-function isAffectedPlayerInMessage(message: string, playerName: string): boolean {
-  const name = escapeRegExp(playerName);
-  const directPlayerEvent = new RegExp(`^${name}\\b.*\\b(took|was eliminated|was hit by|discarded|damaged)\\b`, "i");
-  const targetedPlayerEvent = new RegExp(`\\b(disarmed|sabotaged)\\s+${name}\\b|\\bstole\\b.*\\bfrom\\s+${name}\\b|\\bstolen\\b.*\\bfrom\\s+${name}\\b`, "i");
+export type HandDiscardRequirement = {
+  type: "handLimit" | "pendingDiscard" | "blackMarket" | "attackCost";
+  playerId: PlayerId;
+  count: number;
+  reason: string;
+  allowedCardInstanceIds?: string[];
+};
 
-  return directPlayerEvent.test(message) || targetedPlayerEvent.test(message);
-}
+export function getHandDiscardRequirement(
+  state: GameState,
+  currentPlayer: GameState["players"][number],
+  handDisplayPlayer: GameState["players"][number]
+): HandDiscardRequirement | null {
+  if (state.pendingDiscard?.playerId === handDisplayPlayer.id) {
+    const allowedCardInstanceIds = state.pendingDiscard.allowedCardInstanceIds;
+    const discardableCount = allowedCardInstanceIds
+      ? handDisplayPlayer.hand.filter((card) => allowedCardInstanceIds.includes(card.instanceId)).length
+      : handDisplayPlayer.hand.length;
+    return {
+      type: "pendingDiscard",
+      playerId: handDisplayPlayer.id,
+      count: Math.min(state.pendingDiscard.count, discardableCount),
+      reason: state.pendingDiscard.reason,
+      allowedCardInstanceIds
+    };
+  }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (state.pendingAttackCost?.attackerId === handDisplayPlayer.id) {
+    const allowedCardInstanceIds = handDisplayPlayer.hand
+      .filter((card) => card.instanceId !== state.pendingAttackCost!.weaponInstanceId)
+      .map((card) => card.instanceId);
+    return {
+      type: "attackCost",
+      playerId: handDisplayPlayer.id,
+      count: Math.min(1, allowedCardInstanceIds.length),
+      reason: "Intimidate",
+      allowedCardInstanceIds
+    };
+  }
+
+  const pendingBlackMarketPlayerId = state.pendingBlackMarket?.playerOrder[state.pendingBlackMarket.currentIndex];
+  if (pendingBlackMarketPlayerId === handDisplayPlayer.id) {
+    const config =
+      state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
+    if (config.discardCost > 0) {
+      return {
+        type: "blackMarket",
+        playerId: handDisplayPlayer.id,
+        count: Math.min(config.discardCost, handDisplayPlayer.hand.length),
+        reason: "Black Market"
+      };
+    }
+  }
+
+  if (currentPlayer.id === handDisplayPlayer.id && currentPlayer.hand.length > state.settings.maxHandSize) {
+    return {
+      type: "handLimit",
+      playerId: currentPlayer.id,
+      count: currentPlayer.hand.length - state.settings.maxHandSize,
+      reason: "hand limit"
+    };
+  }
+
+  return null;
 }
 
 function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {
@@ -409,6 +478,10 @@ function getDecisionText(state: GameState, currentPlayerName: string, displayPla
     return `${displayPlayerName} is choosing market loot`;
   }
 
+  if (state.pendingBlackMarket) {
+    return `${displayPlayerName} is deciding on Black Market`;
+  }
+
   if (state.pendingSteal) {
     return `${displayPlayerName} is stealing`;
   }
@@ -418,4 +491,36 @@ function getDecisionText(state: GameState, currentPlayerName: string, displayPla
   }
 
   return `${currentPlayerName}'s turn`;
+}
+
+function EventDialog({ state, dispatch }: GameTableProps) {
+  const pending = state.pendingEventDialog;
+  if (!pending) {
+    return null;
+  }
+
+  const definition = definitionFor(pending.card);
+  const player = state.players.find((candidate) => candidate.id === pending.playerId);
+  if (!definition) {
+    return null;
+  }
+
+  return (
+    <section className="event-dialog-backdrop" role="dialog" aria-modal="true" aria-label={`${definition.name} event`}>
+      <div className="event-dialog-panel">
+        <div className="event-dialog-card">
+          <CardView card={definition} mode="detail" />
+        </div>
+        <div className="event-dialog-copy">
+          <p className="eyebrow">Event Drawn</p>
+          <h2>{definition.name}</h2>
+          <p>{player ? `${player.name} drew ${definition.name}.` : `${definition.name} was drawn.`}</p>
+          <p>{definition.rulesText}</p>
+          <button type="button" onClick={() => dispatch({ type: "ACKNOWLEDGE_EVENT_DIALOG" })}>
+            Acknowledge
+          </button>
+        </div>
+      </div>
+    </section>
+  );
 }

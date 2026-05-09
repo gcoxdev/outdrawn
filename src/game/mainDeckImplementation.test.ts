@@ -482,5 +482,7 @@ describe("remaining main deck card implementations", () => {
     expect(state.pendingReaction).toBeNull();
     expect(state.pendingMultiHitAttack).toBeNull();
     expect(state.smokeProtectedPlayerIds).toContain(defender.id);
+    expect(state.players.find((player) => player.id === attacker.id)!.hand).toHaveLength(0);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([smg.instanceId, smoke.instanceId]));
   });
 });

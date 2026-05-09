@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameState, PlayerState } from "../game/types";
-import { canRevealTableHand, shouldShowToastForLog } from "./GameTable";
+import { canRevealTableHand, canToggleHandPrivacy, getHandDiscardRequirement } from "./GameTable";
 
 function player(name: string, controller: PlayerState["controller"]): GameState["players"][number] {
   return {
@@ -17,27 +17,6 @@ function player(name: string, controller: PlayerState["controller"]): GameState[
   };
 }
 
-const human = player("Ari", { type: "human" });
-const computer = player("Blake", { type: "computer", strategy: "competent" });
-
-describe("game table toast filtering", () => {
-  it("shows negative action toasts when a human is affected", () => {
-    expect(shouldShowToastForLog("Ari took 3 Minigun damage.", [human, computer])).toBe(true);
-    expect(shouldShowToastForLog("Blake stole 1 card from Ari.", [human, computer])).toBe(true);
-    expect(shouldShowToastForLog("Blake sabotaged Ari. Ari must discard 2 cards.", [human, computer])).toBe(true);
-  });
-
-  it("does not show negative action toasts for computer-only events", () => {
-    expect(shouldShowToastForLog("Blake took 3 Minigun damage.", [human, computer])).toBe(false);
-    expect(shouldShowToastForLog("Ari stole 1 card from Blake.", [human, computer])).toBe(false);
-    expect(shouldShowToastForLog("Ari disarmed Blake, discarding Pistol.", [human, computer])).toBe(false);
-  });
-
-  it("does not show toasts for non-negative log messages", () => {
-    expect(shouldShowToastForLog("Ari drew 1 card.", [human, computer])).toBe(false);
-  });
-});
-
 describe("game table team hand visibility", () => {
   const teamHuman = { ...player("Ari", { type: "human" }), id: "player_1", teamId: "team_a" as const };
   const teamComputer = { ...player("Casey", { type: "computer", strategy: "competent" }), id: "player_3", teamId: "team_a" as const };
@@ -50,5 +29,96 @@ describe("game table team hand visibility", () => {
 
   it("keeps opposing computer team hands face down", () => {
     expect(canRevealTableHand(teamState, opponentComputer, opponentComputer, false)).toBe(false);
+  });
+});
+
+describe("game table hand privacy toggle", () => {
+  const human = { ...player("Ari", { type: "human" }), id: "player_1" };
+  const computer = { ...player("Blake", { type: "computer", strategy: "competent" }), id: "player_2" };
+
+  it("only allows the current human player's hand to be hidden", () => {
+    const state = { players: [human, computer] } as GameState;
+
+    expect(canToggleHandPrivacy(state, human, human, false)).toBe(true);
+    expect(canToggleHandPrivacy(state, human, computer, false)).toBe(false);
+    expect(canToggleHandPrivacy(state, computer, computer, false)).toBe(false);
+  });
+
+  it("does not show the toggle while a pass-device gate is active or when no humans remain", () => {
+    const computerOnlyState = { players: [computer, { ...computer, id: "player_3", name: "Casey" }] } as GameState;
+
+    expect(canToggleHandPrivacy({ players: [human, computer] } as GameState, human, human, true)).toBe(false);
+    expect(canToggleHandPrivacy(computerOnlyState, computerOnlyState.players[0], computerOnlyState.players[0], false)).toBe(false);
+  });
+});
+
+describe("game table hand discard selection", () => {
+  const firstCard = { instanceId: "card_1", definitionId: "weapon_pistol" };
+  const secondCard = { instanceId: "card_2", definitionId: "defense_dodge" };
+  const human = { ...player("Ari", { type: "human" }), id: "player_1", hand: [firstCard, secondCard] };
+
+  it("uses the displayed hand for pending discard choices", () => {
+    const state = {
+      players: [human],
+      pendingDiscard: {
+        sourcePlayerId: "player_2",
+        playerId: human.id,
+        count: 1,
+        reason: "Sabotage",
+        allowedCardInstanceIds: [secondCard.instanceId]
+      },
+      pendingBlackMarket: null,
+      settings: { maxHandSize: 7, blackMarketPreset: "standard" }
+    } as GameState;
+
+    expect(getHandDiscardRequirement(state, human, human)).toEqual({
+      type: "pendingDiscard",
+      playerId: human.id,
+      count: 1,
+      allowedCardInstanceIds: [secondCard.instanceId],
+      reason: "Sabotage"
+    });
+  });
+
+  it("uses the displayed hand for Black Market discard costs", () => {
+    const state = {
+      players: [human],
+      pendingDiscard: null,
+      pendingBlackMarket: {
+        card: { instanceId: "market", definitionId: "event_black_market" },
+        playerOrder: [human.id],
+        currentIndex: 0
+      },
+      settings: { maxHandSize: 7, blackMarketPreset: "standard" }
+    } as GameState;
+
+    expect(getHandDiscardRequirement(state, human, human)).toMatchObject({
+      type: "blackMarket",
+      playerId: human.id,
+      count: 2
+    });
+  });
+
+  it("uses the displayed hand for Intimidate attack-cost discards", () => {
+    const state = {
+      players: [human],
+      pendingDiscard: null,
+      pendingBlackMarket: null,
+      pendingAttackCost: {
+        attackerId: human.id,
+        targetPlayerId: "player_2",
+        weaponInstanceId: firstCard.instanceId,
+        sourcePlayerId: "player_2"
+      },
+      settings: { maxHandSize: 7, blackMarketPreset: "standard" }
+    } as GameState;
+
+    expect(getHandDiscardRequirement(state, human, human)).toEqual({
+      type: "attackCost",
+      playerId: human.id,
+      count: 1,
+      allowedCardInstanceIds: [secondCard.instanceId],
+      reason: "Intimidate"
+    });
   });
 });

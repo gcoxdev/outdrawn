@@ -1,9 +1,10 @@
-import { Home, Menu, X } from "lucide-react";
+import { Home, Menu, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
-import type { GameSettings } from "../data/constants";
+import { blackMarketPresets, type GameSettings } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
+import type { GamePhase } from "../game/types";
 import rulesText from "../../docs/current-rules.md?raw";
 
 type MenuTab = "settings" | "rules" | "cards";
@@ -11,10 +12,11 @@ type MenuTab = "settings" | "rules" | "cards";
 type GameMenuProps = {
   settings: GameSettings;
   dispatch: (action: GameAction) => void;
+  phase?: GamePhase;
   variant?: "floating" | "mobileIcon";
 };
 
-export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuProps) {
+export function GameMenu({ settings, dispatch, phase = "setup", variant = "floating" }: GameMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
   const cardsByType = useMemo(
@@ -32,6 +34,11 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
 
   function returnToLobby() {
     dispatch({ type: "RESET_GAME" });
+    setIsOpen(false);
+  }
+
+  function restartGame() {
+    dispatch({ type: "RESTART_GAME" });
     setIsOpen(false);
   }
 
@@ -65,6 +72,12 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                 <Home size={16} />
                 Return to Lobby
               </button>
+              {phase === "action" && (
+                <button type="button" onClick={restartGame}>
+                  <RotateCcw size={16} />
+                  Restart Game
+                </button>
+              )}
             </div>
 
             <nav className="menu-tabs" aria-label="Menu sections">
@@ -96,6 +109,17 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                   </label>
                 )}
                 <p className="menu-note">Game setup is configured in the lobby before a match starts.</p>
+                <section className="current-game-rules" aria-label="Current game rules">
+                  <h3>Current Game Rules</h3>
+                  <dl>
+                    {getCurrentGameRules(settings).map((rule) => (
+                      <div key={rule.label}>
+                        <dt>{rule.label}</dt>
+                        <dd>{rule.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
               </div>
             )}
 
@@ -154,4 +178,43 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
       )}
     </>
   );
+}
+
+function getCurrentGameRules(settings: GameSettings): Array<{ label: string; value: string }> {
+  return [
+    { label: "Starting health", value: `${settings.startingHealth}` },
+    { label: "Max health", value: `${settings.maxHealth}` },
+    { label: "Starting hand", value: `${settings.startingHandSize} cards` },
+    { label: "Max hand", value: `${settings.maxHandSize} cards` },
+    { label: "Actions", value: `${settings.actionsPerTurn} per turn` },
+    { label: "Turn order", value: settings.turnOrder === "roundRobin" ? "Round robin" : "Standard" },
+    { label: "Secondary defense", value: settings.allowSecondaryDefense ? "Allowed" : "Not allowed" },
+    { label: "Team healing", value: settings.allowTeamHealing ? "Allowed" : "Off" },
+    { label: "Team transfer", value: settings.allowTeamCardTransfer ? "Allowed" : "Off" },
+    { label: "Elimination reward", value: settings.eliminationHealthReward > 0 ? `Heal ${settings.eliminationHealthReward}` : "None" },
+    {
+      label: "Black Market",
+      value: getBlackMarketRuleSummary(settings)
+    }
+  ];
+}
+
+function getBlackMarketRuleSummary(settings: GameSettings): string {
+  const config = settings.blackMarketPreset === "custom" ? settings.blackMarketCustom : blackMarketPresets[settings.blackMarketPreset];
+  const label = settings.blackMarketPreset === "custom" ? "Custom" : toTitleCase(settings.blackMarketPreset);
+  const risk = [
+    config.discardCost > 0 ? `discard ${config.discardCost}` : null,
+    config.healthCost > 0 ? `${config.healthCost} health` : null
+  ].filter(Boolean);
+
+  return `${label}: Risk ${risk.length > 0 ? risk.join(", ") : "none"}; reward reveal ${config.revealCount}, keep ${config.keepCount}.`;
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\w\S*/g, (word) => word[0].toUpperCase() + word.slice(1).toLowerCase());
 }

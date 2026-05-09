@@ -196,6 +196,10 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
 }
 
 export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel, random: () => number = Math.random): GameAction {
+  if (state.pendingEventDialog) {
+    return { type: "ACKNOWLEDGE_EVENT_DIALOG" };
+  }
+
   if (state.pendingReaction) {
     return chooseReaction(state, strategy, random);
   }
@@ -219,10 +223,13 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
 
   if (state.pendingDiscard) {
     const player = getPlayer(state, state.pendingDiscard.playerId)!;
+    const discardable = state.pendingDiscard.allowedCardInstanceIds
+      ? player.hand.filter((card) => state.pendingDiscard!.allowedCardInstanceIds!.includes(card.instanceId))
+      : player.hand;
     return {
       type: "RESOLVE_PENDING_DISCARD",
       playerId: player.id,
-      cardInstanceIds: pickLowestCards(player.hand, state.pendingDiscard.count, strategy, random).map((card) => card.instanceId)
+      cardInstanceIds: pickLowestCards(discardable, state.pendingDiscard.count, strategy, random).map((card) => card.instanceId)
     };
   }
 
@@ -249,6 +256,25 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
       playerId: state.pendingMarketSearch.playerId,
       keepCardInstanceIds: pickBestCards(state.pendingMarketSearch.cards, state.pendingMarketSearch.keepCount, strategy, random).map((card) => card.instanceId)
     };
+  }
+
+  if (state.pendingBlackMarket) {
+    const player = getPlayer(state, state.pendingBlackMarket.playerOrder[state.pendingBlackMarket.currentIndex])!;
+    const marketConfig =
+      state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
+    if (
+      player.health > marketConfig.healthCost &&
+      player.hand.length >= marketConfig.discardCost &&
+      state.mainDeck.length + state.discardPile.length > 0
+    ) {
+      return {
+        type: "START_BLACK_MARKET",
+        playerId: player.id,
+        cardInstanceIds: pickLowestCards(player.hand, marketConfig.discardCost, strategy, random).map((card) => card.instanceId)
+      };
+    }
+
+    return { type: "PASS_BLACK_MARKET", playerId: player.id };
   }
 
   if (state.pendingSteal) {
@@ -324,6 +350,7 @@ export function getDecisionPlayerId(state: GameState): string {
     state.pendingSearch?.playerId ??
     state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
     state.pendingMarketSearch?.playerId ??
+    state.pendingBlackMarket?.playerOrder[state.pendingBlackMarket.currentIndex] ??
     state.pendingSteal?.playerId ??
     getCurrentPlayer(state).id
   );
@@ -478,21 +505,6 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
     }
   }
 
-  const marketConfig =
-    state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
-  if (
-    state.activeEvent?.card.definitionId === "event_black_market" &&
-    player.actionsRemaining >= marketConfig.actionCost &&
-    player.health > marketConfig.healthCost &&
-    player.hand.length >= marketConfig.discardCost
-  ) {
-    return {
-      type: "START_BLACK_MARKET",
-      playerId: player.id,
-      cardInstanceIds: pickLowestCards(player.hand, marketConfig.discardCost, strategy, random).map((card) => card.instanceId)
-    };
-  }
-
   return null;
 }
 
@@ -635,6 +647,13 @@ function dispatchWithMetrics(state: GameState, action: GameAction, metrics: Simu
 function forceProgress(state: GameState, metrics: SimulationMetrics): GameState {
   if (state.pendingReaction) {
     return gameReducer(state, { type: "SKIP_REACTION", defenderId: state.pendingReaction.defenderId });
+  }
+
+  if (state.pendingBlackMarket) {
+    return gameReducer(state, {
+      type: "PASS_BLACK_MARKET",
+      playerId: state.pendingBlackMarket.playerOrder[state.pendingBlackMarket.currentIndex]
+    });
   }
 
   const player = getCurrentPlayer(state);

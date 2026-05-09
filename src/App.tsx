@@ -18,6 +18,7 @@ const initialState: GameState = {
   discardPile: [],
   eventDiscardPile: [],
   activeEvent: null,
+  pendingEventDialog: null,
   pendingReaction: null,
   pendingRedirect: null,
   pendingAttackCost: null,
@@ -26,6 +27,7 @@ const initialState: GameState = {
   pendingSearch: null,
   pendingSupplyDrop: null,
   pendingMarketSearch: null,
+  pendingBlackMarket: null,
   pendingSteal: null,
   pendingSecondaryDamage: null,
   selectedCardId: null,
@@ -44,7 +46,7 @@ export default function App() {
   const aiRandom = useRef(createRng(Date.now()));
 
   useEffect(() => {
-    if (state.phase !== "action") {
+    if (state.phase !== "action" || state.pendingEventDialog) {
       return;
     }
 

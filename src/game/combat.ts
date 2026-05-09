@@ -17,9 +17,15 @@ export type ResolveAttackOptions = {
   resolveCounterDamage?: boolean;
 };
 
-function getBaseAttackDamage(state: GameState, attacker: PlayerState, target: PlayerState, weaponDefinition: CardDefinition): number {
+export function getBaseAttackDamage(
+  state: GameState,
+  attacker: PlayerState,
+  target: PlayerState,
+  weaponDefinition: CardDefinition,
+  weaponDamageOverride?: number
+): number {
   return (
-    (weaponDefinition.damage ?? 0) +
+    (weaponDamageOverride ?? weaponDefinition.damage ?? 0) +
     (state.attackBonuses[attacker.id] ?? 0) +
     (state.markedTargets[target.id] ?? 0) +
     getEventAttackBonus(state, attacker)
