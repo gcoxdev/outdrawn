@@ -9,6 +9,7 @@
 - Add roster grouping for team games with expand/collapse team sections.
 - Simulate larger player counts and team modes before changing card counts or balance assumptions.
 - Add deck configuration support so a game can use predefined decks or a custom deck with selected card types/cards enabled.
+- Add custom card definition support so hosts can create card templates with type, count, timing, target rules, damage, defense/block, healing, draw, discard, steal, splash/area effects, action cost, hand-limit behavior, reaction eligibility, and conditions such as low health, attacker/defender role, seating adjacency, team membership, or prior eliminations.
 - Analyze and simulate deck-composition variants, including weapon-heavy, defense-light, ability-heavy, no-events, high-events, large-table, and beginner-friendly decks.
 - Build an online multiplayer version with lobby creation, configurable game parameters, and private games joinable by key/code.
 - Generate AI-rendered PNG card faces, not SVG or rasterized SVG, following the root reference examples and preserving 2.5" x 3.5" width/height.
@@ -102,10 +103,12 @@ Team-mode candidates:
 
 Event candidates:
 
-- Fog of War: attacks must target a random opponent this round.
-- Collapsing Zone: lowest-health player takes damage at round end.
-- Interference: ability cards cannot be played this round.
-- Revenge Round: eliminated players' cards are discarded instead of looted this round.
-- Exposed Hands: each player reveals one random card from hand until round end.
-- Forced March: players with more than max hand size take damage before discarding.
-- Bad Intel: the first ability played this round targets a random valid player instead.
+- Event candidates should resolve immediately when drawn, affect the whole table or a clearly defined table-wide group, and avoid future round, end-of-round, drawer-only, or persistent "this round" effects unless the effect can be fully resolved at draw time.
+- Event candidates should also be physical-play friendly: no hidden digital state, logs, bots, complex randomization, or memory burden that would be hard to track with real cards.
+- Fog of War: every living player with at least 2 cards reveals one card of their choice, then passes it face down to the player on their left.
+- Collapsing Zone: the lowest-health living player immediately takes 2 damage; tied players each take 1 damage.
+- Interference: each living player immediately discards one ability card if they have one.
+- Revenge Cache: each living player who has eliminated someone may draw 1 card, then discard down to max hand size.
+- Exposed Hands: each living player immediately reveals one random card from hand.
+- Forced March: each living player over max hand size immediately takes 1 damage, then discards down to max hand size.
+- Bad Intel: each living player passes one non-defense card face down to the player on their right, if able.
