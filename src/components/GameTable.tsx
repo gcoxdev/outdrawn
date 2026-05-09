@@ -1,4 +1,4 @@
-import { Eye } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
@@ -35,6 +35,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const [sidebarPlayerPercent, setSidebarPlayerPercent] = useState(62);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [handViewerId, setHandViewerId] = useState<PlayerId | null>(null);
+  const [hiddenHandPlayerIds, setHiddenHandPlayerIds] = useState<Set<PlayerId>>(() => new Set());
   const lastToastedLogId = useRef(state.log[state.log.length - 1]?.id ?? null);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
@@ -72,7 +73,10 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const isComputerDecision = displayPlayer.controller.type === "computer" && displayPlayer.id === decisionPlayerId;
   const privacyGateActive = Boolean(passDeviceContext);
   const shouldRevealDisplayHand = canRevealTableHand(state, displayPlayer, handDisplayPlayer, privacyGateActive);
+  const isHandManuallyHidden = hiddenHandPlayerIds.has(handDisplayPlayer.id);
+  const shouldShowDisplayHand = shouldRevealDisplayHand && !isHandManuallyHidden;
   const canSelectDisplayHand =
+    shouldShowDisplayHand &&
     handDisplayPlayer.id === displayPlayer.id &&
     displayPlayer.controller.type === "human" &&
     !isComputerDecision &&
@@ -223,6 +227,10 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                 </p>
                 <h2>{handDisplayPlayer.name}</h2>
               </div>
+              <div className="board-heading__health" aria-label={`${handDisplayPlayer.name} has ${handDisplayPlayer.health} health`}>
+                <strong>{handDisplayPlayer.health}</strong>
+                <span>HP</span>
+              </div>
               <div className="board-heading__meta">
                 {teamHandViewers.length > 1 && (
                   <label>
@@ -236,11 +244,35 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                     </select>
                   </label>
                 )}
-                <strong>{handDisplayPlayer.health} HP</strong>
+                {shouldRevealDisplayHand && (
+                  <button
+                    aria-label={isHandManuallyHidden ? `Show ${handDisplayPlayer.name}'s hand` : `Hide ${handDisplayPlayer.name}'s hand`}
+                    aria-pressed={isHandManuallyHidden}
+                    className="hand-privacy-button"
+                    title={isHandManuallyHidden ? "Show hand" : "Hide hand"}
+                    type="button"
+                    onClick={() => {
+                      setHiddenHandPlayerIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(handDisplayPlayer.id)) {
+                          next.delete(handDisplayPlayer.id);
+                        } else {
+                          next.add(handDisplayPlayer.id);
+                        }
+                        return next;
+                      });
+                      if (!isHandManuallyHidden && state.selectedCardId) {
+                        dispatch({ type: "SELECT_CARD", cardInstanceId: null });
+                      }
+                    }}
+                  >
+                    {isHandManuallyHidden ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </button>
+                )}
               </div>
             </div>
             <div className="hand-rail">
-              {shouldRevealDisplayHand ? (
+              {shouldShowDisplayHand ? (
                 handDisplayPlayer.hand.map((card) => {
                   const definition = definitionFor(card);
                   return definition ? (

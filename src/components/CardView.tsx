@@ -99,7 +99,7 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
 export function CardBack() {
   return (
     <div className="card-back" aria-label="Hidden card">
-      <div className="card-back__mark">LHS</div>
+      <img className="card-back__image" src="/cards/backs/outdrawn-back-dark-01.png" alt="" aria-hidden="true" />
     </div>
   );
 }
