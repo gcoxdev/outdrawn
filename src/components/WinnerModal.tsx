@@ -32,7 +32,7 @@ export function WinnerModal({ winner, winnerTeamId, winnerTeamMembers, dispatch 
           <X size={24} strokeWidth={2.4} />
         </button>
         <Trophy className="winner-modal__icon" size={46} />
-        <p className="eyebrow">Last Hand Standing</p>
+        <p className="eyebrow">Outdrawn</p>
         <h2>{winnerTitle}</h2>
         <p>{winnerText}</p>
         <button className="primary-command" type="button" onClick={() => dispatch({ type: "RESET_GAME" })}>

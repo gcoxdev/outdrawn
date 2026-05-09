@@ -119,7 +119,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     <main className="setup-screen">
       <GameMenu settings={settings} dispatch={dispatch} />
       <section className="setup-screen__panel">
-        <h1>Last Hand Standing</h1>
+        <h1>Outdrawn</h1>
 
         <div className="lobby-grid">
           <section className="lobby-section lobby-section--players">

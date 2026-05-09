@@ -1,4 +1,4 @@
-// Last Hand Standing — Card Dataset v0.1
+// Outdrawn - Card Dataset v0.1
 // Designed for the first web prototype.
 
 export type CardType = "weapon" | "defense" | "ability" | "healing" | "event";

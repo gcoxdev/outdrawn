@@ -1,3 +1,4 @@
+import { Bot, Copy, Heart, MousePointer2, User } from "lucide-react";
 import { labelTeam } from "../game/rules";
 import type { GameState, PlayerId, PlayerState } from "../game/types";
 
@@ -25,6 +26,8 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
           <article
             className={[
               "player-roster-card",
+              player.teamId === "team_a" ? "is-team-a" : "",
+              player.teamId === "team_b" ? "is-team-b" : "",
               player.id === decisionPlayerId ? "is-decision" : "",
               player.id === currentPlayerId ? "is-current" : "",
               player.id === displayPlayerId ? "is-display" : "",
@@ -37,20 +40,26 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
             <div className="player-roster-card__identity">
               <div>
                 <h3>{player.name}</h3>
-                <p>{labelController(player)}</p>
+                <p>
+                  {player.controller.type === "computer" ? <Bot size={12} /> : <User size={12} />}
+                  {labelController(player)}
+                </p>
               </div>
-              <strong>{player.health} HP</strong>
+              <div className="player-roster-card__stats" aria-label={`${player.name} stats`}>
+                <span className="stat-health" title="Health">
+                  <Heart size={14} />
+                  {player.health}
+                </span>
+                <span className="stat-cards" title="Cards">
+                  <Copy size={14} />
+                  {player.hand.length}
+                </span>
+                <span className="stat-actions" title="Actions">
+                  <MousePointer2 size={14} />
+                  {player.actionsRemaining}
+                </span>
+              </div>
             </div>
-            <dl>
-              <div>
-                <dt>Cards</dt>
-                <dd>{player.hand.length}</dd>
-              </div>
-              <div>
-                <dt>Actions</dt>
-                <dd>{player.actionsRemaining}</dd>
-              </div>
-            </dl>
             <div className="player-roster-card__chips">
               {player.teamId && <span>{labelTeam(player.teamId)}</span>}
               {player.id === decisionPlayerId && <span>Decision</span>}

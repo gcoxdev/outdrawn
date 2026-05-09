@@ -164,7 +164,7 @@ function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId
     winnerTeamId
       ? `${labelTeam(winnerTeamId)} is the last team standing.`
       : winner
-        ? `${winner.name} is the last hand standing.`
+        ? `${winner.name} wins.`
         : "No winner remains."
   );
 }
@@ -1472,7 +1472,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
       winnerId: winner?.id ?? players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null,
       winnerTeamId
     };
-    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} is the last hand standing.`);
+    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} wins.`);
   }
 
   return {

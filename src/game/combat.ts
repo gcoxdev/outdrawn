@@ -174,7 +174,7 @@ export function resolveAttack(
   if (winner || winnerTeamId) {
     winnerId = winner?.id ?? nextState.players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null;
     phase = "gameOver";
-    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} is the last hand standing.`);
+    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} wins.`);
   }
 
   return {
@@ -309,7 +309,7 @@ export function resolveSecondaryDamage(
       winnerId: winner?.id ?? nextState.players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null,
       winnerTeamId
     };
-    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} is the last hand standing.`);
+    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} wins.`);
   }
 
   return { state: nextState, messages };

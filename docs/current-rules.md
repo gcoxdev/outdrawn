@@ -1,4 +1,4 @@
-# Last Hand Standing - Current Web Prototype Rules
+# Outdrawn - Current Web Prototype Rules
 
 ## Goal
 

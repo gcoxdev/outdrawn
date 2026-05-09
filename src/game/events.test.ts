@@ -262,7 +262,7 @@ describe("event cards", () => {
     expect(state.phase).toBe("gameOver");
     expect(state.winnerId).toBe("player_3");
     expect(state.players.map((player) => player.health)).toEqual([0, 0, 1]);
-    expect(state.log.map((entry) => entry.message)).toContain("Devon is the last hand standing.");
+    expect(state.log.map((entry) => entry.message)).toContain("Devon wins.");
     expect(state.log.map((entry) => entry.message)).not.toContain("Devon took 2 Critical Condition damage.");
   });
 

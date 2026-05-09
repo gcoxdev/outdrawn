@@ -11,7 +11,7 @@ export function createNewGame(
   const playerSetups = normalizePlayerSetups(playerInputs);
 
   if (playerSetups.length < 3 || playerSetups.length > 6) {
-    throw new Error("Last Hand Standing requires 3 to 6 players.");
+    throw new Error("Outdrawn requires 3 to 6 players.");
   }
 
   let mainDeck = shuffleDeck(expandDeck(mainDeckCards, "main"), random);

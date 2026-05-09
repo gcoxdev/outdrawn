@@ -740,16 +740,26 @@ p {
 
 .player-roster__list {
   display: grid;
-  gap: 7px;
+  gap: 5px;
 }
 
 .player-roster-card {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  padding: 8px;
+  padding: 7px 8px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.player-roster-card.is-team-a {
+  border-color: rgba(62, 150, 218, 0.44);
+  background: linear-gradient(90deg, rgba(62, 150, 218, 0.14), rgba(255, 255, 255, 0.032));
+}
+
+.player-roster-card.is-team-b {
+  border-color: rgba(218, 91, 82, 0.44);
+  background: linear-gradient(90deg, rgba(218, 91, 82, 0.14), rgba(255, 255, 255, 0.032));
 }
 
 .player-roster-card.is-decision {
@@ -770,63 +780,72 @@ p {
 .player-roster-card__identity {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
 }
 
 .player-roster-card h3 {
-  margin-bottom: 1px;
+  margin-bottom: 0;
   overflow-wrap: anywhere;
-  font-size: 0.92rem;
+  font-size: 1.04rem;
+  line-height: 1.1;
 }
 
 .player-roster-card p {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.74rem;
 }
 
-.player-roster-card strong {
-  color: var(--green);
-  font-size: 0.94rem;
-  text-align: right;
-}
-
-.player-roster-card dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px 10px;
-  margin: 0;
-  font-size: 0.7rem;
-}
-
-.player-roster-card dl div {
+.player-roster-card__stats {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
-.player-roster-card dt {
-  color: var(--muted);
+.player-roster-card__stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  border: 1px solid rgba(244, 238, 226, 0.1);
+  border-radius: 999px;
+  padding: 0 6px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
-.player-roster-card dd {
-  margin: 0;
-  text-align: right;
+.player-roster-card__stats .stat-health svg {
+  color: #e45d53;
+}
+
+.player-roster-card__stats .stat-cards svg {
+  color: #4aa7d8;
+}
+
+.player-roster-card__stats .stat-actions svg {
+  color: #d99d45;
 }
 
 .player-roster-card__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
 
 .player-roster-card__chips span {
   border: 1px solid rgba(244, 238, 226, 0.12);
   border-radius: 999px;
-  padding: 2px 6px;
+  padding: 1px 5px;
   background: rgba(0, 0, 0, 0.16);
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 900;
   text-transform: uppercase;
 }
