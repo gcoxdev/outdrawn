@@ -143,7 +143,6 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             <div className="log-panel__meta">
               <span>{state.mainDeck.length} deck</span>
               <span>{state.discardPile.length} discard</span>
-              <span>{state.eventDeck.length} events</span>
               <span className="log-panel__event">{visibleEventDefinition ? visibleEventDefinition.name : "No event"}</span>
             </div>
             {visibleEventDefinition && (

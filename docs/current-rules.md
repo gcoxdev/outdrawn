@@ -16,9 +16,7 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
-- Event handling: Start of each round by default. If set to Mixed into deck, event cards are shuffled into the main deck after starting hands are dealt, and round-start event reveals are disabled. Events drawn or revealed from the main deck resolve immediately instead of going into hand. Drawing an event does not cost an action.
-- Personal Supply Drops: only available when Event handling is Mixed into deck. If enabled, a drawn Supply Drop only offers cards to the player who drew it.
-- The main deck and event deck are shuffled separately unless events are mixed into the main deck.
+- Event cards are shuffled into the main deck after starting hands are dealt. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
 - The first player is randomly selected by the app.
 
 ## Card Visibility
@@ -42,23 +40,20 @@ On a player's turn, they may spend actions to:
 
 A player may not end their turn while above the maximum hand size.
 
+If a draw or reveal effect finds an event card, resolve that event immediately and continue revealing until the effect has the expected number of non-event cards or the deck is exhausted. Black Market is the exception: it opens the configured exchange instead of being discarded immediately.
+
 ## Round Structure
 
 Each living player acts once per round. After all living players have acted:
 
 1. Collapse damage is applied.
-2. End-of-round event effects resolve.
-3. Temporary round effects clear.
-4. The first player marker advances clockwise to the next living player.
-5. A new event is revealed starting on Round 2.
-
-If events are mixed into the main deck, step 5 is skipped. One-time events resolve immediately and are discarded. This-round or ongoing events drawn from the main deck stay active until the drawing player draws again, until the next round transition clears them, or until another drawn this-round or ongoing event replaces them. If a reveal effect such as Search, Supply Drop, or Black Market reveals an event, that event resolves immediately and the reveal continues until it has the expected number of non-event cards or the deck is exhausted.
+2. Temporary round effects clear.
+3. The first player marker advances clockwise to the next living player.
 
 ## Collapse
 
 - Starting at the end of Round 3, all living players take 1 collapse damage.
 - Starting at the end of Round 8, collapse damage becomes 2.
-- Pressure Zone can add 1 extra damage to players who did not attack that round.
 - Collapse is not an attack and cannot be blocked by normal defense cards.
 
 ## Combat
@@ -118,14 +113,14 @@ Healing cannot exceed maximum health.
 
 ## Events
 
-- Pressure Zone: this round, players who did not attack take +1 collapse damage. In mixed-deck mode, if a player reveals Pressure Zone after spending their last action, that player is exempt from that specific Pressure Zone.
-- Supply Drop: reveal 3 main-deck cards. Players choose in lowest-health order; each may claim 1 card or pass. Unclaimed cards are discarded. If Personal Supply Drops is enabled and Supply Drop was drawn from the mixed main deck, only the drawing player may claim 1 card or pass; if they are already at max hand size, the claimed card is discarded.
-- Bounty: damaging the highest-health player draws 1 card.
-- High Ground: each player's first attack this round deals +1 damage.
+- Pressure Zone: all living players take 1 damage.
+- Supply Drop: draw 3 cards. If this puts you over max hand size, discard down before your next action.
+- Bounty: the highest-health living player takes 2 damage. If tied, each tied highest-health player takes 2 damage.
+- High Ground: each living player draws 1 card. Players over max hand size must discard down.
 - Low Ammo: each player discards their highest-damage weapon from hand or takes 3 damage.
-- No Cover: block/reduction reactions prevent 1 less damage this round. Dodge, Smoke Bomb, Ricochet, Backfire, and Revive are unaffected.
+- No Cover: each player discards one defense card from hand or takes 2 damage.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
-- Black Market: this round, players may use the configured market exchange. Unkept revealed cards are discarded.
+- Black Market: opens the configured market exchange. Unkept revealed cards are discarded.
 - Black Market Standard: risk 1 action and discard 2 cards; reward reveal 3 and keep 1.
 - Black Market Discount Market: risk 1 action and discard 1 card; reward reveal 3 and keep 1.
 - Black Market No-Action Market: risk discard 2 cards; reward reveal 3 and keep 1.
@@ -162,9 +157,9 @@ Known tie scenarios:
    - Collapse damage eliminates all of them at the same time.
    - They also have the same hand size.
 
-2. Pressure Zone plus collapse tie:
-   - Pressure Zone adds damage to multiple players who did not attack.
-   - The combined collapse/Pressure Zone damage eliminates all remaining players.
+2. Pressure Zone tie:
+   - Pressure Zone deals immediate damage to all living players.
+   - Its damage eliminates all remaining players.
    - Pre-effect health and hand size are still tied.
 
 3. Critical Condition tie:

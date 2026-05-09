@@ -15,7 +15,6 @@ export function createNewGame(
   }
 
   let mainDeck = shuffleDeck(expandDeck(mainDeckCards, "main"), random);
-  const eventDeck = settings.eventHandling === "mixedDeck" ? [] : shuffleDeck(expandDeck(eventDeckCards, "event"), random);
   const players: PlayerState[] = playerSetups.map((setup, index) => {
     const draw = drawCards(mainDeck, settings.startingHandSize);
     mainDeck = draw.deck;
@@ -33,9 +32,7 @@ export function createNewGame(
       actionsRemaining: settings.actionsPerTurn
     };
   });
-  if (settings.eventHandling === "mixedDeck") {
-    mainDeck = shuffleDeck([...mainDeck, ...expandDeck(eventDeckCards, "mixed_event")], random);
-  }
+  mainDeck = shuffleDeck([...mainDeck, ...expandDeck(eventDeckCards, "event")], random);
   const firstPlayerIndex = Math.floor(random() * players.length);
 
   return {
@@ -46,7 +43,7 @@ export function createNewGame(
     currentPlayerIndex: firstPlayerIndex,
     firstPlayerIndex,
     mainDeck,
-    eventDeck,
+    eventDeck: [],
     discardPile: [],
     eventDiscardPile: [],
     activeEvent: null,

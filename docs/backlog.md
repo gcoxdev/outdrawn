@@ -105,7 +105,6 @@ Event candidates:
 
 - Decide whether current events should be represented as full cards in the play area or remain compact event summaries near the log.
 - Revisit area-damage cards like Minigun for large player counts, since their value scales with the number of opponents.
-- Analyze whether event cards should be mixed into the main deck and become active for everyone when drawn.
 - Simulate and compare pure round-robin turn order against the standard round model with a moving starting player.
 - Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.
 - Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.

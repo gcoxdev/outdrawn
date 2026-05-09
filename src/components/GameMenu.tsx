@@ -6,7 +6,6 @@ import {
   defaultGameSettings,
   type BlackMarketConfig,
   type BlackMarketPreset,
-  type EventHandlingMode,
   type GameSettings,
   type TurnOrderMode
 } from "../data/constants";
@@ -53,9 +52,11 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
   );
 
   function updateSetting(key: NumericSettingKey, value: number) {
+    const field = settingFields.find((candidate) => candidate.key === key);
+    const boundedValue = field ? Math.min(field.max, Math.max(field.min, value)) : value;
     const nextSettings = {
       ...settings,
-      [key]: value
+      [key]: boundedValue
     };
     const normalized = {
       ...nextSettings,
@@ -66,10 +67,7 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
     dispatch({ type: "UPDATE_SETTINGS", settings: normalized });
   }
 
-  function updateBooleanSetting(
-    key: "debugHandSnapshots" | "passDeviceMode" | "allowSecondaryDefense" | "personalSupplyDrops",
-    value: boolean
-  ) {
+  function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode" | "allowSecondaryDefense", value: boolean) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
@@ -80,17 +78,6 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
 
   function updateTurnOrder(value: TurnOrderMode) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, turnOrder: value } });
-  }
-
-  function updateEventHandling(value: EventHandlingMode) {
-    dispatch({
-      type: "UPDATE_SETTINGS",
-      settings: {
-        ...settings,
-        eventHandling: value,
-        personalSupplyDrops: value === "mixedDeck" ? settings.personalSupplyDrops : false
-      }
-    });
   }
 
   function updateBlackMarketPreset(value: BlackMarketPreset) {
@@ -176,13 +163,6 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                   </select>
                 </label>
                 <label className="setting-control">
-                  <span>Event handling</span>
-                  <select value={settings.eventHandling} onChange={(event) => updateEventHandling(event.target.value as EventHandlingMode)}>
-                    <option value="roundStart">Start of each round</option>
-                    <option value="mixedDeck">Mixed into deck</option>
-                  </select>
-                </label>
-                <label className="setting-control">
                   <span>Black Market</span>
                   <select value={settings.blackMarketPreset} onChange={(event) => updateBlackMarketPreset(event.target.value as BlackMarketPreset)}>
                     {Object.keys(blackMarketPresets).map((preset) => (
@@ -261,16 +241,6 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
                     onChange={(event) => updateBooleanSetting("allowSecondaryDefense", event.target.checked)}
                   />
                 </label>
-                {settings.eventHandling === "mixedDeck" && (
-                  <label className="setting-control setting-toggle">
-                    <span>Personal Supply Drops</span>
-                    <input
-                      type="checkbox"
-                      checked={settings.personalSupplyDrops}
-                      onChange={(event) => updateBooleanSetting("personalSupplyDrops", event.target.checked)}
-                    />
-                  </label>
-                )}
                 <label className="setting-control setting-toggle">
                   <span>Pass device mode</span>
                   <input
@@ -313,8 +283,8 @@ export function GameMenu({ settings, dispatch, variant = "floating" }: GameMenuP
             {activeTab === "cards" && (
               <div className="menu-section card-catalog">
                 <div className="deck-summary">
-                  <span>Main deck: {deckSummary.mainDeckTotal}</span>
-                  <span>Event deck: {deckSummary.eventDeckTotal}</span>
+                  <span>Main deck: {deckSummary.mainDeckTotal + deckSummary.eventDeckTotal}</span>
+                  <span>Events: {deckSummary.eventDeckTotal}</span>
                   <span>Definitions: {mainDeckCards.length + eventDeckCards.length}</span>
                 </div>
                 {Object.entries(cardsByType).map(([type, cards]) => (

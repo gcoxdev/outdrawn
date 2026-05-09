@@ -21,8 +21,6 @@ const scenarios: Scenario[] = [
   { name: "Black Market no-action", settings: { blackMarketPreset: "noAction" } },
   { name: "Black Market bigger", settings: { blackMarketPreset: "bigger" } },
   { name: "Black Market health-pay", settings: { blackMarketPreset: "healthPay" } },
-  { name: "Mixed events", settings: { eventHandling: "mixedDeck" } },
-  { name: "Mixed events + personal supply", settings: { eventHandling: "mixedDeck", personalSupplyDrops: true } },
   { name: "Variety standard", settings: { turnOrder: "roundRobin", allowSecondaryDefense: true, eliminationHealthReward: 2, blackMarketPreset: "discount" } },
   { name: "25 HP large hand", settings: { startingHealth: 25, maxHealth: 25, startingHandSize: 7, maxHandSize: 10, actionsPerTurn: 3 } },
   {

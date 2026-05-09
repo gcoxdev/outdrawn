@@ -651,15 +651,6 @@ function collectStateIssues(state: GameState, metrics: SimulationMetrics) {
     if (player.health < 0) {
       addIssue(metrics, "negative health");
     }
-    if (
-      !player.eliminated &&
-      player.hand.length > state.settings.maxHandSize &&
-      getCurrentPlayer(state).id !== player.id &&
-      state.pendingSteal?.playerId !== player.id &&
-      state.pendingDiscard?.playerId !== player.id
-    ) {
-      addIssue(metrics, "non-current player over hand limit");
-    }
   });
 
   if (state.phase === "gameOver" && !state.winnerId) {

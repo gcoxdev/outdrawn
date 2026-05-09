@@ -7,11 +7,11 @@ Last Hand Standing should work cleanly as a tabletop card game, not only as a br
 ## Current Physical Sticking Points
 
 - Opening damage caps were awkward in physical play because players had to remember a special round-limited exception. They have been removed.
-- Event deck separation is playable but adds another pile and timing step. It is clear, but slower than a single deck. Mixing events into the main deck is worth analyzing later.
+- Events are now mixed into the main deck after starting hands. This removes the extra event pile and round-start timing step.
 - Reload is now physical-friendly because it no longer searches a discard pile for the strongest weapon.
 - Debug hand snapshots, logs, and bot strategy are digital-only. They should not be part of printed rules.
 - Pass-device privacy is digital-only. Physical play naturally uses hidden hands and table talk, so the rulebook should not reference pass-device behavior.
-- Current event summaries are UI-only. Physical play should place the active event card face up near the center of the table until it expires.
+- Current event summaries are UI-only. Physical play should announce drawn events, resolve them immediately, and discard them.
 - Tiebreakers need to be simple. Current recommendation: most eliminations, then pre-effect health, then hand size.
 - Notifications/toasts are digital-only. Physical play should rely on explicit verbal announcements: damage taken, cards stolen, forced discard, elimination, and current event.
 
@@ -26,10 +26,8 @@ Last Hand Standing should work cleanly as a tabletop card game, not only as a br
 ## Table Components
 
 - Main deck
-- Event deck, unless events are later mixed into the main deck
 - Main discard pile
 - Event discard pile
-- Face-up active event area
 - Player health trackers
 - A visible first-player marker if rounds remain
 
@@ -38,5 +36,4 @@ Last Hand Standing should work cleanly as a tabletop card game, not only as a br
 - Keep the current web prototype as the rules testbed, but mark digital-only features clearly in docs.
 - Keep opening damage caps out of the printed rules.
 - Add a printed-rules pass that removes web terms such as log, debug snapshots, bot levels, and pass-device mode.
-- Continue analyzing whether events should be mixed into the main deck.
-- Before print testing, create a physical turn reference card covering turn actions, reaction timing, elimination loot, round cleanup, and event reveal timing.
+- Before print testing, create a physical turn reference card covering turn actions, reaction timing, elimination loot, round cleanup, and event draw timing.
