@@ -1,4 +1,4 @@
-import { Bot, Copy, Heart, MousePointer2, User } from "lucide-react";
+import { Activity, Bot, Copy, Heart, User } from "lucide-react";
 import { labelTeam } from "../game/rules";
 import type { GameState, PlayerId, PlayerState } from "../game/types";
 
@@ -56,7 +56,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
                   {player.hand.length}
                 </span>
                 <span className="stat-actions" title="Actions">
-                  <MousePointer2 size={14} />
+                  <Activity size={14} />
                   {player.actionsRemaining}
                 </span>
               </div>

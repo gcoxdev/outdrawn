@@ -60,8 +60,8 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     card.damage ? { label: card.damage, icon: Swords, title: "Damage" } : null,
     card.splashDamage ? { label: card.splashDamage, icon: Bomb, title: "Splash" } : null,
     card.block ? { label: card.block, icon: ShieldCheck, title: "Block" } : null,
-    card.heal ? { label: card.heal, icon: HeartPulse, title: "Heal" } : null,
-    card.isReaction ? { label: "R", icon: Activity, title: "Reaction" } : null
+    card.actionsCost ? { label: card.actionsCost, icon: Activity, title: "Actions" } : null,
+    card.heal ? { label: card.heal, icon: HeartPulse, title: "Heal" } : null
   ].filter(Boolean);
 
   const cardContent = (
@@ -72,6 +72,13 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       <div className="card-view__art" aria-hidden="true">
         <TypeIcon size={mode === "board" ? 28 : 42} strokeWidth={1.8} />
       </div>
+      <footer className="card-view__footer">
+        <span className="card-view__type">
+          <TypeIcon size={12} />
+          {card.type}
+        </span>
+      </footer>
+      <p className="card-view__text">{mode === "detail" ? card.rulesText : card.shortText}</p>
       <div className="card-view__stats">
         {stats.map((stat) => {
           const Icon = stat!.icon;
@@ -82,19 +89,7 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
             </span>
           );
         })}
-        {card.actionsCost && (
-          <span className="stat-chip" title="Actions">
-            {card.actionsCost}A
-          </span>
-        )}
       </div>
-      <p className="card-view__text">{mode === "detail" ? card.rulesText : card.shortText}</p>
-      <footer className="card-view__footer">
-        <span className="card-view__type">
-          <TypeIcon size={12} />
-          {card.type}
-        </span>
-      </footer>
       <span
         className="card-view__rules"
         title={card.rulesText}
@@ -112,7 +107,7 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
         }
         onPointerLeave={() => setRulesPosition(null)}
       >
-        <CircleHelp size={14} />
+        <CircleHelp size={12} />
         {rulesPosition && (
           <span
             className={`card-view__rules-popover card-view__rules-popover--${rulesPosition.placement}`}

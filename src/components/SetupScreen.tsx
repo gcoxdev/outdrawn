@@ -9,6 +9,7 @@ import {
   type TurnOrderMode
 } from "../data/constants";
 import type { GameAction } from "../game/actions";
+import { labelTeam } from "../game/rules";
 import type { PlayerSetup, StrategyLevel, TeamId } from "../game/types";
 import { GameMenu } from "./GameMenu";
 
@@ -20,7 +21,7 @@ type SetupScreenProps = {
 
 const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "expert", "master"];
 type ControlChoice = "human" | `computer:${StrategyLevel}`;
-type LobbyMode = "ffa" | "2v2" | "2v2v2" | "3v3";
+export type LobbyMode = "ffa" | "2v2" | "2v2v2" | "3v3";
 type NumericSettingKey = {
   [Key in keyof GameSettings]: GameSettings[Key] extends number ? Key : never;
 }[keyof GameSettings];
@@ -62,6 +63,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
       })),
     [activeNames, controls, lobbyMode, teams]
   );
+  const teamModeValidation = getTeamModeValidation(lobbyMode, teams, playerCount);
   const blackMarketConfig = settings.blackMarketPreset === "custom" ? settings.blackMarketCustom : blackMarketPresets[settings.blackMarketPreset];
 
   function updateSetting(key: NumericSettingKey, value: number) {
@@ -195,7 +197,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                       >
                         {teamOptionsForMode(lobbyMode).map((teamId) => (
                           <option key={teamId} value={teamId}>
-                            {labelTeamOption(teamId)}
+                            {labelTeam(teamId)}
                           </option>
                         ))}
                       </select>
@@ -330,7 +332,8 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
           </div>
         </div>
 
-        <button className="primary-command" type="button" onClick={() => onStart(activePlayers)}>
+        {!teamModeValidation.isValid && <p className="setup-validation-message">{teamModeValidation.message}</p>}
+        <button className="primary-command" type="button" disabled={!teamModeValidation.isValid} onClick={() => onStart(activePlayers)}>
           Start Game
         </button>
       </section>
@@ -361,14 +364,54 @@ function teamOptionsForMode(lobbyMode: LobbyMode): TeamId[] {
   return lobbyMode === "2v2v2" ? ["team_a", "team_b", "team_c"] : ["team_a", "team_b"];
 }
 
-function labelTeamOption(teamId: TeamId): string {
-  const labels: Record<TeamId, string> = {
-    team_a: "Team A",
-    team_b: "Team B",
-    team_c: "Team C"
-  };
+export function getTeamModeValidation(
+  lobbyMode: LobbyMode,
+  teams: TeamId[],
+  playerCount: number
+): { isValid: true; message?: undefined } | { isValid: false; message: string } {
+  if (lobbyMode === "ffa") {
+    return { isValid: true };
+  }
 
-  return labels[teamId];
+  const requiredCounts: Record<Exclude<LobbyMode, "ffa">, Partial<Record<TeamId, number>>> = {
+    "2v2": { team_a: 2, team_b: 2 },
+    "2v2v2": { team_a: 2, team_b: 2, team_c: 2 },
+    "3v3": { team_a: 3, team_b: 3 }
+  };
+  const expectedCounts = requiredCounts[lobbyMode];
+  const activeTeams = teams.slice(0, playerCount);
+  const hasExactTeams = Object.entries(expectedCounts).every(
+    ([teamId, expectedCount]) => activeTeams.filter((team) => team === teamId).length === expectedCount
+  );
+  const hasNoExtraTeams = activeTeams.every((team) => team in expectedCounts);
+
+  if (hasExactTeams && hasNoExtraTeams) {
+    return { isValid: true };
+  }
+
+  const countValues = Object.values(expectedCounts).filter((count): count is number => typeof count === "number");
+  const teamsText = formatList(Object.keys(expectedCounts).map((teamId) => labelTeam(teamId as TeamId)));
+  const requirementText =
+    countValues.length > 0 && countValues.every((count) => count === countValues[0])
+      ? `${countValues[0]} players each on ${teamsText}`
+      : formatList(
+          Object.entries(expectedCounts)
+            .filter((entry): entry is [string, number] => typeof entry[1] === "number")
+            .map(([teamId, expectedCount]) => `${expectedCount} player${expectedCount === 1 ? "" : "s"} on ${labelTeam(teamId as TeamId)}`)
+        );
+
+  return {
+    isValid: false,
+    message: `${lobbyMode} requires ${requirementText}.`
+  };
+}
+
+function formatList(values: string[]): string {
+  if (values.length <= 2) {
+    return values.join(" and ");
+  }
+
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
 }
 
 function labelStrategy(strategy: StrategyLevel): string {

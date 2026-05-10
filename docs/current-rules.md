@@ -18,7 +18,7 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
 - Event cards are shuffled into the main deck after starting hands are dealt. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
 - The first player is randomly selected by the app.
-- Team modes use Team A, Team B, and, in 2v2v2, Team C. Teammates can see each other's hands, area damage has no friendly fire, and teammate healing/card transfer can be enabled or disabled before the game starts.
+- Team modes enforce their selected team sizes before a game can start: 2v2 requires two players per team, 3v3 requires three players per team, and 2v2v2 requires two players on each of three teams. Teammates can see each other's hands, area damage has no friendly fire, and teammate healing/card transfer can be enabled or disabled before the game starts.
 
 ## Card Visibility
 
