@@ -5,7 +5,7 @@ import { allCards } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getPassDeviceContext } from "../game/privacy";
-import { getCurrentPlayer, getTeamMembers, labelTeam } from "../game/rules";
+import { getCurrentPlayer, getTeamMembers, isHostileTarget, labelTeam } from "../game/rules";
 import { getDecisionPlayerId } from "../game/simulator";
 import type { CardInstance, GameState, PlayerId } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
@@ -82,6 +82,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     !privacyGateActive &&
     state.phase !== "gameOver";
   const handDiscardRequirement = getHandDiscardRequirement(state, currentPlayer, handDisplayPlayer);
+  const playableReactionCardIds = getPlayableReactionCardIds(state, handDisplayPlayer);
   const selectedDiscardCards = handDisplayPlayer.hand.filter((card) => selectedDiscardIds.includes(card.instanceId));
   const selectedDefinition = canSelectDisplayHand && !handDiscardRequirement ? definitionFor(selectedCard) : undefined;
   const winner = state.players.find((player) => player.id === state.winnerId);
@@ -261,10 +262,11 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                   const canSelectDiscard =
                     !handDiscardRequirement?.allowedCardInstanceIds ||
                     handDiscardRequirement.allowedCardInstanceIds.includes(card.instanceId);
+                  const canSelectReaction = !playableReactionCardIds || playableReactionCardIds.includes(card.instanceId);
                   return definition ? (
                     <CardView
                       card={definition}
-                      isDisabled={Boolean(handDiscardRequirement && !canSelectDiscard)}
+                      isDisabled={Boolean((handDiscardRequirement && !canSelectDiscard) || (playableReactionCardIds && !canSelectReaction))}
                       isSelected={handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : state.selectedCardId === card.instanceId}
                       key={card.instanceId}
                       onClick={
@@ -288,6 +290,10 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                                     ? [...current.slice(1), card.instanceId]
                                     : [...current, card.instanceId];
                                 });
+                                return;
+                              }
+
+                              if (playableReactionCardIds && !canSelectReaction) {
                                 return;
                               }
 
@@ -443,6 +449,42 @@ export function getHandDiscardRequirement(
   }
 
   return null;
+}
+
+export function getPlayableReactionCardIds(state: GameState, handDisplayPlayer: GameState["players"][number]): string[] | null {
+  const activeReaction = state.pendingReaction ?? state.pendingSecondaryDamage;
+  if (!activeReaction || activeReaction.defenderId !== handDisplayPlayer.id) {
+    return null;
+  }
+
+  return handDisplayPlayer.hand
+    .filter((card) => {
+      const definition = definitionFor(card);
+      if (definition?.type !== "defense" && !definition?.isLethalDefense) {
+        return false;
+      }
+
+      if (state.pendingSecondaryDamage && definition.id === "defense_decoy") {
+        return false;
+      }
+
+      if (definition.isLethalDefense) {
+        return activeReaction.baseDamage >= handDisplayPlayer.health;
+      }
+
+      if (definition.id === "defense_decoy") {
+        return state.players.some(
+          (player) =>
+            !player.eliminated &&
+            player.id !== activeReaction.attackerId &&
+            player.id !== handDisplayPlayer.id &&
+            isHostileTarget(handDisplayPlayer, player)
+        );
+      }
+
+      return true;
+    })
+    .map((card) => card.instanceId);
 }
 
 function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {

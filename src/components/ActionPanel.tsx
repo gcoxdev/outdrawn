@@ -20,9 +20,6 @@ type ActionPanelProps = {
 export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscardCards, discardRequirement, isComputerDecision, dispatch }: ActionPanelProps) {
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
-  const selectedDiscardDefinitions = selectedDiscardCards
-    .map((card) => ({ card, definition: getCardDefinitionById(card.definitionId) }))
-    .filter((entry): entry is { card: CardInstance; definition: NonNullable<ReturnType<typeof getCardDefinitionById>> } => Boolean(entry.definition));
   const selectedIsWeapon = selectedDefinition?.type === "weapon";
   const selectedIsTargetedAbility = selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer";
   const selectedWeaponHitsEveryone = selectedDefinition?.type === "weapon" && selectedDefinition.target === "allPlayers";
@@ -136,6 +133,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         ? 3 - state.pendingMultiHitAttack.hitsRemaining
         : null;
     const isSecondary = Boolean(state.pendingSecondaryDamage);
+    const selectedReactionCard = selectedCard && reactionCards.some((card) => card.instanceId === selectedCard.instanceId) ? selectedCard : null;
+    const selectedReactionDefinition = selectedReactionCard ? getCardDefinitionById(selectedReactionCard.definitionId) : undefined;
 
     return (
       <section className="action-panel reaction-panel">
@@ -148,30 +147,26 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
               : `${pendingAttacker.name} played ${weaponDefinition?.name ?? "a weapon"} for ${activeReaction.baseDamage} base damage.`}
             {smgHitNumber ? ` Hit ${smgHitNumber} of 2.` : ""}
           </p>
+          <p>Select a defense card from your hand above, or take the hit.</p>
         </div>
-        <div className="reaction-card-list">
-          {reactionCards.map((card) => {
-            const definition = getCardDefinitionById(card.definitionId);
-            return definition ? (
-              <button
-                className="reaction-card-button"
-                key={card.instanceId}
-                onClick={() =>
-                  dispatch({
-                    type: isSecondary ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION",
-                    defenderId: pendingDefender.id,
-                    reactionCardInstanceId: card.instanceId
-                  })
-                }
-              >
-                <CardView card={definition} mode="board" />
-              </button>
-            ) : null;
-          })}
+        <div className="action-row">
+          <button
+            disabled={!selectedReactionCard}
+            onClick={() =>
+              selectedReactionCard &&
+              dispatch({
+                type: isSecondary ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION",
+                defenderId: pendingDefender.id,
+                reactionCardInstanceId: selectedReactionCard.instanceId
+              })
+            }
+          >
+            {selectedReactionDefinition ? `Play ${selectedReactionDefinition.name}` : "Play Defense"}
+          </button>
+          <button onClick={() => dispatch({ type: isSecondary ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: pendingDefender.id })}>
+            Take Hit
+          </button>
         </div>
-        <button onClick={() => dispatch({ type: isSecondary ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: pendingDefender.id })}>
-          Take Hit
-        </button>
       </section>
     );
   }
@@ -500,16 +495,15 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
 
       <div className="action-panel__decision-grid">
         {overHandLimit ? (
-          <div className="selected-card">
-            <div className="selected-discard-list">
-              {selectedDiscardDefinitions.length > 0 ? (
-                selectedDiscardDefinitions.map(({ card, definition }) => <CardView card={definition} key={card.instanceId} mode="board" isSelected />)
-              ) : (
-                <div className="empty-selection">
-                  <h2>Select discards</h2>
-                  <p>Choose {currentPlayer.hand.length - state.settings.maxHandSize} card{currentPlayer.hand.length - state.settings.maxHandSize === 1 ? "" : "s"} from your hand.</p>
-                </div>
-              )}
+          <div className="discard-action-box">
+            <div>
+              <h2>Select discards</h2>
+              <p>
+                Choose {discardRequirement?.count ?? 0} card{(discardRequirement?.count ?? 0) === 1 ? "" : "s"} from your hand above.
+              </p>
+              <p className="menu-note">
+                Selected {selectedDiscardCards.length} of {discardRequirement?.count ?? 0}.
+              </p>
             </div>
             <button
               disabled={selectedDiscardCards.length < (discardRequirement?.count ?? 0)}
@@ -525,9 +519,12 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
             </button>
           </div>
         ) : selectedDefinition && selectedCard ? (
-          <div className="selected-card">
-            <CardView card={selectedDefinition} mode="detail" />
-            <div className="selected-card__commands">
+          <div className="selected-action-box">
+            <div>
+              <h2>{selectedDefinition.name}</h2>
+              <p>{selectedDefinition.rulesText}</p>
+            </div>
+            <div className="selected-action-box__commands">
               {selectedDefinition.type === "healing" && (
                 <button
                   disabled={!canPlayHealingCard(currentPlayer, selectedDefinition, currentPlayer, state.settings.maxHealth, canAct)}

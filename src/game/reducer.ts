@@ -916,6 +916,46 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
+      if ((definition.draw ?? 0) > 0) {
+        const heal = definition.heal ?? 0;
+        const actionsCost = definition.actionsCost ?? 1;
+        const nextHealth = Math.min(state.settings.maxHealth, target.health + heal);
+        const healedAmount = nextHealth - target.health;
+        const stateBeforeDraw: GameState = {
+          ...state,
+          players: state.players.map((candidate) =>
+            candidate.id === player.id
+              ? {
+                  ...candidate,
+                  health: candidate.id === target.id ? nextHealth : candidate.health,
+                  hand: candidate.hand.filter((handCard) => handCard.instanceId !== card.instanceId),
+                  actionsRemaining: Math.max(0, candidate.actionsRemaining - actionsCost),
+                  actedThisRound: true
+                }
+              : candidate.id === target.id
+                ? {
+                    ...candidate,
+                    health: nextHealth
+                  }
+                : candidate
+          )
+        };
+        const draw = drawCardsResolvingMixedEvents(stateBeforeDraw, definition.draw ?? 0, player.id, true);
+        const nextState = {
+          ...updatePlayer(draw.state, player.id, (currentPlayer) => ({
+            ...currentPlayer,
+            hand: [...currentPlayer.hand, ...draw.drawn]
+          })),
+          discardPile: [...draw.state.discardPile, card]
+        };
+        const message =
+          player.id === target.id
+            ? `${player.name} played ${definition.name} and healed ${healedAmount}.`
+            : `${player.name} played ${definition.name} on ${target.name} and healed ${healedAmount}.`;
+
+        return log(enforceHandLimit(nextState, player.id), message);
+      }
+
       const result = resolveHealing(state, player, card, definition, target);
       return result.messages.reduce((nextState, message) => log(nextState, message), enforceHandLimit(result.state, player.id));
     }

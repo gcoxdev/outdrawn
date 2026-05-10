@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultGameSettings } from "../data/constants";
-import { mainDeckCards } from "../data/cards";
+import { eventDeckCards, mainDeckCards } from "../data/cards";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
@@ -15,6 +15,14 @@ function instances(definitionIds: string[]) {
     const [card] = deck.splice(index, 1);
     return card;
   });
+}
+
+function event(definitionId: string) {
+  const card = expandDeck(eventDeckCards, "correction_event").find((candidate) => candidate.definitionId === definitionId);
+  if (!card) {
+    throw new Error(`Missing ${definitionId}`);
+  }
+  return card;
 }
 
 describe("gameplay corrections", () => {
@@ -265,5 +273,38 @@ describe("gameplay corrections", () => {
     const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
     expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([discarded.instanceId]);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual([painkillers.instanceId]);
+  });
+
+  it("healing draw effects resolve events and still draw their own card", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    const [painkillers, supplyRewardA, supplyRewardB, supplyRewardC, painkillerDraw] = instances([
+      "healing_painkillers",
+      "weapon_pistol",
+      "weapon_knife",
+      "defense_dodge",
+      "weapon_shotgun"
+    ]);
+    const supplyDrop = event("event_supply_drop");
+    state = {
+      ...state,
+      mainDeck: [supplyDrop, supplyRewardA, supplyRewardB, supplyRewardC, painkillerDraw],
+      discardPile: [],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, health: 12, hand: [painkillers], actionsRemaining: 1 } : candidate
+      )
+    };
+
+    state = gameReducer(state, { type: "PLAY_HEALING", playerId: player.id, cardInstanceId: painkillers.instanceId });
+
+    const updatedPlayer = state.players.find((candidate) => candidate.id === player.id)!;
+    expect(updatedPlayer.hand.map((card) => card.instanceId)).toEqual([
+      supplyRewardA.instanceId,
+      supplyRewardB.instanceId,
+      supplyRewardC.instanceId,
+      painkillerDraw.instanceId
+    ]);
+    expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(supplyDrop.instanceId);
+    expect(state.log.map((entry) => entry.message)).toContain(`${player.name} drew Supply Drop.`);
   });
 });

@@ -1144,6 +1144,7 @@ p {
   color: #e8dfd0;
   font-size: clamp(0.64rem, 1vw, 0.74rem);
   line-height: 1.26;
+  overflow: hidden;
 }
 
 .card-view__footer {
@@ -1210,6 +1211,16 @@ p {
   gap: 10px;
 }
 
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.action-row button {
+  flex: 1 1 150px;
+}
+
 .pending-discard-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 168px));
@@ -1242,7 +1253,7 @@ p {
 }
 
 .action-panel__commands,
-.selected-card__commands,
+.selected-action-box__commands,
 .target-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1262,25 +1273,17 @@ p {
   min-width: 0;
 }
 
-.selected-card {
+.selected-action-box,
+.discard-action-box {
   display: grid;
   gap: 10px;
+  align-content: start;
 }
 
-.selected-card .card-detail {
-  max-width: 220px;
-}
-
-.selected-discard-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 120px));
-  justify-content: start;
-  gap: 10px;
-  max-width: 360px;
-}
-
-.empty-selection {
-  padding: 16px;
+.selected-action-box p,
+.discard-action-box p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .ai-thinking-panel {
@@ -1722,7 +1725,4 @@ p {
     grid-template-columns: 1fr;
   }
 
-  .selected-card .card-detail {
-    max-width: 260px;
-  }
 }
