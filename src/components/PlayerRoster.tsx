@@ -28,6 +28,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
               "player-roster-card",
               player.teamId === "team_a" ? "is-team-a" : "",
               player.teamId === "team_b" ? "is-team-b" : "",
+              player.teamId === "team_c" ? "is-team-c" : "",
               player.id === decisionPlayerId ? "is-decision" : "",
               player.id === currentPlayerId ? "is-current" : "",
               player.id === displayPlayerId ? "is-display" : "",

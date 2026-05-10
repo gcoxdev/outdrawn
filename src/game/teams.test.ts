@@ -3,6 +3,7 @@ import { mainDeckCards } from "../data/cards";
 import { defaultGameSettings } from "../data/constants";
 import { expandDeck } from "./deck";
 import { gameReducer } from "./reducer";
+import { labelTeam } from "./rules";
 import { createNewGame } from "./setup";
 
 function instances(definitionIds: string[]) {
@@ -18,6 +19,32 @@ function instances(definitionIds: string[]) {
 }
 
 describe("team mode", () => {
+  it("supports 2v2v2 with a third team winner", () => {
+    const teamC = "team_c";
+    const state = createNewGame(
+      [
+        { name: "Ari", controller: { type: "human" }, teamId: "team_a" },
+        { name: "Blake", controller: { type: "human" }, teamId: "team_b" },
+        { name: "Casey", controller: { type: "human" }, teamId: teamC },
+        { name: "Devon", controller: { type: "computer", strategy: "competent" }, teamId: "team_a" },
+        { name: "Eli", controller: { type: "computer", strategy: "competent" }, teamId: "team_b" },
+        { name: "Finn", controller: { type: "computer", strategy: "competent" }, teamId: teamC }
+      ],
+      () => 0
+    );
+    const finishedState = {
+      ...state,
+      currentPlayerIndex: 2,
+      players: state.players.map((player) => (player.teamId === teamC ? player : { ...player, health: 0, eliminated: true }))
+    };
+    const afterTurn = gameReducer(finishedState, { type: "END_TURN", playerId: finishedState.players[2].id });
+
+    expect(state.players.map((player) => player.teamId)).toEqual(["team_a", "team_b", teamC, "team_a", "team_b", teamC]);
+    expect(labelTeam(teamC)).toBe("Team C");
+    expect(afterTurn.phase).toBe("gameOver");
+    expect(afterTurn.winnerTeamId).toBe(teamC);
+  });
+
   it("stores team assignments during setup", () => {
     const state = createNewGame(
       [

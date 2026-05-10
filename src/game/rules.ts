@@ -71,5 +71,11 @@ export function isHostileTarget(attacker: PlayerState, target: PlayerState): boo
 }
 
 export function labelTeam(teamId: TeamId): string {
-  return teamId === "team_a" ? "Team A" : "Team B";
+  const labels: Record<TeamId, string> = {
+    team_a: "Team A",
+    team_b: "Team B",
+    team_c: "Team C"
+  };
+
+  return labels[teamId];
 }

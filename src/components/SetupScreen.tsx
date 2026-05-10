@@ -20,7 +20,7 @@ type SetupScreenProps = {
 
 const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "expert", "master"];
 type ControlChoice = "human" | `computer:${StrategyLevel}`;
-type LobbyMode = "ffa" | "2v2" | "3v3";
+type LobbyMode = "ffa" | "2v2" | "2v2v2" | "3v3";
 type NumericSettingKey = {
   [Key in keyof GameSettings]: GameSettings[Key] extends number ? Key : never;
 }[keyof GameSettings];
@@ -110,9 +110,10 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     setLobbyMode(value);
     if (value === "2v2") {
       setPlayerCount(4);
-    } else if (value === "3v3") {
+    } else if (value === "2v2v2" || value === "3v3") {
       setPlayerCount(6);
     }
+    setTeams(defaultTeamsForMode(value));
   }
 
   return (
@@ -133,6 +134,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                   <select value={lobbyMode} onChange={(event) => updateLobbyMode(event.target.value as LobbyMode)}>
                     <option value="ffa">Free-for-all</option>
                     <option value="2v2">2v2 Teams</option>
+                    <option value="2v2v2">2v2v2 Teams</option>
                     <option value="3v3">3v3 Teams</option>
                   </select>
                 </label>
@@ -143,7 +145,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                     onChange={(event) => setPlayerCount(Number(event.target.value))}
                     disabled={lobbyMode !== "ffa"}
                   >
-                    {(lobbyMode === "3v3" ? [6] : lobbyMode === "2v2" ? [4] : [3, 4, 5, 6]).map((count) => (
+                    {(["2v2v2", "3v3"].includes(lobbyMode) ? [6] : lobbyMode === "2v2" ? [4] : [3, 4, 5, 6]).map((count) => (
                       <option key={count} value={count}>
                         {count}
                       </option>
@@ -191,8 +193,11 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                           setTeams((current) => current.map((team, teamIndex) => (teamIndex === index ? (event.target.value as TeamId) : team)))
                         }
                       >
-                        <option value="team_a">Team A</option>
-                        <option value="team_b">Team B</option>
+                        {teamOptionsForMode(lobbyMode).map((teamId) => (
+                          <option key={teamId} value={teamId}>
+                            {labelTeamOption(teamId)}
+                          </option>
+                        ))}
                       </select>
                     </label>
                   )}
@@ -342,6 +347,28 @@ function controlToController(control: ControlChoice): PlayerSetup["controller"] 
     type: "computer",
     strategy: control.replace("computer:", "") as StrategyLevel
   };
+}
+
+function defaultTeamsForMode(lobbyMode: LobbyMode): TeamId[] {
+  if (lobbyMode === "2v2v2") {
+    return ["team_a", "team_b", "team_c", "team_a", "team_b", "team_c"];
+  }
+
+  return ["team_a", "team_b", "team_a", "team_b", "team_a", "team_b"];
+}
+
+function teamOptionsForMode(lobbyMode: LobbyMode): TeamId[] {
+  return lobbyMode === "2v2v2" ? ["team_a", "team_b", "team_c"] : ["team_a", "team_b"];
+}
+
+function labelTeamOption(teamId: TeamId): string {
+  const labels: Record<TeamId, string> = {
+    team_a: "Team A",
+    team_b: "Team B",
+    team_c: "Team C"
+  };
+
+  return labels[teamId];
 }
 
 function labelStrategy(strategy: StrategyLevel): string {

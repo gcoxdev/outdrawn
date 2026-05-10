@@ -2,9 +2,9 @@
 
 ## Goal
 
-Be the last player alive.
+Be the last player alive, or the last team with any living players in team mode.
 
-The current web prototype is a local browser game for 3-6 players. Each player can be human or computer-controlled. Computer players can use Beginner, Novice, Competent, Expert, or Master strategy.
+The current web prototype is a local browser game for 3-6 players. Each player can be human or computer-controlled. Computer players can use Beginner, Novice, Competent, Expert, or Master strategy. Supported table modes are free-for-all, 2v2, 2v2v2, and 3v3.
 
 ## Setup
 
@@ -18,6 +18,7 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
 - Event cards are shuffled into the main deck after starting hands are dealt. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
 - The first player is randomly selected by the app.
+- Team modes use Team A, Team B, and, in 2v2v2, Team C. Teammates can see each other's hands, area damage has no friendly fire, and teammate healing/card transfer can be enabled or disabled before the game starts.
 
 ## Card Visibility
 

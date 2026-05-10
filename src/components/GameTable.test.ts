@@ -33,13 +33,16 @@ describe("game table team hand visibility", () => {
 });
 
 describe("game table hand privacy toggle", () => {
-  const human = { ...player("Ari", { type: "human" }), id: "player_1" };
-  const computer = { ...player("Blake", { type: "computer", strategy: "competent" }), id: "player_2" };
+  const human = { ...player("Ari", { type: "human" }), id: "player_1", teamId: "team_a" as const };
+  const computer = { ...player("Blake", { type: "computer", strategy: "competent" }), id: "player_2", teamId: "team_b" as const };
+  const teammateComputer = { ...player("Casey", { type: "computer", strategy: "competent" }), id: "player_3", teamId: "team_a" as const };
 
-  it("only allows the current human player's hand to be hidden", () => {
-    const state = { players: [human, computer] } as GameState;
+  it("allows visible human and teammate hands to be hidden", () => {
+    const state = { players: [human, computer, teammateComputer] } as GameState;
 
     expect(canToggleHandPrivacy(state, human, human, false)).toBe(true);
+    expect(canToggleHandPrivacy(state, teammateComputer, teammateComputer, false)).toBe(true);
+    expect(canToggleHandPrivacy(state, teammateComputer, human, false)).toBe(true);
     expect(canToggleHandPrivacy(state, human, computer, false)).toBe(false);
     expect(canToggleHandPrivacy(state, computer, computer, false)).toBe(false);
   });

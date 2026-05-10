@@ -819,6 +819,11 @@ p {
   background: linear-gradient(90deg, rgba(218, 91, 82, 0.14), rgba(255, 255, 255, 0.032));
 }
 
+.player-roster-card.is-team-c {
+  border-color: rgba(132, 107, 214, 0.48);
+  background: linear-gradient(90deg, rgba(132, 107, 214, 0.14), rgba(255, 255, 255, 0.032));
+}
+
 .player-roster-card.is-decision {
   border-color: rgba(217, 157, 69, 0.8);
   background: rgba(217, 157, 69, 0.1);
@@ -954,9 +959,11 @@ p {
 }
 
 .board-heading__meta {
-  display: grid;
+  display: flex;
+  align-items: end;
   justify-items: end;
   gap: 6px;
+  justify-self: end;
 }
 
 .board-heading__meta label {
@@ -969,7 +976,7 @@ p {
 }
 
 .board-heading__meta select {
-  min-height: 34px;
+  height: 34px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #171613;
@@ -980,7 +987,8 @@ p {
 .hand-privacy-button {
   display: inline-grid;
   width: 38px;
-  min-height: 34px;
+  min-height: 0;
+  height: 34px;
   place-items: center;
   justify-self: end;
   padding: 0;

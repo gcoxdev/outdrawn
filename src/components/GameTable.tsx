@@ -72,6 +72,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const privacyGateActive = Boolean(passDeviceContext);
   const shouldRevealDisplayHand = canRevealTableHand(state, displayPlayer, handDisplayPlayer, privacyGateActive);
   const canToggleDisplayHandPrivacy = canToggleHandPrivacy(state, displayPlayer, handDisplayPlayer, privacyGateActive);
+  const canUseTeamHandControls = teamHandViewers.length > 1 && shouldRevealDisplayHand;
   const isHandManuallyHidden = hiddenHandPlayerIds.has(handDisplayPlayer.id);
   const shouldShowDisplayHand = shouldRevealDisplayHand && !isHandManuallyHidden;
   const canSelectDisplayHand =
@@ -216,7 +217,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                 <span>HP</span>
               </div>
               <div className="board-heading__meta">
-                {teamHandViewers.length > 1 && (
+                {canUseTeamHandControls && (
                   <label>
                     <span>{displayPlayer.teamId ? labelTeam(displayPlayer.teamId) : "Team"}</span>
                     <select value={handDisplayPlayer.id} onChange={(event) => setHandViewerId(event.target.value)}>
@@ -377,12 +378,7 @@ export function canToggleHandPrivacy(
   privacyGateActive: boolean
 ): boolean {
   const hasLivingHuman = state.players.some((player) => !player.eliminated && player.controller.type === "human");
-  return (
-    hasLivingHuman &&
-    !privacyGateActive &&
-    displayPlayer.id === handDisplayPlayer.id &&
-    handDisplayPlayer.controller.type === "human"
-  );
+  return hasLivingHuman && !privacyGateActive && canRevealTableHand(state, displayPlayer, handDisplayPlayer, privacyGateActive);
 }
 
 export type HandDiscardRequirement = {
