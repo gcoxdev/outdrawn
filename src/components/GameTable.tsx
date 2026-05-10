@@ -45,7 +45,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     state.players.find((player) => player.id === state.pendingSearch?.playerId) ??
     state.players.find((player) => player.id === state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex]) ??
     state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
-    state.players.find((player) => player.id === state.pendingBlackMarket?.playerOrder[state.pendingBlackMarket.currentIndex]) ??
+    state.players.find((player) => player.id === state.pendingBlackMarket?.playerId) ??
     state.players.find((player) => player.id === state.pendingSteal?.playerId) ??
     currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
@@ -421,7 +421,7 @@ export function getHandDiscardRequirement(
     };
   }
 
-  const pendingBlackMarketPlayerId = state.pendingBlackMarket?.playerOrder[state.pendingBlackMarket.currentIndex];
+  const pendingBlackMarketPlayerId = state.pendingBlackMarket?.playerId;
   if (pendingBlackMarketPlayerId === handDisplayPlayer.id) {
     const config =
       state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];

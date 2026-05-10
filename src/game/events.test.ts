@@ -477,7 +477,7 @@ describe("event cards", () => {
     ]);
   });
 
-  it("Black Market offers a one-time trade to each living player when drawn", () => {
+  it("Black Market offers a one-time trade only to the drawing player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = state.players[state.currentPlayerIndex];
     const blackMarket = event("event_black_market");
@@ -492,14 +492,13 @@ describe("event cards", () => {
     expect(state.activeEvent).toBeNull();
     expect(state.pendingBlackMarket).toMatchObject({
       card: blackMarket,
-      currentIndex: 0,
-      playerOrder: state.players.map((candidate) => candidate.id)
+      playerId: player.id
     });
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(blackMarket.instanceId);
     expect(state.players.find((candidate) => candidate.id === player.id)?.actionsRemaining).toBe(2);
   });
 
-  it("Black Market offer order starts with the drawing player and wraps seating order", () => {
+  it("Black Market can be passed by the drawing player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const blackMarket = event("event_black_market");
     state = {
@@ -511,28 +510,9 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: state.players[1].id });
 
-    expect(state.pendingBlackMarket?.playerOrder).toEqual([state.players[1].id, state.players[2].id, state.players[0].id]);
-    expect(state.pendingBlackMarket?.currentIndex).toBe(0);
-  });
-
-  it("Black Market can be passed until the one-time event is done", () => {
-    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
-    const playerIds = state.players.map((player) => player.id);
-    state = {
-      ...state,
-      pendingBlackMarket: {
-        card: event("event_black_market"),
-        playerOrder: playerIds,
-        currentIndex: 0
-      }
-    };
-
-    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: playerIds[0] });
-    expect(state.pendingBlackMarket?.currentIndex).toBe(1);
-
-    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: playerIds[1] });
-    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: playerIds[2] });
-
+    expect(state.pendingBlackMarket?.playerId).toBe(state.players[1].id);
+    state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
+    state = gameReducer(state, { type: "PASS_BLACK_MARKET", playerId: state.players[1].id });
     expect(state.pendingBlackMarket).toBeNull();
   });
 
@@ -546,7 +526,7 @@ describe("event cards", () => {
     const shield = main("defense_shield_plate");
     state = {
       ...state,
-      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
+      pendingBlackMarket: { card: event("event_black_market"), playerId: player.id },
       mainDeck: [pistol, shotgun, shield],
       players: state.players.map((candidate) =>
         candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
@@ -576,6 +556,36 @@ describe("event cards", () => {
     );
   });
 
+  it("Black Market discards and replaces event cards revealed as market inventory", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    const firstDiscard = main("weapon_pistol");
+    const secondDiscard = main("weapon_knife");
+    const nestedBlackMarket = event("event_black_market");
+    const pistol = main("weapon_pistol");
+    const shotgun = main("weapon_shotgun");
+    const shield = main("defense_shield_plate");
+    state = {
+      ...state,
+      pendingBlackMarket: { card: event("event_black_market"), playerId: player.id },
+      mainDeck: [nestedBlackMarket, pistol, shotgun, shield],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
+      )
+    };
+
+    state = gameReducer(state, {
+      type: "START_BLACK_MARKET",
+      playerId: player.id,
+      cardInstanceIds: [firstDiscard.instanceId, secondDiscard.instanceId]
+    });
+
+    expect(state.pendingBlackMarket).toMatchObject({ playerId: player.id });
+    expect(state.pendingMarketSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shotgun.instanceId, shield.instanceId]);
+    expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(nestedBlackMarket.instanceId);
+    expect(state.log.map((entry) => entry.message)).not.toContain(`${player.name} drew Black Market.`);
+  });
+
   it("Black Market bigger preset keeps two revealed cards", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, blackMarketPreset: "bigger" });
     const player = state.players[state.currentPlayerIndex];
@@ -584,7 +594,7 @@ describe("event cards", () => {
     const revealed = [main("weapon_pistol"), main("weapon_shotgun"), main("defense_shield_plate"), main("weapon_smg"), main("healing_bandage")];
     state = {
       ...state,
-      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
+      pendingBlackMarket: { card: event("event_black_market"), playerId: player.id },
       mainDeck: revealed,
       players: state.players.map((candidate) =>
         candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 2 } : candidate
@@ -619,7 +629,7 @@ describe("event cards", () => {
     const shield = main("defense_shield_plate");
     state = {
       ...state,
-      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
+      pendingBlackMarket: { card: event("event_black_market"), playerId: player.id },
       mainDeck: [pistol, shotgun, shield],
       players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
     };
@@ -644,7 +654,7 @@ describe("event cards", () => {
     const reward = main("weapon_shotgun");
     state = {
       ...state,
-      pendingBlackMarket: { card: event("event_black_market"), playerOrder: [player.id], currentIndex: 0 },
+      pendingBlackMarket: { card: event("event_black_market"), playerId: player.id },
       mainDeck: [reward],
       players: state.players.map((candidate) =>
         candidate.id === player.id ? { ...candidate, hand: [firstDiscard, secondDiscard], actionsRemaining: 0 } : candidate

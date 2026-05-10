@@ -71,9 +71,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     ? getPlayer(state, state.pendingSupplyDrop.playerOrder[state.pendingSupplyDrop.currentIndex])
     : undefined;
   const pendingMarketPlayer = state.pendingMarketSearch ? getPlayer(state, state.pendingMarketSearch.playerId) : undefined;
-  const pendingBlackMarketPlayer = state.pendingBlackMarket
-    ? getPlayer(state, state.pendingBlackMarket.playerOrder[state.pendingBlackMarket.currentIndex])
-    : undefined;
+  const pendingBlackMarketPlayer = state.pendingBlackMarket ? getPlayer(state, state.pendingBlackMarket.playerId) : undefined;
   const pendingStealPlayer = state.pendingSteal ? getPlayer(state, state.pendingSteal.playerId) : undefined;
   const pendingStealTarget = state.pendingSteal ? getPlayer(state, state.pendingSteal.targetPlayerId) : undefined;
   const reactionCards =

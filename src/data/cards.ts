@@ -672,8 +672,8 @@ export const eventDeckCards: Card[] = [
     rarity: "uncommon",
     discard: 2,
     icons: ["search", "discard", "action"],
-    shortText: "Each player may trade once.",
-    rulesText: "Each living player may make the configured Black Market exchange once, then the event is discarded. Unkept revealed cards are discarded.",
+    shortText: "You may make a market trade.",
+    rulesText: "You may make the configured Black Market exchange once. Event cards revealed for market inventory are discarded and replaced. Unkept revealed cards are discarded.",
     flavorText: "Everything is available. Nothing is free.",
     tags: ["event", "search", "card-selection"]
   }

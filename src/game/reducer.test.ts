@@ -100,4 +100,31 @@ describe("game reducer turns and combat", () => {
     expect(next).toBe(gameOverState);
     expect(next.log).toHaveLength(gameOverState.log.length);
   });
+
+  it("starts a fresh game from game over with the same players and settings", () => {
+    const state = createNewGame(
+      [
+        { name: "Ari", controller: { type: "human" } },
+        { name: "Blake", controller: { type: "computer", strategy: "expert" } },
+        { name: "Casey", controller: { type: "computer", strategy: "competent" } }
+      ],
+      () => 0,
+      { ...defaultGameSettings, maxHandSize: 10 }
+    );
+    const gameOverState = {
+      ...state,
+      phase: "gameOver" as const,
+      winnerId: state.players[0].id
+    };
+
+    const next = gameReducer(gameOverState, { type: "RESTART_GAME" });
+
+    expect(next.phase).toBe("action");
+    expect(next.settings.maxHandSize).toBe(10);
+    expect(next.players.map((player) => ({ name: player.name, controller: player.controller }))).toEqual([
+      { name: "Ari", controller: { type: "human" } },
+      { name: "Blake", controller: { type: "computer", strategy: "expert" } },
+      { name: "Casey", controller: { type: "computer", strategy: "competent" } }
+    ]);
+  });
 });

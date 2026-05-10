@@ -35,7 +35,7 @@ export function WinnerModal({ winner, winnerTeamId, winnerTeamMembers, dispatch 
         <p className="eyebrow">Outdrawn</p>
         <h2>{winnerTitle}</h2>
         <p>{winnerText}</p>
-        <button className="primary-command" type="button" onClick={() => dispatch({ type: "RESET_GAME" })}>
+        <button className="primary-command" type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}>
           New Game
         </button>
       </section>

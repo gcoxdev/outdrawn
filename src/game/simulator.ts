@@ -259,7 +259,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
   }
 
   if (state.pendingBlackMarket) {
-    const player = getPlayer(state, state.pendingBlackMarket.playerOrder[state.pendingBlackMarket.currentIndex])!;
+    const player = getPlayer(state, state.pendingBlackMarket.playerId)!;
     const marketConfig =
       state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
     if (
@@ -350,7 +350,7 @@ export function getDecisionPlayerId(state: GameState): string {
     state.pendingSearch?.playerId ??
     state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
     state.pendingMarketSearch?.playerId ??
-    state.pendingBlackMarket?.playerOrder[state.pendingBlackMarket.currentIndex] ??
+    state.pendingBlackMarket?.playerId ??
     state.pendingSteal?.playerId ??
     getCurrentPlayer(state).id
   );
@@ -652,7 +652,7 @@ function forceProgress(state: GameState, metrics: SimulationMetrics): GameState 
   if (state.pendingBlackMarket) {
     return gameReducer(state, {
       type: "PASS_BLACK_MARKET",
-      playerId: state.pendingBlackMarket.playerOrder[state.pendingBlackMarket.currentIndex]
+      playerId: state.pendingBlackMarket.playerId
     });
   }
 

@@ -120,7 +120,7 @@ Healing cannot exceed maximum health.
 - Low Ammo: each player chooses one weapon from hand to discard or takes 3 damage if they have no weapon.
 - No Cover: each player chooses one defense card from hand to discard or takes 2 damage if they have no defense.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
-- Black Market: each living player may make the configured market exchange once, then the event is discarded. Unkept revealed cards are discarded.
+- Black Market: the drawing player may make the configured market exchange once. Event cards revealed for market inventory are discarded and replaced. Unkept revealed cards are discarded.
 - Black Market Standard: risk discard 2 cards; reward reveal 3 and keep 1.
 - Black Market Discount Market: risk discard 1 card; reward reveal 3 and keep 1.
 - Black Market Bigger Market: risk discard 2 cards; reward reveal 5 and keep 2.

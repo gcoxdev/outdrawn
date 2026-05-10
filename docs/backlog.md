@@ -147,7 +147,7 @@ Team-mode candidates:
 
 Event candidates:
 
-- Event candidates should resolve immediately when drawn, affect the whole table or a clearly defined table-wide group, and avoid future round, end-of-round, drawer-only, or persistent "this round" effects. Future events should be one-time immediate-use cards with no lingering active event state.
+- Event candidates should resolve immediately when drawn, affect the whole table, a clearly defined table-wide group, or a personal opportunity like Supply Drop/Black Market, and avoid future round, end-of-round, or persistent "this round" effects. Future events should be one-time immediate-use cards with no lingering active event state.
 - Event candidates should also be physical-play friendly: no hidden digital state, logs, bots, complex randomization, or memory burden that would be hard to track with real cards.
 - Fog of War: every living player with at least 2 cards reveals one card of their choice, then passes it face down to the player on their left.
 - Collapsing Zone: the lowest-health living player immediately takes 2 damage; tied players each take 1 damage.

@@ -129,8 +129,7 @@ export type PendingMarketSearch = {
 
 export type PendingBlackMarket = {
   card: CardInstance;
-  playerOrder: PlayerId[];
-  currentIndex: number;
+  playerId: PlayerId;
 };
 
 export type PendingSteal = {

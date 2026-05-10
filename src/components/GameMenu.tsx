@@ -1,4 +1,4 @@
-import { Home, Menu, RotateCcw, X } from "lucide-react";
+import { Home, Menu, Plus, RotateCcw, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
 import { blackMarketPresets, type GameSettings } from "../data/constants";
@@ -76,6 +76,12 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
                 <button type="button" onClick={restartGame}>
                   <RotateCcw size={16} />
                   Restart Game
+                </button>
+              )}
+              {phase === "gameOver" && (
+                <button type="button" onClick={restartGame}>
+                  <Plus size={16} />
+                  New Game
                 </button>
               )}
             </div>

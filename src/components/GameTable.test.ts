@@ -89,8 +89,7 @@ describe("game table hand discard selection", () => {
       pendingDiscard: null,
       pendingBlackMarket: {
         card: { instanceId: "market", definitionId: "event_black_market" },
-        playerOrder: [human.id],
-        currentIndex: 0
+        playerId: human.id
       },
       settings: { maxHandSize: 7, blackMarketPreset: "standard" }
     } as GameState;

@@ -317,15 +317,15 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
   }
 
   if (eventId === "event_black_market") {
-    const livingPlayers = state.players.filter((player) => !player.eliminated);
-    const sourceIndex = Math.max(0, livingPlayers.findIndex((player) => player.id === sourcePlayerId));
-    const playerOrder = [...livingPlayers.slice(sourceIndex), ...livingPlayers.slice(0, sourceIndex)].map((player) => player.id);
+    if (!sourcePlayerId) {
+      return state;
+    }
+
     return {
       ...state,
       pendingBlackMarket: {
         card: eventCard ?? { instanceId: `active_${eventId}_${state.log.length}`, definitionId: eventId },
-        playerOrder,
-        currentIndex: 0
+        playerId: sourcePlayerId
       }
     };
   }
@@ -376,6 +376,42 @@ function drawCardsResolvingMixedEvents(state: GameState, count: number, playerId
 
   return {
     state: nextState,
+    drawn
+  };
+}
+
+function drawMarketCardsSkippingEvents(state: GameState, count: number) {
+  const drawn: CardInstance[] = [];
+  const eventCards: CardInstance[] = [];
+  let nextState = state;
+
+  while (drawn.length < count && (nextState.mainDeck.length > 0 || nextState.discardPile.length > 0)) {
+    const draw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
+    const card = draw.drawn[0];
+    const definition = getCardDefinitionById(card?.definitionId ?? "");
+    nextState = {
+      ...nextState,
+      mainDeck: draw.mainDeck,
+      discardPile: draw.discardPile
+    };
+
+    if (!card) {
+      break;
+    }
+
+    if (definition?.type === "event") {
+      eventCards.push(card);
+      continue;
+    }
+
+    drawn.push(card);
+  }
+
+  return {
+    state: {
+      ...nextState,
+      eventDiscardPile: [...nextState.eventDiscardPile, ...eventCards]
+    },
     drawn
   };
 }
@@ -518,6 +554,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (
     state.phase === "gameOver" &&
     action.type !== "RESET_GAME" &&
+    action.type !== "RESTART_GAME" &&
     action.type !== "UPDATE_SETTINGS" &&
     action.type !== "ACKNOWLEDGE_EVENT_DIALOG"
   ) {
@@ -779,7 +816,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "START_BLACK_MARKET": {
       const pendingBlackMarket = state.pendingBlackMarket;
-      const expectedPlayerId = pendingBlackMarket?.playerOrder[pendingBlackMarket.currentIndex];
+      const expectedPlayerId = pendingBlackMarket?.playerId;
       if (!pendingBlackMarket || action.playerId !== expectedPlayerId || state.pendingMarketSearch) {
         return state;
       }
@@ -801,7 +838,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      const reveal = drawCardsResolvingMixedEvents(state, marketConfig.revealCount, player.id, true);
+      const reveal = drawMarketCardsSkippingEvents(state, marketConfig.revealCount);
       const nextState = {
         ...reveal.state,
         discardPile: [...reveal.state.discardPile, ...selected],
@@ -835,8 +872,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const unkept = pending.cards.filter((card) => !keepIds.includes(card.instanceId));
-      const nextState = advanceBlackMarket({
+      const nextState = {
         ...state,
+        pendingBlackMarket: null,
         pendingMarketSearch: null,
         discardPile: [...state.discardPile, ...unkept],
         players: state.players.map((candidate) =>
@@ -847,19 +885,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
               }
             : candidate
         )
-      });
+      };
 
       return log(enforceHandLimit(nextState, player.id), `${player.name} bought ${kept.length} Black Market card${kept.length === 1 ? "" : "s"} and discarded ${unkept.length}.`);
     }
     case "PASS_BLACK_MARKET": {
       const pendingBlackMarket = state.pendingBlackMarket;
-      const expectedPlayerId = pendingBlackMarket?.playerOrder[pendingBlackMarket.currentIndex];
+      const expectedPlayerId = pendingBlackMarket?.playerId;
       const player = getPlayer(state, action.playerId);
       if (!pendingBlackMarket || action.playerId !== expectedPlayerId || !player) {
         return state;
       }
 
-      return log(advanceBlackMarket(state), `${player.name} passed on the Black Market.`);
+      return log({ ...state, pendingBlackMarket: null }, `${player.name} passed on the Black Market.`);
     }
     case "RESOLVE_PENDING_STEAL": {
       const pending = state.pendingSteal;
@@ -1695,25 +1733,6 @@ function discardInterruptedWeapon(state: GameState, attackerId: PlayerId, weapon
           }
         : player
     )
-  };
-}
-
-function advanceBlackMarket(state: GameState): GameState {
-  const pending = state.pendingBlackMarket;
-  if (!pending) {
-    return state;
-  }
-
-  const currentIndex = pending.currentIndex + 1;
-  return {
-    ...state,
-    pendingBlackMarket:
-      currentIndex >= pending.playerOrder.length
-        ? null
-        : {
-            ...pending,
-            currentIndex
-          }
   };
 }
 
