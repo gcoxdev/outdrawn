@@ -5,6 +5,7 @@ import { blackMarketPresets, type GameSettings } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
 import type { GamePhase } from "../game/types";
+import { PwaControls } from "./PwaControls";
 import rulesText from "../../docs/current-rules.md?raw";
 
 type MenuTab = "settings" | "rules" | "cards";
@@ -51,7 +52,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
         aria-label="Open menu"
       >
         <Menu size={18} />
-        {variant === "floating" && "Menu"}
+        {variant === "floating" && <span className="menu-trigger__label">Menu</span>}
       </button>
       {isOpen && (
         <div className="menu-overlay" role="dialog" aria-modal="true" aria-label="Game menu">
@@ -114,6 +115,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
                     />
                   </label>
                 )}
+                <PwaControls />
                 <p className="menu-note">Game setup is configured in the lobby before a match starts.</p>
                 <section className="current-game-rules" aria-label="Current game rules">
                   <h3>Current Game Rules</h3>

@@ -625,6 +625,44 @@ p {
   padding-left: 14px;
 }
 
+.pwa-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.pwa-controls p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.pwa-controls__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pwa-controls__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.pwa-controls__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .game-table {
   display: grid;
   gap: 10px;
@@ -1659,6 +1697,25 @@ p {
     padding: 10px;
   }
 
+  .setup-screen__panel {
+    padding: 24px 20px;
+  }
+
+  .setup-screen__logo-title img {
+    width: min(300px, 82%);
+  }
+
+  .setup-screen > .menu-trigger {
+    width: 42px;
+    min-height: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .setup-screen > .menu-trigger .menu-trigger__label {
+    display: none;
+  }
+
   .lobby-grid,
   .lobby-settings-grid,
   .market-control,
@@ -1668,7 +1725,19 @@ p {
   }
 
   .lobby-section__header {
-    align-items: end;
+    display: grid;
+    align-items: start;
+    min-height: 0;
+    gap: 10px;
+  }
+
+  .lobby-player-controls {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(76px, 92px);
+  }
+
+  .lobby-player-controls .field {
+    min-width: 0;
   }
 
   .market-summary {
