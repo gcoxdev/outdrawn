@@ -10,6 +10,7 @@ import {
 } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { labelTeam } from "../game/rules";
+import { getTeamModeValidation as getScalableTeamModeValidation, type LobbyMode as ScalableLobbyMode } from "../game/setupOptions";
 import type { PlayerSetup, StrategyLevel, TeamId } from "../game/types";
 import { GameMenu } from "./GameMenu";
 
@@ -365,10 +366,14 @@ function teamOptionsForMode(lobbyMode: LobbyMode): TeamId[] {
 }
 
 export function getTeamModeValidation(
-  lobbyMode: LobbyMode,
+  lobbyMode: LobbyMode | ScalableLobbyMode,
   teams: TeamId[],
   playerCount: number
 ): { isValid: true; message?: undefined } | { isValid: false; message: string } {
+  if (lobbyMode === "duos" || lobbyMode === "trios" || lobbyMode === "squads" || lobbyMode === "twoTeams" || lobbyMode === "custom") {
+    return getScalableTeamModeValidation(lobbyMode, teams, playerCount);
+  }
+
   if (lobbyMode === "ffa") {
     return { isValid: true };
   }
