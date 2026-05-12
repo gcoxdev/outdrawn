@@ -4,7 +4,7 @@
 
 Be the last player alive, or the last team with any living players in team mode.
 
-The current web prototype is a local browser game for 3-6 players. Each player can be human or computer-controlled. Computer players can use Beginner, Novice, Competent, Expert, or Master strategy. Supported table modes are free-for-all, 2v2, 2v2v2, and 3v3.
+The current web prototype is a local browser game for 3-100 players. Each player can be human or computer-controlled. Computer players can use Beginner, Novice, Competent, Expert, or Master strategy. Supported table modes are free-for-all, duos, trios, squads, two teams, and custom teams.
 
 ## Setup
 
@@ -13,6 +13,8 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 - Starting hand: 5 cards by default.
 - Maximum hand size: 7 cards by default.
 - Actions per turn: 2 by default.
+- Draws per turn: 1 by default.
+- Draws spend actions: on by default. If disabled, players get a separate draw allowance each turn and drawing does not spend an action.
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
@@ -32,11 +34,13 @@ The current web prototype is a local browser game for 3-6 players. Each player c
 
 On a player's turn, they may spend actions to:
 
-- Draw 1 card.
+- Draw 1 card, if draws spend actions.
 - Play a weapon as an attack.
 - Play an ability.
 - Play a healing card.
 - Pass.
+
+If draws do not spend actions, a player may draw up to the configured draws-per-turn limit separately from their action count.
 
 A player may not end their turn while above the maximum hand size.
 

@@ -292,7 +292,15 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     return { type: "DISCARD_CARD", playerId: player.id, cardInstanceId: pickLowestCards(player.hand, 1, strategy, random)[0].instanceId };
   }
 
-  if (player.eliminated || player.actionsRemaining <= 0) {
+  if (player.eliminated) {
+    return { type: "END_TURN", playerId: player.id };
+  }
+
+  if (player.actionsRemaining <= 0) {
+    if (!state.settings.drawsUseActions && player.drawsRemaining > 0 && (state.mainDeck.length > 0 || state.discardPile.length > 0)) {
+      return { type: "DRAW_CARD", playerId: player.id };
+    }
+
     return { type: "END_TURN", playerId: player.id };
   }
 
@@ -333,7 +341,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     return attack;
   }
 
-  if (state.mainDeck.length > 0 || state.discardPile.length > 0) {
+  if ((state.settings.drawsUseActions || player.drawsRemaining > 0) && (state.mainDeck.length > 0 || state.discardPile.length > 0)) {
     return { type: "DRAW_CARD", playerId: player.id };
   }
 

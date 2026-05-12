@@ -61,6 +61,12 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
                   <Activity size={14} />
                   {player.actionsRemaining}
                 </span>
+                {!state.settings.drawsUseActions && (
+                  <span className="stat-cards" title="Draws">
+                    <Copy size={14} />
+                    {player.drawsRemaining}
+                  </span>
+                )}
               </div>
             </div>
             <div className="player-roster-card__chips">

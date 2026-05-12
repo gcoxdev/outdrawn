@@ -46,6 +46,20 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     !state.pendingBlackMarket &&
     !state.pendingSteal &&
     currentPlayer.actionsRemaining > 0;
+  const canDraw =
+    state.phase === "action" &&
+    !state.pendingReaction &&
+    !state.pendingRedirect &&
+    !state.pendingSecondaryDamage &&
+    !state.pendingAttackCost &&
+    !state.pendingMultiHitAttack &&
+    !state.pendingDiscard &&
+    !state.pendingSearch &&
+    !state.pendingSupplyDrop &&
+    !state.pendingMarketSearch &&
+    !state.pendingBlackMarket &&
+    !state.pendingSteal &&
+    (state.settings.drawsUseActions ? currentPlayer.actionsRemaining > 0 : currentPlayer.drawsRemaining > 0);
   const canEndTurn =
     state.phase === "action" &&
     !state.pendingReaction &&
@@ -470,7 +484,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     <section className="action-panel">
       <div className="action-panel__commands">
         <button
-          disabled={!canAct || (state.mainDeck.length === 0 && state.discardPile.length === 0)}
+          disabled={!canDraw || (state.mainDeck.length === 0 && state.discardPile.length === 0)}
           onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
         >
           Draw

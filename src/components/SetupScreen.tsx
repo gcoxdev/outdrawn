@@ -53,6 +53,7 @@ const settingFields: Array<{
   { key: "startingHandSize", label: "Starting hand size", min: 1, max: 15 },
   { key: "maxHandSize", label: "Max cards in hand", min: 1, max: 20 },
   { key: "actionsPerTurn", label: "Actions per turn", min: 1, max: 6 },
+  { key: "drawsPerTurn", label: "Draws per turn", min: 0, max: 10 },
   { key: "eliminationHealthReward", label: "Health reward on elimination", min: 0, max: 20 }
 ];
 const lobbyModes: LobbyMode[] = ["ffa", "duos", "trios", "squads", "twoTeams", "custom"];
@@ -98,7 +99,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, turnOrder: value } });
   }
 
-  function updateBooleanSetting(key: "allowSecondaryDefense" | "allowTeamHealing" | "allowTeamCardTransfer", value: boolean) {
+  function updateBooleanSetting(key: "allowSecondaryDefense" | "allowTeamHealing" | "allowTeamCardTransfer" | "drawsUseActions", value: boolean) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
@@ -270,6 +271,14 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                     <option value="standard">Standard</option>
                     <option value="roundRobin">Round robin</option>
                   </select>
+                </label>
+                <label className="setting-control setting-toggle">
+                  <span>Draws spend actions</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.drawsUseActions}
+                    onChange={(event) => updateBooleanSetting("drawsUseActions", event.target.checked)}
+                  />
                 </label>
                 <label className="setting-control setting-toggle">
                   <span>Defense on secondary attacks</span>

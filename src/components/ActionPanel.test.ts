@@ -14,7 +14,8 @@ function player(health: number, actionsRemaining = 2): PlayerState {
     eliminations: 0,
     attackedThisRound: false,
     actedThisRound: false,
-    actionsRemaining
+    actionsRemaining,
+    drawsRemaining: 1
   };
 }
 

@@ -8,6 +8,7 @@ import type { GameState, PlayerState } from "./types";
 import { createPendingReaction, getBaseAttackDamage, getGrenadeSplashTargets, resolveAttack, resolveHealing, resolveSecondaryDamage } from "./combat";
 import {
   canPlayerAct,
+  canPlayerDraw,
   areTeammates,
   getCardDefinitionById,
   getCurrentPlayer,
@@ -74,6 +75,18 @@ function spendAction(state: GameState, playerId: string): GameState {
   }));
 }
 
+function spendDraw(state: GameState, playerId: string): GameState {
+  if (state.settings.drawsUseActions) {
+    return spendAction(state, playerId);
+  }
+
+  return updatePlayer(state, playerId, (player) => ({
+    ...player,
+    drawsRemaining: Math.max(0, player.drawsRemaining - 1),
+    actedThisRound: true
+  }));
+}
+
 function advanceTurn(state: GameState): GameState {
   const livingPlayers = state.players.filter((player) => !player.eliminated);
   if (livingPlayers.length <= 1 || getWinningTeamId(state)) {
@@ -116,7 +129,8 @@ function advanceTurn(state: GameState): GameState {
     return {
       ...player,
       ...resetForRound,
-      actionsRemaining: index === currentPlayerIndex ? transitionState.settings.actionsPerTurn : player.actionsRemaining
+      actionsRemaining: index === currentPlayerIndex ? transitionState.settings.actionsPerTurn : player.actionsRemaining,
+      drawsRemaining: index === currentPlayerIndex ? transitionState.settings.drawsPerTurn : player.drawsRemaining
     };
   });
 
@@ -546,7 +560,9 @@ function normalizeSettings(settings: GameState["settings"]): GameState["settings
       actionCost: 0
     },
     maxHealth: Math.max(1, settings.maxHealth, settings.startingHealth),
-    maxHandSize: Math.max(1, settings.maxHandSize, settings.startingHandSize)
+    maxHandSize: Math.max(1, settings.maxHandSize, settings.startingHandSize),
+    drawsPerTurn: Math.max(0, settings.drawsPerTurn ?? 1),
+    drawsUseActions: settings.drawsUseActions ?? true
   };
 }
 
@@ -575,7 +591,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "ACKNOWLEDGE_EVENT_DIALOG":
       return { ...state, pendingEventDialog: null };
     case "DRAW_CARD": {
-      if (!canPlayerAct(state, action.playerId) || (state.mainDeck.length === 0 && state.discardPile.length === 0)) {
+      if (!canPlayerDraw(state, action.playerId) || (state.mainDeck.length === 0 && state.discardPile.length === 0)) {
         return state;
       }
 
@@ -590,7 +606,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return nextState;
       }
 
-      nextState = spendAction(nextState, action.playerId);
+      nextState = spendDraw(nextState, action.playerId);
       return log(enforceHandLimit(nextState, action.playerId), `${getCurrentPlayer(state).name} drew 1 card.`);
     }
     case "DISCARD_CARD": {

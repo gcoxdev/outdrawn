@@ -23,7 +23,23 @@ describe("game reducer turns and combat", () => {
 
     expect(nextPlayer.hand).toHaveLength(STARTING_HAND_SIZE + 1);
     expect(nextPlayer.actionsRemaining).toBe(ACTIONS_PER_TURN - 1);
+    expect(nextPlayer.drawsRemaining).toBe(1);
     expect(next.mainDeck).toHaveLength(state.mainDeck.length - 1);
+  });
+
+  it("can draw from a separate draw allowance without spending actions", () => {
+    const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      drawsPerTurn: 2,
+      drawsUseActions: false
+    });
+    const player = getCurrentPlayer(state);
+    const next = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+    const nextPlayer = getCurrentPlayer(next);
+
+    expect(nextPlayer.hand).toHaveLength(STARTING_HAND_SIZE + 1);
+    expect(nextPlayer.actionsRemaining).toBe(ACTIONS_PER_TURN);
+    expect(nextPlayer.drawsRemaining).toBe(1);
   });
 
   it("starts an attack by playing a weapon from hand", () => {

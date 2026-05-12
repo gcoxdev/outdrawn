@@ -31,7 +31,8 @@ export function createNewGame(
       eliminations: 0,
       attackedThisRound: false,
       actedThisRound: false,
-      actionsRemaining: settings.actionsPerTurn
+      actionsRemaining: settings.actionsPerTurn,
+      drawsRemaining: settings.drawsPerTurn
     };
   });
   mainDeck = shuffleDeck([...mainDeck, ...expandDeck(eventDeckCards, "event")], random);

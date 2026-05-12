@@ -43,6 +43,29 @@ export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
   );
 }
 
+export function canPlayerDraw(state: GameState, playerId: PlayerId): boolean {
+  const player = getCurrentPlayer(state);
+  const hasDrawResource = state.settings.drawsUseActions ? player.actionsRemaining > 0 : player.drawsRemaining > 0;
+
+  return (
+    state.phase === "action" &&
+    !state.pendingReaction &&
+    !state.pendingRedirect &&
+    !state.pendingAttackCost &&
+    !state.pendingMultiHitAttack &&
+    !state.pendingDiscard &&
+    !state.pendingSearch &&
+    !state.pendingSupplyDrop &&
+    !state.pendingMarketSearch &&
+    !state.pendingBlackMarket &&
+    !state.pendingSteal &&
+    !state.pendingSecondaryDamage &&
+    player.id === playerId &&
+    !player.eliminated &&
+    hasDrawResource
+  );
+}
+
 export function isGameOver(state: GameState): boolean {
   return getLivingPlayers(state).length <= 1 || Boolean(getWinningTeamId(state));
 }

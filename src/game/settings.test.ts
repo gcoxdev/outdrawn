@@ -52,4 +52,16 @@ describe("game settings", () => {
     expect(blocked.currentPlayerIndex).toBe(overLimit.currentPlayerIndex);
     expect(blocked.log.at(-1)?.message).toContain("discard down to 3");
   });
+
+  it("uses custom draw settings when starting a game", () => {
+    const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
+      ...defaultGameSettings,
+      drawsPerTurn: 3,
+      drawsUseActions: false
+    });
+
+    expect(state.settings.drawsPerTurn).toBe(3);
+    expect(state.settings.drawsUseActions).toBe(false);
+    expect(state.players.every((player) => player.drawsRemaining === 3)).toBe(true);
+  });
 });

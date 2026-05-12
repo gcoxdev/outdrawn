@@ -38,6 +38,7 @@ export type PlayerState = {
   attackedThisRound: boolean;
   actedThisRound: boolean;
   actionsRemaining: number;
+  drawsRemaining: number;
 };
 
 export type ActiveEvent = {

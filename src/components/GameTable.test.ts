@@ -13,7 +13,8 @@ function player(name: string, controller: PlayerState["controller"]): GameState[
     eliminations: 0,
     attackedThisRound: false,
     actedThisRound: false,
-    actionsRemaining: 2
+    actionsRemaining: 2,
+    drawsRemaining: 1
   };
 }
 
