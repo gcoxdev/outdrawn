@@ -50,10 +50,20 @@ describe("game setup", () => {
   });
 
   it("rejects invalid player counts", () => {
-    expect(() => createNewGame(["Ari", "Blake"], () => 0)).toThrow("3 to 6 players");
+    expect(() => createNewGame(["Ari", "Blake"], () => 0)).toThrow("3 to 100 players");
     expect(() =>
-      createNewGame(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn", "Gray"], () => 0)
-    ).toThrow("3 to 6 players");
+      createNewGame(Array.from({ length: 101 }, (_, index) => `Player ${index + 1}`), () => 0)
+    ).toThrow("3 to 100 players");
+  });
+
+  it("supports one hundred players", () => {
+    const players = Array.from({ length: 100 }, (_, index) => `Player ${index + 1}`);
+    const state = createNewGame(players, () => 0.5);
+
+    expect(state.players).toHaveLength(100);
+    expect(state.players.every((player) => player.hand.length === STARTING_HAND_SIZE)).toBe(true);
+    expect(state.currentPlayerIndex).toBeGreaterThanOrEqual(0);
+    expect(state.currentPlayerIndex).toBeLessThan(100);
   });
 
   it("stores debug snapshots even when they are hidden", () => {

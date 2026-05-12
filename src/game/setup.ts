@@ -1,6 +1,7 @@
 import { eventDeckCards, mainDeckCards } from "../data/cards";
 import { defaultGameSettings, type GameSettings } from "../data/constants";
 import { drawCards, expandDeck, shuffleDeck } from "./deck";
+import { MAX_PLAYERS, MIN_PLAYERS } from "./setupOptions";
 import type { GameState, PlayerSetup, PlayerState } from "./types";
 
 export function createNewGame(
@@ -10,11 +11,11 @@ export function createNewGame(
 ): GameState {
   const playerSetups = normalizePlayerSetups(playerInputs);
 
-  if (playerSetups.length < 3 || playerSetups.length > 6) {
-    throw new Error("Outdrawn requires 3 to 6 players.");
+  if (playerSetups.length < MIN_PLAYERS || playerSetups.length > MAX_PLAYERS) {
+    throw new Error(`Outdrawn requires ${MIN_PLAYERS} to ${MAX_PLAYERS} players.`);
   }
 
-  let mainDeck = shuffleDeck(expandDeck(mainDeckCards, "main"), random);
+  let mainDeck = shuffleDeck(createScaledDeckForInitialHands(playerSetups.length, settings.startingHandSize), random);
   const players: PlayerState[] = playerSetups.map((setup, index) => {
     const draw = drawCards(mainDeck, settings.startingHandSize);
     mainDeck = draw.deck;
@@ -78,6 +79,16 @@ export function createNewGame(
     winnerId: null,
     winnerTeamId: null
   };
+}
+
+function createScaledDeckForInitialHands(playerCount: number, startingHandSize: number) {
+  const baseDeck = expandDeck(mainDeckCards, "main");
+  const requiredCards = playerCount * startingHandSize;
+  const copies = Math.max(1, Math.ceil(requiredCards / baseDeck.length));
+
+  return Array.from({ length: copies }).flatMap((_, copyIndex) =>
+    expandDeck(mainDeckCards, copyIndex === 0 ? "main" : `main${copyIndex + 1}`)
+  );
 }
 
 function getHandSnapshots(players: PlayerState[]): GameState["log"][number]["debugHandSnapshots"] {
