@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import type { LogEntry } from "../game/types";
 import { getCardDefinitionById } from "../game/rules";
 
+const maxRenderedLogEntries = 250;
+
 type GameLogProps = {
   entries: LogEntry[];
   players: Array<{ id: string; name: string }>;
@@ -23,6 +25,7 @@ export function GameLog({ entries, players }: GameLogProps) {
     });
   }, [entries, playerFilter, players, textFilter]);
   const hasFilter = Boolean(playerFilter || textFilter.trim());
+  const visibleEntries = filteredEntries.slice(-maxRenderedLogEntries).reverse();
 
   return (
     <aside className="game-log">
@@ -63,10 +66,7 @@ export function GameLog({ entries, players }: GameLogProps) {
         )}
       </div>
       <ol>
-        {filteredEntries
-          .slice()
-          .reverse()
-          .map((entry) => (
+        {visibleEntries.map((entry) => (
             <li key={entry.id}>
               <div>
                 <span>R{entry.round}</span>
@@ -95,6 +95,9 @@ export function GameLog({ entries, players }: GameLogProps) {
             </li>
           ))}
       </ol>
+      {filteredEntries.length > maxRenderedLogEntries && (
+        <p className="log-empty">Showing latest {maxRenderedLogEntries} matching entries. Use filters to narrow the log.</p>
+      )}
       {filteredEntries.length === 0 && <p className="log-empty">No log entries match these filters.</p>}
     </aside>
   );

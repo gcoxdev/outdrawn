@@ -1604,6 +1604,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   const reloadActive = state.reloadPlayerIds.includes(attacker.id);
   const damagedPlayerIds = state.players
     .filter((player) => !player.eliminated && isHostileTarget(attacker, player) && !state.smokeProtectedPlayerIds.includes(player.id))
+    .slice(0, weaponDefinition.maxTargets ?? Number.POSITIVE_INFINITY)
     .map((player) => player.id);
   const damageByPlayerId = Object.fromEntries(
     state.players

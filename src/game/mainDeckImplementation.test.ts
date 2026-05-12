@@ -275,7 +275,7 @@ describe("remaining main deck card implementations", () => {
     expect(state.pendingSecondaryDamage?.source).toBe("minigun");
   });
 
-  it("Minigun damages every other living player", () => {
+  it("Minigun damages every other living player up to its target cap", () => {
     let state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
     const [minigun] = instances(["weapon_minigun"]);
@@ -298,6 +298,29 @@ describe("remaining main deck card implementations", () => {
       .forEach((player) => expect(player.health).toBe(18));
     expect(state.players.find((player) => player.id === attacker.id)!.actionsRemaining).toBe(1);
     expect(state.discardPile.map((card) => card.instanceId)).toContain(minigun.instanceId);
+  });
+
+  it("Minigun caps affected targets in large games", () => {
+    let state = createNewGame(Array.from({ length: 10 }, (_, index) => `Player ${index + 1}`), () => 0);
+    const attacker = state.players[state.currentPlayerIndex];
+    const [minigun] = instances(["weapon_minigun"]);
+    state = {
+      ...state,
+      round: 3,
+      players: state.players.map((player) => (player.id === attacker.id ? { ...player, hand: [minigun], actionsRemaining: 2 } : player))
+    };
+
+    state = gameReducer(state, {
+      type: "ATTACK",
+      attackerId: attacker.id,
+      weaponInstanceId: minigun.instanceId
+    });
+
+    const damagedPlayers = state.players.filter((player) => player.id !== attacker.id && player.health === 18);
+    const untouchedPlayers = state.players.filter((player) => player.id !== attacker.id && player.health === 20);
+
+    expect(damagedPlayers).toHaveLength(6);
+    expect(untouchedPlayers).toHaveLength(3);
   });
 
   it("Grenade damages the primary target and splashes nearby non-attackers", () => {

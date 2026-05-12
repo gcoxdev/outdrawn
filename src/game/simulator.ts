@@ -598,8 +598,11 @@ function getValidAttackTargets(state: GameState, player: PlayerState, weapon: Ca
 function getWeaponDamagePotential(state: GameState, player: PlayerState, weapon: CardInstance): number {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (weaponDefinition?.id === "weapon_minigun") {
-    return state.players.filter((candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id))
-      .length;
+    return Math.min(
+      weaponDefinition.maxTargets ?? Number.POSITIVE_INFINITY,
+      state.players.filter((candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id))
+        .length
+    );
   }
   return (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) + (state.attackBonuses[player.id] ?? 0);
 }
@@ -966,7 +969,7 @@ function getDeckBalance() {
 
 function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }): number {
   if (card.id === "weapon_minigun") {
-    return (card.damage ?? 0) * 3;
+    return (card.damage ?? 0) * 6;
   }
 
   return (card.damage ?? 0) + (card.splashDamage ?? 0);

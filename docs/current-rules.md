@@ -77,7 +77,7 @@ Each living player acts once per round. After all living players have acted:
 - Assault Rifle: deal 5 damage.
 - Crossbow: deal 4 damage and penetrates Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: deal 2 damage to every other player. It does not choose a target.
+- Minigun: deal 2 damage to up to 6 opponents in seating order. It does not choose a target.
 
 ## Defense
 

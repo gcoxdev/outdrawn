@@ -13,9 +13,10 @@ type PlayerRosterProps = {
 
 export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, displayPlayerId }: PlayerRosterProps) {
   const aliveCount = state.players.filter((player) => !player.eliminated).length;
+  const compactRoster = state.players.length > 24;
 
   return (
-    <section className="player-roster" aria-label="Players">
+    <section className={`player-roster ${compactRoster ? "player-roster--compact" : ""}`} aria-label="Players">
       <div className="sidebar-section__header">
         <div>
           <p className="eyebrow">Players</p>
@@ -62,7 +63,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
                   {player.actionsRemaining}
                 </span>
                 {state.settings.freeDrawsPerTurn > 0 && (
-                  <span className="stat-cards" title="Draws">
+                  <span className="stat-draws" title="Draws">
                     <Copy size={14} />
                     {player.freeDrawsRemaining}
                   </span>
@@ -70,12 +71,12 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
               </div>
             </div>
             <div className="player-roster-card__chips">
-              {player.teamId && <span>{labelTeam(player.teamId)}</span>}
+              {player.teamId && !compactRoster && <span>{labelTeam(player.teamId)}</span>}
               {player.id === decisionPlayerId && <span>Decision</span>}
               {player.id === currentPlayerId && <span>Turn</span>}
-              {state.smokeProtectedPlayerIds.includes(player.id) && <span>Smoke</span>}
-              {state.markedTargets[player.id] && <span>Marked +{state.markedTargets[player.id]}</span>}
-              {state.attackBonuses[player.id] && <span>Ambush +{state.attackBonuses[player.id]}</span>}
+              {state.smokeProtectedPlayerIds.includes(player.id) && !compactRoster && <span>Smoke</span>}
+              {state.markedTargets[player.id] && !compactRoster && <span>Marked +{state.markedTargets[player.id]}</span>}
+              {state.attackBonuses[player.id] && !compactRoster && <span>Ambush +{state.attackBonuses[player.id]}</span>}
               {player.eliminated && <span>Out</span>}
             </div>
           </article>

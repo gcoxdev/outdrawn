@@ -37,6 +37,7 @@ export type Card = {
   discard?: number;
   actionsCost?: number;
   supplyCost?: number;
+  maxTargets?: number;
 
   isReaction?: boolean;
   isLethalDefense?: boolean;
@@ -190,10 +191,11 @@ export const mainDeckCards: Card[] = [
     target: "allPlayers",
     rarity: "rare",
     damage: 2,
+    maxTargets: 6,
     supplyCost: 3,
     icons: ["damage", "spray"],
-    shortText: "Deal 2 damage to every other player.",
-    rulesText: "Deal 2 damage to every other player.",
+    shortText: "Deal 2 damage to up to 6 opponents.",
+    rulesText: "Deal 2 damage to up to 6 opponents in seating order.",
     flavorText: "Nobody gets to ignore that sound.",
     tags: ["weapon", "area", "all-opponents"]
   },

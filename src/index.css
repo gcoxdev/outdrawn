@@ -890,6 +890,8 @@ p {
   border-radius: 7px;
   padding: 7px 8px;
   background: rgba(255, 255, 255, 0.035);
+  content-visibility: auto;
+  contain-intrinsic-size: 64px;
 }
 
 .player-roster-card.is-team {
@@ -962,6 +964,10 @@ p {
 
 .player-roster-card__stats .stat-cards svg {
   color: #4aa7d8;
+}
+
+.player-roster-card__stats .stat-draws svg {
+  color: var(--green);
 }
 
 .player-roster-card__stats .stat-actions svg {
@@ -1353,6 +1359,42 @@ p {
   background: rgba(217, 157, 69, 0.13);
   color: #f0c783;
   font-weight: 800;
+}
+
+.player-roster--compact .player-roster__list {
+  gap: 3px;
+}
+
+.player-roster--compact .player-roster-card {
+  gap: 3px;
+  padding: 5px 7px;
+  contain-intrinsic-size: 46px;
+}
+
+.player-roster--compact .player-roster-card__identity {
+  gap: 6px;
+}
+
+.player-roster--compact .player-roster-card h3 {
+  font-size: 0.92rem;
+}
+
+.player-roster--compact .player-roster-card p {
+  display: none;
+}
+
+.player-roster--compact .player-roster-card__stats {
+  gap: 3px;
+}
+
+.player-roster--compact .player-roster-card__stats span {
+  min-height: 22px;
+  padding: 1px 5px;
+  font-size: 0.76rem;
+}
+
+.player-roster--compact .player-roster-card__chips {
+  min-height: 0;
 }
 
 .turn-resource-strip {

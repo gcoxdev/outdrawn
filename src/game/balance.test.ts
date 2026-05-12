@@ -43,9 +43,9 @@ function estimatedSurvivalValue() {
   }, 0);
 }
 
-function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }) {
+function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number; maxTargets?: number }) {
   if (card.id === "weapon_minigun") {
-    return (card.damage ?? 0) * 3;
+    return (card.damage ?? 0) * (card.maxTargets ?? 6);
   }
 
   return (card.damage ?? 0) + (card.splashDamage ?? 0);
