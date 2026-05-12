@@ -124,4 +124,36 @@ describe("game table hand discard selection", () => {
       reason: "Intimidate"
     });
   });
+
+  it("only requires hand-limit discards after actions are exhausted", () => {
+    const overLimitHuman = {
+      ...human,
+      actionsRemaining: 1,
+      hand: [
+        firstCard,
+        secondCard,
+        { instanceId: "card_3", definitionId: "weapon_knife" },
+        { instanceId: "card_4", definitionId: "weapon_knife" },
+        { instanceId: "card_5", definitionId: "weapon_knife" },
+        { instanceId: "card_6", definitionId: "weapon_knife" },
+        { instanceId: "card_7", definitionId: "weapon_knife" },
+        { instanceId: "card_8", definitionId: "weapon_knife" }
+      ]
+    };
+    const state = {
+      players: [overLimitHuman],
+      pendingDiscard: null,
+      pendingBlackMarket: null,
+      pendingAttackCost: null,
+      settings: { maxHandSize: 7, blackMarketPreset: "standard" }
+    } as GameState;
+
+    expect(getHandDiscardRequirement(state, overLimitHuman, overLimitHuman)).toBeNull();
+    expect(getHandDiscardRequirement(state, { ...overLimitHuman, actionsRemaining: 0 }, { ...overLimitHuman, actionsRemaining: 0 })).toEqual({
+      type: "handLimit",
+      playerId: overLimitHuman.id,
+      count: 1,
+      reason: "hand limit"
+    });
+  });
 });

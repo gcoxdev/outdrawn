@@ -435,7 +435,7 @@ export function getHandDiscardRequirement(
     }
   }
 
-  if (currentPlayer.id === handDisplayPlayer.id && currentPlayer.hand.length > state.settings.maxHandSize) {
+  if (currentPlayer.id === handDisplayPlayer.id && currentPlayer.actionsRemaining <= 0 && currentPlayer.hand.length > state.settings.maxHandSize) {
     return {
       type: "handLimit",
       playerId: currentPlayer.id,

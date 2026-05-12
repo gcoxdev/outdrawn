@@ -482,6 +482,14 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
 
   return (
     <section className="action-panel">
+      {state.settings.freeDrawsPerTurn > 0 && (
+        <div className="turn-resource-strip" aria-label="Turn resources">
+          <span>
+            Free draws: {currentPlayer.freeDrawsRemaining}/{state.settings.freeDrawsPerTurn}
+          </span>
+          <span>Actions: {currentPlayer.actionsRemaining}</span>
+        </div>
+      )}
       <div className="action-panel__commands">
         <button
           disabled={!canDraw || (state.mainDeck.length === 0 && state.discardPile.length === 0)}

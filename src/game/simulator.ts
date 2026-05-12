@@ -288,7 +288,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
   }
 
   const player = getCurrentPlayer(state);
-  if (player.hand.length > state.settings.maxHandSize) {
+  if (player.actionsRemaining <= 0 && player.hand.length > state.settings.maxHandSize) {
     return { type: "DISCARD_CARD", playerId: player.id, cardInstanceId: pickLowestCards(player.hand, 1, strategy, random)[0].instanceId };
   }
 

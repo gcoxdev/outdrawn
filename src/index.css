@@ -1355,6 +1355,24 @@ p {
   font-weight: 800;
 }
 
+.turn-resource-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 0;
+}
+
+.turn-resource-strip span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .action-panel__commands,
 .selected-action-box__commands,
 .target-list {
