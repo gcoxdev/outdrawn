@@ -892,19 +892,9 @@ p {
   background: rgba(255, 255, 255, 0.035);
 }
 
-.player-roster-card.is-team-a {
-  border-color: rgba(62, 150, 218, 0.44);
-  background: linear-gradient(90deg, rgba(62, 150, 218, 0.14), rgba(255, 255, 255, 0.032));
-}
-
-.player-roster-card.is-team-b {
-  border-color: rgba(218, 91, 82, 0.44);
-  background: linear-gradient(90deg, rgba(218, 91, 82, 0.14), rgba(255, 255, 255, 0.032));
-}
-
-.player-roster-card.is-team-c {
-  border-color: rgba(132, 107, 214, 0.48);
-  background: linear-gradient(90deg, rgba(132, 107, 214, 0.14), rgba(255, 255, 255, 0.032));
+.player-roster-card.is-team {
+  border-color: color-mix(in srgb, var(--team-accent) 58%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--team-accent) 18%, transparent), rgba(255, 255, 255, 0.032));
 }
 
 .player-roster-card.is-decision {

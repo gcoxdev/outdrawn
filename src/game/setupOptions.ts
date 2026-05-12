@@ -30,6 +30,14 @@ export function labelGeneratedTeam(teamId: TeamId): string {
   return `Team ${suffix.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())}`;
 }
 
+export function getTeamColor(teamId: TeamId): string {
+  const numericSuffix = Number(teamId.replace(/^team_/, ""));
+  const seed = Number.isInteger(numericSuffix) && numericSuffix > 0 ? numericSuffix : hashString(teamId);
+  const hue = (seed * 47) % 360;
+
+  return `hsl(${hue} 72% 58%)`;
+}
+
 export function getTeamOptionsForMode(mode: LobbyMode, playerCount: number): TeamId[] {
   if (mode === "ffa") {
     return [];
@@ -137,4 +145,8 @@ function formatList(values: string[]): string {
   }
 
   return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
+}
+
+function hashString(value: string): number {
+  return [...value].reduce((hash, character) => hash + character.charCodeAt(0), 0);
 }

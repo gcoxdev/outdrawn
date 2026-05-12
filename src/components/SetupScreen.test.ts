@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getTeamModeValidation } from "./SetupScreen";
 import type { TeamId } from "../game/types";
-import { assignTeamsForMode, getPlayerCountOptions, getDefaultPlayerName, labelGeneratedTeam } from "../game/setupOptions";
+import { assignTeamsForMode, getPlayerCountOptions, getDefaultPlayerName, getTeamColor, labelGeneratedTeam } from "../game/setupOptions";
 
 describe("setup screen team mode validation", () => {
   it("provides scalable player count and generated setup helpers", () => {
@@ -13,6 +13,7 @@ describe("setup screen team mode validation", () => {
     expect(getTeamModeValidation("duos", assignTeamsForMode("duos", 5), 5).isValid).toBe(false);
     expect(getTeamModeValidation("twoTeams", assignTeamsForMode("twoTeams", 100), 100).isValid).toBe(true);
     expect(labelGeneratedTeam("team_27")).toBe("Team 27");
+    expect(getTeamColor("team_27")).toMatch(/^hsl\(/);
   });
 
   it("allows free-for-all without team balance checks", () => {

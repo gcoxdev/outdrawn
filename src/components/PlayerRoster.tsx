@@ -1,5 +1,7 @@
 import { Activity, Bot, Copy, Heart, User } from "lucide-react";
+import type { CSSProperties } from "react";
 import { labelTeam } from "../game/rules";
+import { getTeamColor } from "../game/setupOptions";
 import type { GameState, PlayerId, PlayerState } from "../game/types";
 
 type PlayerRosterProps = {
@@ -26,9 +28,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
           <article
             className={[
               "player-roster-card",
-              player.teamId === "team_a" ? "is-team-a" : "",
-              player.teamId === "team_b" ? "is-team-b" : "",
-              player.teamId === "team_c" ? "is-team-c" : "",
+              player.teamId ? "is-team" : "",
               player.id === decisionPlayerId ? "is-decision" : "",
               player.id === currentPlayerId ? "is-current" : "",
               player.id === displayPlayerId ? "is-display" : "",
@@ -36,7 +36,9 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
             ]
               .filter(Boolean)
               .join(" ")}
+            data-team-id={player.teamId}
             key={player.id}
+            style={getTeamStyle(player)}
           >
             <div className="player-roster-card__identity">
               <div>
@@ -75,6 +77,10 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
       </div>
     </section>
   );
+}
+
+function getTeamStyle(player: PlayerState): CSSProperties | undefined {
+  return player.teamId ? ({ "--team-accent": getTeamColor(player.teamId) } as CSSProperties) : undefined;
 }
 
 function labelController(player: PlayerState): string {
