@@ -32,6 +32,13 @@ describe("setup screen team mode validation", () => {
     });
   });
 
+  it("rejects odd two-team games without fractional team sizes", () => {
+    expect(getTeamModeValidation("twoTeams", assignTeamsForMode("twoTeams", 5), 5)).toEqual({
+      isValid: false,
+      message: "Two Teams requires an even player count."
+    });
+  });
+
   it("requires two balanced teams for 2v2 and 3v3", () => {
     expect(getTeamModeValidation("2v2", ["team_a", "team_b", "team_a", "team_b"], 4).isValid).toBe(true);
     expect(getTeamModeValidation("2v2", ["team_a", "team_a", "team_a", "team_b"], 4)).toEqual({

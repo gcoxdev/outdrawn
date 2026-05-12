@@ -78,6 +78,10 @@ export function getTeamModeValidation(
     return activeTeamIds.length >= 2 ? { isValid: true } : { isValid: false, message: "Custom teams require at least two teams." };
   }
 
+  if (mode === "twoTeams" && playerCount % 2 !== 0) {
+    return { isValid: false, message: "Two Teams requires an even player count." };
+  }
+
   const divisor = getTeamSize(mode, playerCount);
   if (playerCount % divisor !== 0) {
     return { isValid: false, message: `${labelLobbyMode(mode)} requires a player count divisible by ${divisor}.` };
