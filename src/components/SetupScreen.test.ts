@@ -20,6 +20,18 @@ describe("setup screen team mode validation", () => {
     expect(getTeamModeValidation("ffa", ["team_a", "team_a", "team_b"], 3).isValid).toBe(true);
   });
 
+  it("requires generated team modes to create at least two teams", () => {
+    expect(getTeamModeValidation("duos", assignTeamsForMode("duos", 2), 2).isValid).toBe(false);
+    expect(getTeamModeValidation("trios", assignTeamsForMode("trios", 3), 3)).toEqual({
+      isValid: false,
+      message: "Trios requires at least two teams."
+    });
+    expect(getTeamModeValidation("squads", assignTeamsForMode("squads", 4), 4)).toEqual({
+      isValid: false,
+      message: "Squads requires at least two teams."
+    });
+  });
+
   it("requires two balanced teams for 2v2 and 3v3", () => {
     expect(getTeamModeValidation("2v2", ["team_a", "team_b", "team_a", "team_b"], 4).isValid).toBe(true);
     expect(getTeamModeValidation("2v2", ["team_a", "team_a", "team_a", "team_b"], 4)).toEqual({

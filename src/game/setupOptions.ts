@@ -84,6 +84,10 @@ export function getTeamModeValidation(
   }
 
   const expectedTeamIds = getTeamOptionsForMode(mode, playerCount);
+  if (expectedTeamIds.length < 2) {
+    return { isValid: false, message: `${labelLobbyMode(mode)} requires at least two teams.` };
+  }
+
   const activeTeams = teams.slice(0, playerCount);
   const expectedSize = mode === "twoTeams" ? playerCount / 2 : divisor;
   const hasExpectedTeams = expectedTeamIds.every((teamId) => activeTeams.filter((team) => team === teamId).length === expectedSize);
