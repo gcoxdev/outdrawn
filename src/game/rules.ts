@@ -1,4 +1,5 @@
 import { allCards } from "../data/cards";
+import { labelGeneratedTeam } from "./setupOptions";
 import type { CardInstanceId, GameState, PlayerId, PlayerState, TeamId } from "./types";
 
 export function getLivingPlayers(state: GameState): PlayerState[] {
@@ -71,11 +72,11 @@ export function isHostileTarget(attacker: PlayerState, target: PlayerState): boo
 }
 
 export function labelTeam(teamId: TeamId): string {
-  const labels: Record<TeamId, string> = {
+  const labels: Record<string, string> = {
     team_a: "Team A",
     team_b: "Team B",
     team_c: "Team C"
   };
 
-  return labels[teamId];
+  return labels[teamId] ?? labelGeneratedTeam(teamId);
 }

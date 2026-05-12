@@ -2,7 +2,7 @@ import type { Card, CardTiming, CardType } from "../data/cards";
 import type { GameSettings } from "../data/constants";
 
 export type PlayerId = string;
-export type TeamId = "team_a" | "team_b" | "team_c";
+export type TeamId = string;
 export type CardInstanceId = string;
 export type StrategyLevel = "beginner" | "novice" | "competent" | "expert" | "master";
 

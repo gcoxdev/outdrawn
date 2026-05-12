@@ -19,6 +19,28 @@ function instances(definitionIds: string[]) {
 }
 
 describe("team mode", () => {
+  it("labels and resolves dynamic team ids", () => {
+    const state = createNewGame(
+      [
+        { name: "Ari", controller: { type: "human" }, teamId: "team_12" },
+        { name: "Blake", controller: { type: "human" }, teamId: "team_24" },
+        { name: "Casey", controller: { type: "computer", strategy: "competent" }, teamId: "team_12" },
+        { name: "Devon", controller: { type: "computer", strategy: "competent" }, teamId: "team_24" }
+      ],
+      () => 0
+    );
+    const finishedState = {
+      ...state,
+      players: state.players.map((player) => (player.teamId === "team_12" ? player : { ...player, health: 0, eliminated: true }))
+    };
+    const afterTurn = gameReducer(finishedState, { type: "END_TURN", playerId: finishedState.players[0].id });
+
+    expect(labelTeam("team_4")).toBe("Team 4");
+    expect(labelTeam("team_alpha")).toBe("Team Alpha");
+    expect(afterTurn.phase).toBe("gameOver");
+    expect(afterTurn.winnerTeamId).toBe("team_12");
+  });
+
   it("supports 2v2v2 with a third team winner", () => {
     const teamC = "team_c";
     const state = createNewGame(
