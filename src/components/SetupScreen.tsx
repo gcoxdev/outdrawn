@@ -10,7 +10,17 @@ import {
 } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { labelTeam } from "../game/rules";
-import { getTeamModeValidation as getScalableTeamModeValidation, type LobbyMode as ScalableLobbyMode } from "../game/setupOptions";
+import {
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  assignTeamsForMode,
+  clampPlayerCount,
+  getDefaultPlayerName,
+  getTeamModeValidation as getScalableTeamModeValidation,
+  getTeamOptionsForMode,
+  labelLobbyMode,
+  type LobbyMode
+} from "../game/setupOptions";
 import type { PlayerSetup, StrategyLevel, TeamId } from "../game/types";
 import { GameMenu } from "./GameMenu";
 
@@ -22,7 +32,12 @@ type SetupScreenProps = {
 
 const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "expert", "master"];
 type ControlChoice = "human" | `computer:${StrategyLevel}`;
-export type LobbyMode = "ffa" | "2v2" | "2v2v2" | "3v3";
+type LegacyLobbyMode = "2v2" | "2v2v2" | "3v3";
+type SetupSlot = {
+  name: string;
+  control: ControlChoice;
+  teamId?: TeamId;
+};
 type NumericSettingKey = {
   [Key in keyof GameSettings]: GameSettings[Key] extends number ? Key : never;
 }[keyof GameSettings];
@@ -40,31 +55,27 @@ const settingFields: Array<{
   { key: "actionsPerTurn", label: "Actions per turn", min: 1, max: 6 },
   { key: "eliminationHealthReward", label: "Health reward on elimination", min: 0, max: 20 }
 ];
+const lobbyModes: LobbyMode[] = ["ffa", "duos", "trios", "squads", "twoTeams", "custom"];
+const visibleSetupRows = 20;
 
 export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
   const [playerCount, setPlayerCount] = useState(4);
   const [lobbyMode, setLobbyMode] = useState<LobbyMode>("ffa");
-  const [names, setNames] = useState(["Ari", "Blake", "Casey", "Devon", "Eli", "Finn"]);
-  const [controls, setControls] = useState<ControlChoice[]>([
-    "human",
-    "computer:competent",
-    "computer:competent",
-    "computer:competent",
-    "computer:competent",
-    "computer:competent"
-  ]);
-  const [teams, setTeams] = useState<TeamId[]>(["team_a", "team_b", "team_a", "team_b", "team_a", "team_b"]);
-  const activeNames = useMemo(() => names.slice(0, playerCount), [names, playerCount]);
+  const [slots, setSlots] = useState<SetupSlot[]>(() => createSlots(4, "ffa"));
+  const activeSlots = useMemo(() => slots.slice(0, playerCount), [playerCount, slots]);
   const activePlayers = useMemo<PlayerSetup[]>(
     () =>
-      activeNames.map((name, index) => ({
-        name,
-        controller: controlToController(controls[index]),
-        teamId: lobbyMode === "ffa" ? undefined : teams[index]
+      activeSlots.map((slot) => ({
+        name: slot.name,
+        controller: controlToController(slot.control),
+        teamId: lobbyMode === "ffa" ? undefined : slot.teamId
       })),
-    [activeNames, controls, lobbyMode, teams]
+    [activeSlots, lobbyMode]
   );
-  const teamModeValidation = getTeamModeValidation(lobbyMode, teams, playerCount);
+  const activeTeams = useMemo(() => activeSlots.map((slot) => slot.teamId ?? ""), [activeSlots]);
+  const teamOptions = useMemo(() => getTeamOptionsForMode(lobbyMode, playerCount), [lobbyMode, playerCount]);
+  const teamModeValidation = getTeamModeValidation(lobbyMode, activeTeams, playerCount);
+  const displayedSlots = activeSlots.slice(0, visibleSetupRows);
   const blackMarketConfig = settings.blackMarketPreset === "custom" ? settings.blackMarketCustom : blackMarketPresets[settings.blackMarketPreset];
 
   function updateSetting(key: NumericSettingKey, value: number) {
@@ -111,12 +122,35 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
 
   function updateLobbyMode(value: LobbyMode) {
     setLobbyMode(value);
-    if (value === "2v2") {
-      setPlayerCount(4);
-    } else if (value === "2v2v2" || value === "3v3") {
-      setPlayerCount(6);
-    }
-    setTeams(defaultTeamsForMode(value));
+    setSlots((current) => applyTeamsToSlots(ensureSlotCount(current, playerCount), value, playerCount));
+  }
+
+  function updatePlayerCount(value: number) {
+    const nextPlayerCount = clampPlayerCount(value);
+    setPlayerCount(nextPlayerCount);
+    setSlots((current) => applyTeamsToSlots(ensureSlotCount(current, nextPlayerCount), lobbyMode, nextPlayerCount));
+  }
+
+  function updateSlot(index: number, patch: Partial<SetupSlot>) {
+    setSlots((current) => current.map((slot, slotIndex) => (slotIndex === index ? { ...slot, ...patch } : slot)));
+  }
+
+  function setComputerSkillForAll(strategy: StrategyLevel) {
+    setSlots((current) =>
+      current.map((slot, index) => ({
+        ...slot,
+        control: index === 0 && slot.control === "human" ? slot.control : `computer:${strategy}`
+      }))
+    );
+  }
+
+  function fillComputers() {
+    setSlots((current) =>
+      current.map((slot, index) => ({
+        ...slot,
+        control: index === 0 ? "human" : "computer:competent"
+      }))
+    );
   }
 
   return (
@@ -135,49 +169,50 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                 <label className="field">
                   <span>Mode</span>
                   <select value={lobbyMode} onChange={(event) => updateLobbyMode(event.target.value as LobbyMode)}>
-                    <option value="ffa">Free-for-all</option>
-                    <option value="2v2">2v2 Teams</option>
-                    <option value="2v2v2">2v2v2 Teams</option>
-                    <option value="3v3">3v3 Teams</option>
-                  </select>
-                </label>
-                <label className="field lobby-player-count">
-                  <span>Players</span>
-                  <select
-                    value={playerCount}
-                    onChange={(event) => setPlayerCount(Number(event.target.value))}
-                    disabled={lobbyMode !== "ffa"}
-                  >
-                    {(["2v2v2", "3v3"].includes(lobbyMode) ? [6] : lobbyMode === "2v2" ? [4] : [3, 4, 5, 6]).map((count) => (
-                      <option key={count} value={count}>
-                        {count}
+                    {lobbyModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {labelLobbyMode(mode)}
                       </option>
                     ))}
                   </select>
                 </label>
+                <label className="field lobby-player-count">
+                  <span>Players</span>
+                  <input
+                    type="number"
+                    min={MIN_PLAYERS}
+                    max={MAX_PLAYERS}
+                    value={playerCount}
+                    onChange={(event) => updatePlayerCount(Number(event.target.value))}
+                  />
+                </label>
               </div>
             </div>
+            <div className="lobby-bulk-actions">
+              <button type="button" onClick={fillComputers}>Fill Computers</button>
+              <button type="button" onClick={() => setComputerSkillForAll("competent")}>All Competent</button>
+              <button type="button" onClick={() => setComputerSkillForAll("master")}>All Master</button>
+            </div>
+            {activeSlots.length > visibleSetupRows && (
+              <p className="setup-list-note">
+                Showing first {visibleSetupRows} players. Remaining slots use generated names, controls, and teams.
+              </p>
+            )}
             <div className="setup-screen__names">
-              {activeNames.map((name, index) => (
+              {displayedSlots.map((slot, index) => (
                 <div className={lobbyMode === "ffa" ? "setup-player" : "setup-player setup-player--team"} key={index}>
                   <label className="field">
                     <span>Player {index + 1}</span>
                     <input
-                      value={name}
-                      onChange={(event) =>
-                        setNames((current) => current.map((candidate, nameIndex) => (nameIndex === index ? event.target.value : candidate)))
-                      }
+                      value={slot.name}
+                      onChange={(event) => updateSlot(index, { name: event.target.value })}
                     />
                   </label>
                   <label className="field">
                     <span>Control</span>
                     <select
-                      value={controls[index]}
-                      onChange={(event) =>
-                        setControls((current) =>
-                          current.map((control, controlIndex) => (controlIndex === index ? (event.target.value as ControlChoice) : control))
-                        )
-                      }
+                      value={slot.control}
+                      onChange={(event) => updateSlot(index, { control: event.target.value as ControlChoice })}
                     >
                       <option value="human">Human</option>
                       {strategyLevels.map((level) => (
@@ -191,12 +226,10 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
                     <label className="field">
                       <span>Team</span>
                       <select
-                        value={teams[index]}
-                        onChange={(event) =>
-                          setTeams((current) => current.map((team, teamIndex) => (teamIndex === index ? (event.target.value as TeamId) : team)))
-                        }
+                        value={slot.teamId}
+                        onChange={(event) => updateSlot(index, { teamId: event.target.value })}
                       >
-                        {teamOptionsForMode(lobbyMode).map((teamId) => (
+                        {teamOptions.map((teamId) => (
                           <option key={teamId} value={teamId}>
                             {labelTeam(teamId)}
                           </option>
@@ -353,20 +386,8 @@ function controlToController(control: ControlChoice): PlayerSetup["controller"] 
   };
 }
 
-function defaultTeamsForMode(lobbyMode: LobbyMode): TeamId[] {
-  if (lobbyMode === "2v2v2") {
-    return ["team_a", "team_b", "team_c", "team_a", "team_b", "team_c"];
-  }
-
-  return ["team_a", "team_b", "team_a", "team_b", "team_a", "team_b"];
-}
-
-function teamOptionsForMode(lobbyMode: LobbyMode): TeamId[] {
-  return lobbyMode === "2v2v2" ? ["team_a", "team_b", "team_c"] : ["team_a", "team_b"];
-}
-
 export function getTeamModeValidation(
-  lobbyMode: LobbyMode | ScalableLobbyMode,
+  lobbyMode: LobbyMode | LegacyLobbyMode,
   teams: TeamId[],
   playerCount: number
 ): { isValid: true; message?: undefined } | { isValid: false; message: string } {
@@ -378,7 +399,7 @@ export function getTeamModeValidation(
     return { isValid: true };
   }
 
-  const requiredCounts: Record<Exclude<LobbyMode, "ffa">, Partial<Record<TeamId, number>>> = {
+  const requiredCounts: Record<LegacyLobbyMode, Partial<Record<TeamId, number>>> = {
     "2v2": { team_a: 2, team_b: 2 },
     "2v2v2": { team_a: 2, team_b: 2, team_c: 2 },
     "3v3": { team_a: 3, team_b: 3 }
@@ -409,6 +430,42 @@ export function getTeamModeValidation(
     isValid: false,
     message: `${lobbyMode} requires ${requirementText}.`
   };
+}
+
+function createSlots(count: number, lobbyMode: LobbyMode): SetupSlot[] {
+  return applyTeamsToSlots(
+    Array.from({ length: count }, (_, index) => ({
+      name: getDefaultPlayerName(index),
+      control: index === 0 ? "human" : "computer:competent"
+    })),
+    lobbyMode,
+    count
+  );
+}
+
+function ensureSlotCount(slots: SetupSlot[], count: number): SetupSlot[] {
+  if (slots.length >= count) {
+    return slots;
+  }
+
+  return [
+    ...slots,
+    ...Array.from({ length: count - slots.length }, (_, offset) => {
+      const index = slots.length + offset;
+      return {
+        name: getDefaultPlayerName(index),
+        control: "computer:competent" as const
+      };
+    })
+  ];
+}
+
+function applyTeamsToSlots(slots: SetupSlot[], lobbyMode: LobbyMode, playerCount: number): SetupSlot[] {
+  const assignedTeams = assignTeamsForMode(lobbyMode, playerCount);
+  return slots.map((slot, index) => ({
+    ...slot,
+    teamId: lobbyMode === "ffa" ? undefined : (assignedTeams[index] ?? slot.teamId)
+  }));
 }
 
 function formatList(values: string[]): string {

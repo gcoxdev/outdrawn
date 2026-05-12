@@ -528,6 +528,33 @@ p {
   gap: 12px;
 }
 
+.lobby-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lobby-bulk-actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  color: var(--amber);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.setup-list-note {
+  margin: 0 0 10px;
+  border: 1px solid rgba(217, 157, 69, 0.28);
+  border-radius: 7px;
+  padding: 9px 11px;
+  background: rgba(217, 157, 69, 0.08);
+  color: #d9c09a;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
 .setup-player {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(170px, 0.85fr);
