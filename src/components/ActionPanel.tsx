@@ -59,7 +59,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     !state.pendingMarketSearch &&
     !state.pendingBlackMarket &&
     !state.pendingSteal &&
-    (state.settings.drawsUseActions ? currentPlayer.actionsRemaining > 0 : currentPlayer.drawsRemaining > 0);
+    (currentPlayer.freeDrawsRemaining > 0 || currentPlayer.actionsRemaining > 0);
   const canEndTurn =
     state.phase === "action" &&
     !state.pendingReaction &&

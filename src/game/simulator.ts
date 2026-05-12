@@ -297,7 +297,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
   }
 
   if (player.actionsRemaining <= 0) {
-    if (!state.settings.drawsUseActions && player.drawsRemaining > 0 && (state.mainDeck.length > 0 || state.discardPile.length > 0)) {
+    if (player.freeDrawsRemaining > 0 && (state.mainDeck.length > 0 || state.discardPile.length > 0)) {
       return { type: "DRAW_CARD", playerId: player.id };
     }
 
@@ -341,7 +341,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     return attack;
   }
 
-  if ((state.settings.drawsUseActions || player.drawsRemaining > 0) && (state.mainDeck.length > 0 || state.discardPile.length > 0)) {
+  if ((player.freeDrawsRemaining > 0 || player.actionsRemaining > 0) && (state.mainDeck.length > 0 || state.discardPile.length > 0)) {
     return { type: "DRAW_CARD", playerId: player.id };
   }
 

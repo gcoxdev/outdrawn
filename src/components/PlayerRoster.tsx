@@ -61,10 +61,10 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
                   <Activity size={14} />
                   {player.actionsRemaining}
                 </span>
-                {!state.settings.drawsUseActions && (
+                {state.settings.freeDrawsPerTurn > 0 && (
                   <span className="stat-cards" title="Draws">
                     <Copy size={14} />
-                    {player.drawsRemaining}
+                    {player.freeDrawsRemaining}
                   </span>
                 )}
               </div>

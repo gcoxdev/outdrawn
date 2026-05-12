@@ -13,8 +13,7 @@ The current web prototype is a local browser game for 3-100 players. Each player
 - Starting hand: 5 cards by default.
 - Maximum hand size: 7 cards by default.
 - Actions per turn: 2 by default.
-- Draws per turn: 1 by default.
-- Draws spend actions: on by default. If disabled, players get a separate draw allowance each turn and drawing does not spend an action.
+- Free draws per turn: 0 by default. Free draws are used before action-spending draws.
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
@@ -34,13 +33,13 @@ The current web prototype is a local browser game for 3-100 players. Each player
 
 On a player's turn, they may spend actions to:
 
-- Draw 1 card, if draws spend actions.
+- Draw 1 card.
 - Play a weapon as an attack.
 - Play an ability.
 - Play a healing card.
 - Pass.
 
-If draws do not spend actions, a player may draw up to the configured draws-per-turn limit separately from their action count.
+If free draws are enabled, a player may draw up to the configured free-draw limit before drawing starts spending actions.
 
 A player may not end their turn while above the maximum hand size.
 

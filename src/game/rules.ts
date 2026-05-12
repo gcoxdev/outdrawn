@@ -45,7 +45,7 @@ export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
 
 export function canPlayerDraw(state: GameState, playerId: PlayerId): boolean {
   const player = getCurrentPlayer(state);
-  const hasDrawResource = state.settings.drawsUseActions ? player.actionsRemaining > 0 : player.drawsRemaining > 0;
+  const hasDrawResource = player.freeDrawsRemaining > 0 || player.actionsRemaining > 0;
 
   return (
     state.phase === "action" &&

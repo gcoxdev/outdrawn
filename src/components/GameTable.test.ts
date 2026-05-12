@@ -14,7 +14,7 @@ function player(name: string, controller: PlayerState["controller"]): GameState[
     attackedThisRound: false,
     actedThisRound: false,
     actionsRemaining: 2,
-    drawsRemaining: 1
+    freeDrawsRemaining: 0
   };
 }
 

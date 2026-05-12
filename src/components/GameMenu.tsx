@@ -195,10 +195,7 @@ function getCurrentGameRules(settings: GameSettings): Array<{ label: string; val
     { label: "Starting hand", value: `${settings.startingHandSize} cards` },
     { label: "Max hand", value: `${settings.maxHandSize} cards` },
     { label: "Actions", value: `${settings.actionsPerTurn} per turn` },
-    {
-      label: "Draws",
-      value: settings.drawsUseActions ? `${settings.drawsPerTurn} per turn, spend actions` : `${settings.drawsPerTurn} per turn, separate`
-    },
+    { label: "Free draws", value: `${settings.freeDrawsPerTurn} per turn` },
     { label: "Turn order", value: settings.turnOrder === "roundRobin" ? "Round robin" : "Standard" },
     { label: "Secondary defense", value: settings.allowSecondaryDefense ? "Allowed" : "Not allowed" },
     { label: "Team healing", value: settings.allowTeamHealing ? "Allowed" : "Off" },

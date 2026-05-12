@@ -32,7 +32,7 @@ export function createNewGame(
       attackedThisRound: false,
       actedThisRound: false,
       actionsRemaining: settings.actionsPerTurn,
-      drawsRemaining: settings.drawsPerTurn
+      freeDrawsRemaining: settings.freeDrawsPerTurn
     };
   });
   mainDeck = shuffleDeck([...mainDeck, ...expandDeck(eventDeckCards, "event")], random);

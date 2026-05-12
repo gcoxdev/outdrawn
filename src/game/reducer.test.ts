@@ -23,23 +23,27 @@ describe("game reducer turns and combat", () => {
 
     expect(nextPlayer.hand).toHaveLength(STARTING_HAND_SIZE + 1);
     expect(nextPlayer.actionsRemaining).toBe(ACTIONS_PER_TURN - 1);
-    expect(nextPlayer.drawsRemaining).toBe(1);
+    expect(nextPlayer.freeDrawsRemaining).toBe(0);
     expect(next.mainDeck).toHaveLength(state.mainDeck.length - 1);
   });
 
-  it("can draw from a separate draw allowance without spending actions", () => {
+  it("spends free draws before spending actions", () => {
     const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, {
       ...defaultGameSettings,
-      drawsPerTurn: 2,
-      drawsUseActions: false
+      freeDrawsPerTurn: 1
     });
     const player = getCurrentPlayer(state);
-    const next = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
-    const nextPlayer = getCurrentPlayer(next);
+    const freeDrawState = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+    const freeDrawPlayer = getCurrentPlayer(freeDrawState);
+    const paidDrawState = gameReducer(freeDrawState, { type: "DRAW_CARD", playerId: player.id });
+    const paidDrawPlayer = getCurrentPlayer(paidDrawState);
 
-    expect(nextPlayer.hand).toHaveLength(STARTING_HAND_SIZE + 1);
-    expect(nextPlayer.actionsRemaining).toBe(ACTIONS_PER_TURN);
-    expect(nextPlayer.drawsRemaining).toBe(1);
+    expect(freeDrawPlayer.hand).toHaveLength(STARTING_HAND_SIZE + 1);
+    expect(freeDrawPlayer.actionsRemaining).toBe(ACTIONS_PER_TURN);
+    expect(freeDrawPlayer.freeDrawsRemaining).toBe(0);
+    expect(paidDrawPlayer.hand).toHaveLength(STARTING_HAND_SIZE + 2);
+    expect(paidDrawPlayer.actionsRemaining).toBe(ACTIONS_PER_TURN - 1);
+    expect(paidDrawPlayer.freeDrawsRemaining).toBe(0);
   });
 
   it("starts an attack by playing a weapon from hand", () => {

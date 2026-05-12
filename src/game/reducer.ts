@@ -76,15 +76,16 @@ function spendAction(state: GameState, playerId: string): GameState {
 }
 
 function spendDraw(state: GameState, playerId: string): GameState {
-  if (state.settings.drawsUseActions) {
-    return spendAction(state, playerId);
+  const player = getPlayer(state, playerId);
+  if (player && player.freeDrawsRemaining > 0) {
+    return updatePlayer(state, playerId, (currentPlayer) => ({
+      ...currentPlayer,
+      freeDrawsRemaining: Math.max(0, currentPlayer.freeDrawsRemaining - 1),
+      actedThisRound: true
+    }));
   }
 
-  return updatePlayer(state, playerId, (player) => ({
-    ...player,
-    drawsRemaining: Math.max(0, player.drawsRemaining - 1),
-    actedThisRound: true
-  }));
+  return spendAction(state, playerId);
 }
 
 function advanceTurn(state: GameState): GameState {
@@ -130,7 +131,7 @@ function advanceTurn(state: GameState): GameState {
       ...player,
       ...resetForRound,
       actionsRemaining: index === currentPlayerIndex ? transitionState.settings.actionsPerTurn : player.actionsRemaining,
-      drawsRemaining: index === currentPlayerIndex ? transitionState.settings.drawsPerTurn : player.drawsRemaining
+      freeDrawsRemaining: index === currentPlayerIndex ? transitionState.settings.freeDrawsPerTurn : player.freeDrawsRemaining
     };
   });
 
@@ -561,8 +562,7 @@ function normalizeSettings(settings: GameState["settings"]): GameState["settings
     },
     maxHealth: Math.max(1, settings.maxHealth, settings.startingHealth),
     maxHandSize: Math.max(1, settings.maxHandSize, settings.startingHandSize),
-    drawsPerTurn: Math.max(0, settings.drawsPerTurn ?? 1),
-    drawsUseActions: settings.drawsUseActions ?? true
+    freeDrawsPerTurn: Math.max(0, settings.freeDrawsPerTurn ?? 0)
   };
 }
 

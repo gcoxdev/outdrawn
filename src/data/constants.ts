@@ -3,7 +3,7 @@ export const MAX_HEALTH = 20;
 export const STARTING_HAND_SIZE = 5;
 export const MAX_HAND_SIZE = 7;
 export const ACTIONS_PER_TURN = 2;
-export const DRAWS_PER_TURN = 1;
+export const FREE_DRAWS_PER_TURN = 0;
 
 export type TurnOrderMode = "standard" | "roundRobin";
 export type BlackMarketPreset = "standard" | "discount" | "bigger" | "healthPay" | "custom";
@@ -22,8 +22,7 @@ export type GameSettings = {
   startingHandSize: number;
   maxHandSize: number;
   actionsPerTurn: number;
-  drawsPerTurn: number;
-  drawsUseActions: boolean;
+  freeDrawsPerTurn: number;
   turnOrder: TurnOrderMode;
   eliminationHealthReward: number;
   allowSecondaryDefense: boolean;
@@ -49,8 +48,7 @@ export const defaultGameSettings: GameSettings = {
   startingHandSize: STARTING_HAND_SIZE,
   maxHandSize: MAX_HAND_SIZE,
   actionsPerTurn: ACTIONS_PER_TURN,
-  drawsPerTurn: DRAWS_PER_TURN,
-  drawsUseActions: true,
+  freeDrawsPerTurn: FREE_DRAWS_PER_TURN,
   turnOrder: "standard",
   eliminationHealthReward: 0,
   allowSecondaryDefense: false,

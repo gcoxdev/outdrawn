@@ -15,7 +15,7 @@ function player(health: number, actionsRemaining = 2): PlayerState {
     attackedThisRound: false,
     actedThisRound: false,
     actionsRemaining,
-    drawsRemaining: 1
+    freeDrawsRemaining: 0
   };
 }
 
