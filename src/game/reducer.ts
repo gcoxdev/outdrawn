@@ -1862,6 +1862,17 @@ function resolveAbility(
   if (definitionId === "ability_search") {
     const discardWithoutSearch = nextState.discardPile.filter((discardedCard) => discardedCard.instanceId !== card.instanceId);
     const searchDraw = drawCardsResolvingMixedEvents({ ...nextState, discardPile: discardWithoutSearch }, 3, player.id, true);
+    if (searchDraw.drawn.length === 0) {
+      return log(
+        {
+          ...searchDraw.state,
+          discardPile: [...searchDraw.state.discardPile, card],
+          pendingSearch: null
+        },
+        `${player.name} searched but found no cards.`
+      );
+    }
+
     nextState = {
       ...searchDraw.state,
       discardPile: [...searchDraw.state.discardPile, card],

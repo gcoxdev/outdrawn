@@ -17,6 +17,7 @@
 
 ## Rules To Clarify
 
+- Decide the final true-tie rule for simultaneous non-attack eliminations: allow no winner or add a deterministic final tiebreaker such as seating order from the current turn marker.
 - Revisit any future area-damage cards for large player counts so their value does not scale without a cap or damage pool.
 - Simulate and compare pure round-robin turn order against the standard round model with a moving starting player.
 - Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.

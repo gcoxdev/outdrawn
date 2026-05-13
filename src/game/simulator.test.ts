@@ -35,6 +35,13 @@ describe("game simulator", () => {
     expect(Object.keys(summary.winners).some((winner) => winner === "player_6")).toBe(true);
   });
 
+  it("lets large-table simulations run long enough to resolve", () => {
+    const result = simulateGame(20360513, ["competent"], { playerCount: 100 });
+
+    expect(result.stalled).toBe(false);
+    expect(result.state.phase).toBe("gameOver");
+  });
+
   it("does not stall when an eliminated current player is over hand limit", () => {
     const result = simulateGame(20878839, ["beginner", "novice", "expert", "master"]);
 
@@ -135,5 +142,32 @@ describe("game simulator", () => {
     const action = chooseAutomatedAction(state, "master", () => 0);
 
     expect(action).toMatchObject({ type: "ATTACK", targetPlayerId: "player_2", weaponInstanceId: pistol.instanceId });
+  });
+
+  it("does not choose Ricochet when a team defender has no valid redirect target", () => {
+    let state = createNewGame(
+      [
+        { name: "Ari", controller: { type: "computer", strategy: "competent" }, teamId: "team_a" },
+        { name: "Blake", controller: { type: "computer", strategy: "competent" }, teamId: "team_b" },
+        { name: "Casey", controller: { type: "computer", strategy: "competent" }, teamId: "team_b" }
+      ],
+      () => 0
+    );
+    const pistol = main("weapon_pistol");
+    const ricochet = main("defense_decoy");
+    state = {
+      ...state,
+      pendingReaction: {
+        attackerId: "player_1",
+        defenderId: "player_2",
+        weapon: pistol,
+        baseDamage: 5
+      },
+      players: state.players.map((player) => (player.id === "player_2" ? { ...player, hand: [ricochet] } : { ...player, hand: [] }))
+    };
+
+    const action = chooseAutomatedAction(state, "competent", () => 0);
+
+    expect(action).toEqual({ type: "SKIP_REACTION", defenderId: "player_2" });
   });
 });

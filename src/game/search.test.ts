@@ -65,4 +65,25 @@ describe("Search ability", () => {
     expect(state.mainDeck).toHaveLength(0);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual([search.instanceId]);
   });
+
+  it("does not create a keep choice when Search finds no cards", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    const [search] = instances(["ability_search"]);
+    state = {
+      ...state,
+      mainDeck: [],
+      discardPile: [],
+      players: state.players.map((candidate) =>
+        candidate.id === player.id ? { ...candidate, hand: [search], actionsRemaining: 2 } : candidate
+      )
+    };
+
+    state = gameReducer(state, { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: search.instanceId });
+
+    expect(state.pendingSearch).toBeNull();
+    expect(state.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(0);
+    expect(state.discardPile.map((card) => card.instanceId)).toEqual([search.instanceId]);
+    expect(state.log.at(-1)?.message).toContain("found no cards");
+  });
 });

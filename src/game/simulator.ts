@@ -166,8 +166,9 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     issues: {}
   };
   let safety = 0;
+  const maxSteps = Math.max(1200, simulationPlayerNames.length * 75);
 
-  while (state.phase !== "gameOver" && safety < 1200) {
+  while (state.phase !== "gameOver" && safety < maxSteps) {
     const before = state;
     const decisionPlayerId = getDecisionPlayerId(state);
     const decisionPlayerIndex = state.players.findIndex((player) => player.id === decisionPlayerId);
@@ -373,7 +374,9 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
       return false;
     }
     if (definition?.id === "defense_decoy") {
-      return state.players.some((player) => !player.eliminated && player.id !== pending.attackerId && player.id !== defender.id);
+      return state.players.some(
+        (player) => !player.eliminated && player.id !== pending.attackerId && player.id !== defender.id && isHostileTarget(defender, player)
+      );
     }
     return Boolean(definition && (definition.type === "defense" || definition.isLethalDefense));
   });
@@ -775,8 +778,8 @@ function chooseRedirectTarget(
   strategy: StrategyLevel,
   random: () => number
 ): PlayerState {
-  const attacker = getPlayer(state, attackerId);
-  const targets = state.players.filter((player) => attacker && !player.eliminated && player.id !== attackerId && player.id !== defenderId && isHostileTarget(attacker, player));
+  const defender = getPlayer(state, defenderId);
+  const targets = state.players.filter((player) => defender && !player.eliminated && player.id !== attackerId && player.id !== defenderId && isHostileTarget(defender, player));
   if (strategy === "beginner" || strategy === "novice") {
     return randomItem(targets, random);
   }
