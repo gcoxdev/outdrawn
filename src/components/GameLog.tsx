@@ -13,19 +13,20 @@ type GameLogProps = {
 export function GameLog({ entries, players }: GameLogProps) {
   const [playerFilter, setPlayerFilter] = useState("");
   const [textFilter, setTextFilter] = useState("");
+  const hasFilter = Boolean(playerFilter || textFilter.trim());
   const filteredEntries = useMemo(() => {
     const normalizedText = textFilter.trim().toLowerCase();
     const selectedPlayerName = players.find((player) => player.id === playerFilter)?.name.toLowerCase() ?? "";
+    const sourceEntries = hasFilter ? entries : entries.slice(-maxRenderedLogEntries);
 
-    return entries.filter((entry) => {
+    return sourceEntries.filter((entry) => {
       const message = entry.message.toLowerCase();
       const matchesPlayer = !selectedPlayerName || message.includes(selectedPlayerName);
       const matchesText = !normalizedText || message.includes(normalizedText);
       return matchesPlayer && matchesText;
     });
-  }, [entries, playerFilter, players, textFilter]);
-  const hasFilter = Boolean(playerFilter || textFilter.trim());
-  const visibleEntries = filteredEntries.slice(-maxRenderedLogEntries).reverse();
+  }, [entries, hasFilter, playerFilter, players, textFilter]);
+  const visibleEntries = hasFilter ? filteredEntries.slice(-maxRenderedLogEntries).reverse() : [...filteredEntries].reverse();
 
   return (
     <aside className="game-log">
@@ -95,7 +96,7 @@ export function GameLog({ entries, players }: GameLogProps) {
             </li>
           ))}
       </ol>
-      {filteredEntries.length > maxRenderedLogEntries && (
+      {hasFilter && filteredEntries.length > maxRenderedLogEntries && (
         <p className="log-empty">Showing latest {maxRenderedLogEntries} matching entries. Use filters to narrow the log.</p>
       )}
       {filteredEntries.length === 0 && <p className="log-empty">No log entries match these filters.</p>}

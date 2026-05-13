@@ -94,6 +94,21 @@ describe("gameplay corrections", () => {
     expect(latest.debugHandSnapshots).toHaveLength(3);
   });
 
+  it("does not pre-capture hidden hand snapshots on large-table log entries", () => {
+    let state = createNewGame(
+      Array.from({ length: 25 }, (_, index) => `Player ${index + 1}`),
+      () => 0,
+      { ...defaultGameSettings, debugHandSnapshots: false }
+    );
+    const current = state.players[state.currentPlayerIndex];
+
+    state = gameReducer(state, { type: "PASS_ACTION", playerId: current.id });
+
+    const latest = state.log.at(-1)!;
+    expect(latest.handSnapshots).toHaveLength(0);
+    expect(latest.debugHandSnapshots).toHaveLength(0);
+  });
+
   it("records hand snapshots on log entries only when debug snapshots are enabled", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: true });
     const current = state.players[state.currentPlayerIndex];

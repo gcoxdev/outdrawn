@@ -6,6 +6,7 @@ import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
 import { createPendingReaction, getBaseAttackDamage, getGrenadeSplashTargets, resolveAttack, resolveHealing, resolveSecondaryDamage } from "./combat";
+import { getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
 import {
   canPlayerAct,
   canPlayerDraw,
@@ -20,7 +21,9 @@ import {
 } from "./rules";
 
 function log(state: GameState, message: string): GameState {
-  const debugHandSnapshots = shouldCaptureHandSnapshots() ? getHandSnapshots(state) : [];
+  const debugHandSnapshots = shouldCaptureHandSnapshots(state.players.length, state.settings.debugHandSnapshots)
+    ? getHandSnapshots(state.players)
+    : [];
   const handSnapshots = state.settings.debugHandSnapshots ? debugHandSnapshots : [];
   return {
     ...state,
@@ -35,19 +38,6 @@ function log(state: GameState, message: string): GameState {
       }
     ]
   };
-}
-
-function shouldCaptureHandSnapshots(): boolean {
-  return import.meta.env.DEV;
-}
-
-function getHandSnapshots(state: GameState): GameState["log"][number]["handSnapshots"] {
-  return state.players.map((player) => ({
-    playerId: player.id,
-    playerName: player.name,
-    health: player.health,
-    cards: player.hand.map((card) => ({ ...card }))
-  }));
 }
 
 function setLogSnapshotVisibility(state: GameState, visible: boolean): GameState {

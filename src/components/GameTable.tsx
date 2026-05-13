@@ -1,5 +1,5 @@
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
@@ -36,6 +36,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
+  const logPlayers = useMemo(() => state.players.map((player) => ({ id: player.id, name: player.name })), [state.players]);
   const displayPlayer =
     state.players.find((player) => player.id === state.pendingReaction?.defenderId) ??
     state.players.find((player) => player.id === state.pendingRedirect?.defenderId) ??
@@ -172,7 +173,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               <span>{state.mainDeck.length} deck</span>
               <span>{state.discardPile.length} discard</span>
             </div>
-            <GameLog entries={state.log} players={state.players.map((player) => ({ id: player.id, name: player.name }))} />
+            <GameLog entries={state.log} players={logPlayers} />
           </div>
         </aside>
 

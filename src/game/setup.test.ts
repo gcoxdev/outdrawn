@@ -72,4 +72,15 @@ describe("game setup", () => {
     expect(state.log[0].handSnapshots).toHaveLength(0);
     expect(state.log[0].debugHandSnapshots).toHaveLength(3);
   });
+
+  it("skips hidden debug snapshots for large games unless debug snapshots are enabled", () => {
+    const players = Array.from({ length: 25 }, (_, index) => `Player ${index + 1}`);
+    const hiddenState = createNewGame(players, () => 0, { ...defaultGameSettings, debugHandSnapshots: false });
+    const visibleState = createNewGame(players, () => 0, { ...defaultGameSettings, debugHandSnapshots: true });
+
+    expect(hiddenState.log[0].handSnapshots).toHaveLength(0);
+    expect(hiddenState.log[0].debugHandSnapshots).toHaveLength(0);
+    expect(visibleState.log[0].handSnapshots).toHaveLength(25);
+    expect(visibleState.log[0].debugHandSnapshots).toHaveLength(25);
+  });
 });

@@ -1,6 +1,7 @@
 import { eventDeckCards, mainDeckCards } from "../data/cards";
 import { defaultGameSettings, type GameSettings } from "../data/constants";
 import { drawCards, expandDeck, shuffleDeck } from "./deck";
+import { getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
 import { MAX_PLAYERS, MIN_PLAYERS } from "./setupOptions";
 import type { GameState, PlayerSetup, PlayerState } from "./types";
 
@@ -37,6 +38,7 @@ export function createNewGame(
   });
   mainDeck = shuffleDeck([...mainDeck, ...expandDeck(eventDeckCards, "event")], random);
   const firstPlayerIndex = Math.floor(random() * players.length);
+  const debugHandSnapshots = shouldCaptureHandSnapshots(players.length, settings.debugHandSnapshots) ? getHandSnapshots(players) : [];
 
   return {
     phase: "action",
@@ -73,8 +75,8 @@ export function createNewGame(
         id: "log_setup",
         round: 1,
         message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`,
-        debugHandSnapshots: import.meta.env.DEV ? getHandSnapshots(players) : [],
-        handSnapshots: import.meta.env.DEV && settings.debugHandSnapshots ? getHandSnapshots(players) : []
+        debugHandSnapshots,
+        handSnapshots: settings.debugHandSnapshots ? debugHandSnapshots : []
       }
     ],
     winnerId: null,
@@ -90,15 +92,6 @@ function createScaledDeckForInitialHands(playerCount: number, startingHandSize: 
   return Array.from({ length: copies }).flatMap((_, copyIndex) =>
     expandDeck(mainDeckCards, copyIndex === 0 ? "main" : `main${copyIndex + 1}`)
   );
-}
-
-function getHandSnapshots(players: PlayerState[]): GameState["log"][number]["debugHandSnapshots"] {
-  return players.map((player) => ({
-    playerId: player.id,
-    playerName: player.name,
-    health: player.health,
-    cards: player.hand.map((card) => ({ ...card }))
-  }));
 }
 
 function normalizePlayerSetups(playerInputs: string[] | PlayerSetup[]): PlayerSetup[] {
