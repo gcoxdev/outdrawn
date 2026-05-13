@@ -3,7 +3,7 @@ import { blackMarketPresets, defaultGameSettings, type GameSettings } from "../d
 import type { GameAction } from "./actions";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
-import type { CardInstance, GameState, PlayerState, StrategyLevel } from "./types";
+import type { CardInstance, GameState, PlayerId, PlayerState, StrategyLevel } from "./types";
 import { getCardDefinitionById, getCurrentPlayer, getPlayer, isHostileTarget } from "./rules";
 
 export type SimulationSummary = {
@@ -539,14 +539,23 @@ function chooseAttack(state: GameState, player: PlayerState, strategy: StrategyL
       const intimidationSources = state.intimidations[player.id] ?? [];
       return !intimidationSources.includes(candidate.id) || player.hand.some((card) => card.instanceId !== weapon.instanceId);
     });
+  if (validTargets.length === 0) {
+    return null;
+  }
+
+  if (weaponDefinition?.id === "weapon_minigun") {
+    return {
+      type: "ATTACK",
+      attackerId: player.id,
+      weaponInstanceId: weapon.instanceId,
+      damageByTarget: chooseMinigunAllocation(state, player, validTargets, strategy, random)
+    };
+  }
+
   const target = chooseAttackTarget(validTargets, strategy, random, damagePotential);
 
   if (!target) {
     return null;
-  }
-
-  if (weaponDefinition?.target === "allPlayers") {
-    return { type: "ATTACK", attackerId: player.id, weaponInstanceId: weapon.instanceId };
   }
 
   return { type: "ATTACK", attackerId: player.id, targetPlayerId: target.id, weaponInstanceId: weapon.instanceId };
@@ -579,8 +588,13 @@ function chooseMasterAttack(state: GameState, player: PlayerState, weapons: Card
   }
 
   const target = chooseThreatTarget(validTargets, "master", random);
-  if (getCardDefinitionById(bestWeapon.definitionId)?.target === "allPlayers") {
-    return { type: "ATTACK", attackerId: player.id, weaponInstanceId: bestWeapon.instanceId };
+  if (getCardDefinitionById(bestWeapon.definitionId)?.id === "weapon_minigun") {
+    return {
+      type: "ATTACK",
+      attackerId: player.id,
+      weaponInstanceId: bestWeapon.instanceId,
+      damageByTarget: chooseMinigunAllocation(state, player, validTargets, "master", random)
+    };
   }
 
   return target ? { type: "ATTACK", attackerId: player.id, targetPlayerId: target.id, weaponInstanceId: bestWeapon.instanceId } : null;
@@ -598,13 +612,37 @@ function getValidAttackTargets(state: GameState, player: PlayerState, weapon: Ca
 function getWeaponDamagePotential(state: GameState, player: PlayerState, weapon: CardInstance): number {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (weaponDefinition?.id === "weapon_minigun") {
-    return Math.min(
-      weaponDefinition.maxTargets ?? Number.POSITIVE_INFINITY,
-      state.players.filter((candidate) => !candidate.eliminated && isHostileTarget(player, candidate) && !state.smokeProtectedPlayerIds.includes(candidate.id))
-        .length
-    );
+    return (weaponDefinition.damage ?? 0) + (state.attackBonuses[player.id] ?? 0);
   }
   return (weaponDefinition?.id === "weapon_smg" ? 4 : weaponDefinition?.damage ?? 0) + (state.attackBonuses[player.id] ?? 0);
+}
+
+function chooseMinigunAllocation(
+  state: GameState,
+  player: PlayerState,
+  validTargets: PlayerState[],
+  strategy: StrategyLevel,
+  random: () => number
+): Record<PlayerId, number> {
+  const minigun = mainDeckCards.find((card) => card.id === "weapon_minigun");
+  let remaining = (minigun?.damage ?? 6) + (state.attackBonuses[player.id] ?? 0);
+  const perTargetCap = minigun?.maxDamagePerTarget ?? 3;
+  const targets =
+    strategy === "beginner" || strategy === "novice"
+      ? shuffle(validTargets, random)
+      : [...validTargets].sort((left, right) => threatScore(right) - threatScore(left));
+  const allocation: Record<PlayerId, number> = {};
+
+  for (const target of targets) {
+    if (remaining <= 0) {
+      break;
+    }
+    const damage = Math.min(perTargetCap, remaining, Math.max(1, target.health));
+    allocation[target.id] = damage;
+    remaining -= damage;
+  }
+
+  return allocation;
 }
 
 function dispatchWithMetrics(state: GameState, action: GameAction, metrics: SimulationMetrics): GameState {
@@ -968,10 +1006,6 @@ function getDeckBalance() {
 }
 
 function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }): number {
-  if (card.id === "weapon_minigun") {
-    return (card.damage ?? 0) * 6;
-  }
-
   return (card.damage ?? 0) + (card.splashDamage ?? 0);
 }
 

@@ -223,9 +223,11 @@ describe("team mode", () => {
     state = gameReducer(state, {
       type: "ATTACK",
       attackerId: attacker.id,
-      weaponInstanceId: minigun.instanceId
+      weaponInstanceId: minigun.instanceId,
+      damageByTarget: { [target.id]: 3 }
     });
     expect(state.players.find((player) => player.id === teammate.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === target.id)!.health).toBe(13);
   });
 
   it("limits Ricochet redirect targets to the defender's opposing team", () => {

@@ -165,7 +165,7 @@ describe("event cards", () => {
     expect(state.pendingSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shield.instanceId, knife.instanceId]);
   });
 
-  it("High Ground immediately draws 1 card for each living player", () => {
+  it("Scavenge immediately draws 1 card for each living player", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const pistol = main("weapon_pistol");
     const knife = main("weapon_knife");
@@ -185,7 +185,7 @@ describe("event cards", () => {
     ]);
   });
 
-  it("High Ground can put players over max hand size until their turns end", () => {
+  it("Scavenge can put players over max hand size until their turns end", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const rewards = [main("weapon_pistol"), main("weapon_knife"), main("defense_shield_plate")];
     const fullHands = Array.from({ length: state.settings.maxHandSize }, () => main("weapon_pistol"));

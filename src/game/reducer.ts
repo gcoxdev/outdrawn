@@ -512,7 +512,8 @@ function findNextLivingIndex(players: PlayerState[], startIndex: number): number
 }
 
 function currentPlayerOverHandLimit(state: GameState): boolean {
-  return getCurrentPlayer(state).hand.length > state.settings.maxHandSize;
+  const player = getCurrentPlayer(state);
+  return !player.eliminated && player.hand.length > state.settings.maxHandSize;
 }
 
 function getCriticalConditionSummary(beforePlayers: PlayerState[], afterPlayers: PlayerState[]): string {
@@ -1166,7 +1167,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       if (weaponDefinition.id === "weapon_minigun") {
-        const result = resolveMinigunAttack(state, attacker, weapon);
+        const result = resolveMinigunAttack(state, attacker, weapon, action.damageByTarget ?? {});
         return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
       }
 
@@ -1585,22 +1586,20 @@ function getSecondarySourceName(source: SecondaryDamageSource): string {
   return source === "backfire" ? "Backfire damage" : "Counterattack damage";
 }
 
-function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: CardInstance) {
+function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: CardInstance, requestedDamageByTarget: Record<PlayerId, number>) {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (!weaponDefinition) {
     return { state, messages: [] };
   }
 
+  const allocation = getValidMinigunAllocation(state, attacker, weaponDefinition, requestedDamageByTarget);
+  if (!allocation) {
+    return { state, messages: [] };
+  }
+
   const reloadActive = state.reloadPlayerIds.includes(attacker.id);
-  const damagedPlayerIds = state.players
-    .filter((player) => !player.eliminated && isHostileTarget(attacker, player) && !state.smokeProtectedPlayerIds.includes(player.id))
-    .slice(0, weaponDefinition.maxTargets ?? Number.POSITIVE_INFINITY)
-    .map((player) => player.id);
-  const damageByPlayerId = Object.fromEntries(
-    state.players
-      .filter((player) => damagedPlayerIds.includes(player.id))
-      .map((player) => [player.id, getBaseAttackDamage(state, attacker, player, weaponDefinition)])
-  );
+  const damagedPlayerIds = Object.keys(allocation);
+  const damageByPlayerId = allocation;
   const maxDamage = Math.max(0, ...Object.values(damageByPlayerId));
   if (state.settings.allowSecondaryDefense) {
     const baseState: GameState = {
@@ -1622,7 +1621,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     };
     return enqueueSecondaryDamage(
       baseState,
-      [`${attacker.name} swept the field with Minigun for ${maxDamage} damage to each other player.`],
+      [`${attacker.name} allocated ${sumValues(damageByPlayerId)} Minigun damage across ${damagedPlayerIds.length} opponent${damagedPlayerIds.length === 1 ? "" : "s"}.`],
       damagedPlayerIds.map((playerId) => ({
         attackerId: attacker.id,
         defenderId: playerId,
@@ -1673,11 +1672,17 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   };
   const winner = getWinner(nextState);
   const winnerTeamId = getWinningTeamId(nextState);
-  const messages = [`${attacker.name} swept the field with Minigun for ${maxDamage} damage to each other player.`];
+  const messages = [`${attacker.name} allocated ${sumValues(damageByPlayerId)} Minigun damage across ${damagedPlayerIds.length} opponent${damagedPlayerIds.length === 1 ? "" : "s"}.`];
 
   players
-    .filter((player) => damagedPlayerIds.includes(player.id) && player.eliminated)
-    .forEach((player) => messages.push(`${player.name} was eliminated.`));
+    .filter((player) => damagedPlayerIds.includes(player.id))
+    .forEach((player) => {
+      const damage = damageByPlayerId[player.id] ?? 0;
+      messages.push(`${player.name} took ${damage} Minigun damage.`);
+      if (player.eliminated) {
+        messages.push(`${player.name} was eliminated.`);
+      }
+    });
   const rewardGain = state.players.find((player) => player.id === attacker.id)
     ? (players.find((player) => player.id === attacker.id)?.health ?? attacker.health) - attacker.health
     : 0;
@@ -1699,6 +1704,60 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     state: nextState,
     messages
   };
+}
+
+function getValidMinigunAllocation(
+  state: GameState,
+  attacker: PlayerState,
+  weaponDefinition: NonNullable<ReturnType<typeof getCardDefinitionById>>,
+  requestedDamageByTarget: Record<PlayerId, number>
+): Record<PlayerId, number> | null {
+  const pool = getMinigunDamagePool(state, attacker, weaponDefinition);
+  const perTargetCap = weaponDefinition.maxDamagePerTarget ?? 3;
+  const entries = Object.entries(requestedDamageByTarget)
+    .map(([playerId, damage]) => [playerId, Math.floor(Number(damage))] as const)
+    .filter(([, damage]) => damage > 0);
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const allocation: Record<PlayerId, number> = {};
+  for (const [playerId, damage] of entries) {
+    const target = getPlayer(state, playerId);
+    if (!target || target.eliminated || !isHostileTarget(attacker, target) || state.smokeProtectedPlayerIds.includes(target.id)) {
+      return null;
+    }
+
+    if (damage > perTargetCap) {
+      return null;
+    }
+
+    allocation[playerId] = (allocation[playerId] ?? 0) + damage;
+    if (allocation[playerId] > perTargetCap) {
+      return null;
+    }
+  }
+
+  if (sumValues(allocation) > pool) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    Object.entries(allocation).map(([playerId, damage]) => [playerId, damage + (state.markedTargets[playerId] ?? 0)])
+  );
+}
+
+function getMinigunDamagePool(
+  state: GameState,
+  attacker: PlayerState,
+  weaponDefinition: NonNullable<ReturnType<typeof getCardDefinitionById>>
+): number {
+  return (weaponDefinition.damage ?? 0) + (state.attackBonuses[attacker.id] ?? 0);
+}
+
+function sumValues(record: Record<string, number>): number {
+  return Object.values(record).reduce((total, value) => total + value, 0);
 }
 
 function applyEliminationHealthReward(health: number, eliminations: number, state: GameState): number {

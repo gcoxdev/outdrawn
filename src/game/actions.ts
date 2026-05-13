@@ -28,6 +28,7 @@ export type GameAction =
       attackerId: PlayerId;
       targetPlayerId?: PlayerId;
       weaponInstanceId: CardInstanceId;
+      damageByTarget?: Record<PlayerId, number>;
     }
   | { type: "PLAY_REACTION"; defenderId: PlayerId; reactionCardInstanceId: CardInstanceId }
   | { type: "SKIP_REACTION"; defenderId: PlayerId }

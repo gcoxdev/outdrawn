@@ -38,6 +38,7 @@ export type Card = {
   actionsCost?: number;
   supplyCost?: number;
   maxTargets?: number;
+  maxDamagePerTarget?: number;
 
   isReaction?: boolean;
   isLethalDefense?: boolean;
@@ -190,12 +191,12 @@ export const mainDeckCards: Card[] = [
     timing: "action",
     target: "allPlayers",
     rarity: "rare",
-    damage: 2,
-    maxTargets: 6,
+    damage: 6,
+    maxDamagePerTarget: 3,
     supplyCost: 3,
     icons: ["damage", "spray"],
-    shortText: "Deal 2 damage to up to 6 opponents.",
-    rulesText: "Deal 2 damage to up to 6 opponents in seating order.",
+    shortText: "Allocate 6 damage among opponents.",
+    rulesText: "Allocate 6 damage among any opponents, max 3 per opponent. Each chosen opponent may defend once against their assigned damage.",
     flavorText: "Nobody gets to ignore that sound.",
     tags: ["weapon", "area", "all-opponents"]
   },
@@ -207,7 +208,7 @@ export const mainDeckCards: Card[] = [
     type: "defense",
     count: 3,
     timing: "reaction",
-    target: "self",
+    target: "allPlayers",
     rarity: "common",
     block: 2,
     supplyCost: 2,
@@ -568,7 +569,7 @@ export const eventDeckCards: Card[] = [
     type: "event",
     count: 2,
     timing: "immediate",
-    target: "allPlayers",
+    target: "self",
     rarity: "common",
     icons: ["collapse", "attack"],
     shortText: "All players take 1 damage.",
@@ -606,18 +607,18 @@ export const eventDeckCards: Card[] = [
   },
   {
     id: "event_high_ground",
-    name: "High Ground",
+    name: "Scavenge",
     type: "event",
     count: 2,
     timing: "immediate",
     target: "allPlayers",
     rarity: "common",
-    damage: 1,
-    icons: ["damage", "first-attack"],
+    draw: 1,
+    icons: ["draw", "supply"],
     shortText: "Each living player draws 1 card.",
     rulesText: "Each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.",
-    flavorText: "Position decides the opening shot.",
-    tags: ["event", "damage-buff", "tempo"]
+    flavorText: "Useful things turn up when everyone is desperate.",
+    tags: ["event", "draw", "tempo"]
   },
   {
     id: "event_low_ammo",
@@ -625,7 +626,7 @@ export const eventDeckCards: Card[] = [
     type: "event",
     count: 2,
     timing: "immediate",
-    target: "allPlayers",
+    target: "self",
     rarity: "common",
     damage: 3,
     discard: 1,

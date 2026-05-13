@@ -1423,6 +1423,45 @@ p {
   gap: 8px;
 }
 
+.target-list--allocation {
+  grid-template-columns: 1fr;
+}
+
+.allocation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.allocation-row > span {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allocation-row > div {
+  display: grid;
+  grid-template-columns: 34px 28px 34px;
+  align-items: center;
+  gap: 5px;
+}
+
+.allocation-row button {
+  min-height: 32px;
+  padding: 0;
+}
+
+.allocation-row strong {
+  text-align: center;
+}
+
 .action-panel__decision-grid {
   display: grid;
   grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);

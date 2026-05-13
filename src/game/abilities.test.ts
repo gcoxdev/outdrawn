@@ -60,21 +60,25 @@ describe("ability cards", () => {
     expect(state.attackBonuses[current.id]).toBeUndefined();
   });
 
-  it("uses Ambush to boost Minigun damage against every target", () => {
+  it("uses Ambush to boost the Minigun damage pool", () => {
     let { state, current } = stateWithHands(["ability_ambush", "weapon_minigun"]);
     const ambush = state.players[state.currentPlayerIndex].hand[0];
     const minigun = state.players[state.currentPlayerIndex].hand[1];
+    const targets = state.players.filter((player) => player.id !== current.id);
 
     state = gameReducer(state, { type: "PLAY_ABILITY", playerId: current.id, cardInstanceId: ambush.instanceId });
     state = gameReducer(state, {
       type: "ATTACK",
       attackerId: current.id,
-      weaponInstanceId: minigun.instanceId
+      weaponInstanceId: minigun.instanceId,
+      damageByTarget: {
+        [targets[0].id]: 3,
+        [targets[1].id]: 3
+      }
     });
 
-    state.players
-      .filter((player) => player.id !== current.id)
-      .forEach((player) => expect(player.health).toBe(15));
+    expect(state.players.find((player) => player.id === targets[0].id)!.health).toBe(17);
+    expect(state.players.find((player) => player.id === targets[1].id)!.health).toBe(17);
     expect(state.attackBonuses[current.id]).toBeUndefined();
   });
 

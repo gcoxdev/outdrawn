@@ -17,7 +17,7 @@
 
 ## Rules To Clarify
 
-- Revisit area-damage cards like Minigun for large player counts, since their value scales with the number of opponents.
+- Revisit any future area-damage cards for large player counts so their value does not scale without a cap or damage pool.
 - Simulate and compare pure round-robin turn order against the standard round model with a moving starting player.
 - Decide whether to test 25 health, 7 starting cards, 10 max cards, and 3 actions as the next manual-play default candidate.
 - Create physical-play rules/reference cards that remove web-only terms like logs, debug snapshots, bot levels, and pass-device mode.
@@ -106,6 +106,7 @@ Ability candidates:
 - Feint: choose a target; if they spend a defense card against your next attack this turn, draw 1.
 - Jam Comms: target player cannot receive ally support reactions until their next turn.
 - Signal Boost: your next ability card this turn costs 0 actions.
+- High Ground: future concept to preserve. Possible direction: gain a temporary attack or defense advantage tied to positioning, but keep the mechanic physical-play friendly and avoid lingering round-state complexity unless represented by a clear marker.
 
 Healing/support candidates:
 

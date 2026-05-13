@@ -27,8 +27,7 @@ export function getBaseAttackDamage(
   return (
     (weaponDamageOverride ?? weaponDefinition.damage ?? 0) +
     (state.attackBonuses[attacker.id] ?? 0) +
-    (state.markedTargets[target.id] ?? 0) +
-    getEventAttackBonus(state, attacker)
+    (state.markedTargets[target.id] ?? 0)
   );
 }
 
@@ -447,14 +446,6 @@ function resolveReactionDamage(
 function applyNoCover(baseDamage: number, preventedDamage: number, activeEventId: string | undefined): number {
   const adjustedPrevention = activeEventId === "event_no_cover" ? Math.max(0, preventedDamage - 1) : preventedDamage;
   return Math.max(0, baseDamage - adjustedPrevention);
-}
-
-function getEventAttackBonus(state: GameState, attacker: PlayerState): number {
-  if (state.activeEvent?.card.definitionId === "event_high_ground" && !attacker.attackedThisRound) {
-    return 1;
-  }
-
-  return 0;
 }
 
 function shouldRewardBounty(state: GameState, target: PlayerState, damage: number): boolean {

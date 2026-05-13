@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chooseAutomatedAction, simulateGames } from "./simulator";
+import { chooseAutomatedAction, simulateGame, simulateGames } from "./simulator";
 import { createNewGame } from "./setup";
 import { expandDeck } from "./deck";
 import { mainDeckCards } from "../data/cards";
@@ -33,6 +33,13 @@ describe("game simulator", () => {
 
     expect(summary.strategies).toEqual(["competent", "competent", "competent", "competent", "competent", "competent"]);
     expect(Object.keys(summary.winners).some((winner) => winner === "player_6")).toBe(true);
+  });
+
+  it("does not stall when an eliminated current player is over hand limit", () => {
+    const result = simulateGame(20878839, ["beginner", "novice", "expert", "master"]);
+
+    expect(result.stalled).toBe(false);
+    expect(result.state.phase).toBe("gameOver");
   });
 
   it("can choose a live game action for a computer-controlled turn", () => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Card } from "../data/cards";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
@@ -19,10 +19,16 @@ type ActionPanelProps = {
 
 export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscardCards, discardRequirement, isComputerDecision, dispatch }: ActionPanelProps) {
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
+  const [minigunAllocation, setMinigunAllocation] = useState<Record<string, number>>({});
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
   const selectedIsWeapon = selectedDefinition?.type === "weapon";
   const selectedIsTargetedAbility = selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer";
   const selectedWeaponHitsEveryone = selectedDefinition?.type === "weapon" && selectedDefinition.target === "allPlayers";
+  const selectedIsMinigun = selectedDefinition?.id === "weapon_minigun";
+  const minigunDamagePool = selectedIsMinigun ? (selectedDefinition.damage ?? 0) + (state.attackBonuses[currentPlayer.id] ?? 0) : 0;
+  const minigunPerTargetCap = selectedDefinition?.maxDamagePerTarget ?? 3;
+  const allocatedMinigunDamage = Object.values(minigunAllocation).reduce((total, damage) => total + damage, 0);
+  const handLimitWarning = getHandLimitWarning(currentPlayer, state.settings.maxHandSize);
   const overHandLimit = discardRequirement?.type === "handLimit";
   const blackMarketConfig =
     state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
@@ -116,6 +122,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
 
       return true;
     }) ?? [];
+
+  useEffect(() => {
+    setMinigunAllocation({});
+  }, [selectedCard?.instanceId]);
 
   if (isComputerDecision) {
     const decisionPlayer =
@@ -501,15 +511,15 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           Pass
         </button>
         <button
-          disabled={!canEndTurn || overHandLimit}
+          disabled={!canEndTurn || Boolean(handLimitWarning)}
           onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
         >
           End Turn
         </button>
       </div>
-      {overHandLimit && (
+      {handLimitWarning && (
         <p className="hand-limit-warning" role="status">
-          {currentPlayer.name} has {currentPlayer.hand.length} cards. Discard down to {state.settings.maxHandSize} before ending turn.
+          {handLimitWarning}
         </p>
       )}
 
@@ -598,8 +608,69 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           {selectedIsWeapon && (
             <div className="attack-box">
               <h2>Attack</h2>
-              <p>{selectedWeaponHitsEveryone ? `${selectedDefinition.name} hits every other valid player.` : `Choose a target for ${selectedDefinition.name}.`}</p>
-              {selectedWeaponHitsEveryone ? (
+              <p>
+                {selectedIsMinigun
+                  ? `Allocate up to ${minigunDamagePool} total damage, max ${minigunPerTargetCap} per opponent.`
+                  : selectedWeaponHitsEveryone
+                    ? `${selectedDefinition.name} hits every other valid player.`
+                    : `Choose a target for ${selectedDefinition.name}.`}
+              </p>
+              {selectedIsMinigun ? (
+                <>
+                  <div className="target-list target-list--allocation">
+                    {livingTargets.map((target) => {
+                      const damage = minigunAllocation[target.id] ?? 0;
+                      return (
+                        <div className="allocation-row" key={target.id}>
+                          <span>{target.name}</span>
+                          <div>
+                            <button
+                              disabled={damage <= 0}
+                              onClick={() =>
+                                setMinigunAllocation((current) => ({
+                                  ...current,
+                                  [target.id]: Math.max(0, (current[target.id] ?? 0) - 1)
+                                }))
+                              }
+                            >
+                              -
+                            </button>
+                            <strong>{damage}</strong>
+                            <button
+                              disabled={damage >= minigunPerTargetCap || allocatedMinigunDamage >= minigunDamagePool}
+                              onClick={() =>
+                                setMinigunAllocation((current) => ({
+                                  ...current,
+                                  [target.id]: Math.min(minigunPerTargetCap, (current[target.id] ?? 0) + 1)
+                                }))
+                              }
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="menu-note">
+                    Allocated {allocatedMinigunDamage} of {minigunDamagePool}.
+                  </p>
+                  <button
+                    disabled={!canAct || !selectedCard || allocatedMinigunDamage <= 0 || allocatedMinigunDamage > minigunDamagePool}
+                    onClick={() =>
+                      selectedCard &&
+                      dispatch({
+                        type: "ATTACK",
+                        attackerId: currentPlayer.id,
+                        weaponInstanceId: selectedCard.instanceId,
+                        damageByTarget: Object.fromEntries(Object.entries(minigunAllocation).filter(([, damage]) => damage > 0))
+                      })
+                    }
+                  >
+                    Fire Minigun
+                  </button>
+                </>
+              ) : selectedWeaponHitsEveryone ? (
                 <button
                   disabled={!canAct || !selectedCard}
                   onClick={() =>
@@ -754,6 +825,14 @@ export function canPlayHealingCard(
   }
 
   return !((definition.heal ?? 0) > 0 && target.health >= maxHealth && !definition.draw);
+}
+
+export function getHandLimitWarning(player: PlayerState, maxHandSize: number): string | null {
+  if (player.eliminated || player.hand.length <= maxHandSize) {
+    return null;
+  }
+
+  return `${player.name} has ${player.hand.length} cards. Discard down to ${maxHandSize} before ending turn.`;
 }
 
 function getBlackMarketSummary(config: BlackMarketConfig) {

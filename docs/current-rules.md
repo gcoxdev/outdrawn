@@ -77,7 +77,7 @@ Each living player acts once per round. After all living players have acted:
 - Assault Rifle: deal 5 damage.
 - Crossbow: deal 4 damage and penetrates Armor Vest.
 - SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: deal 2 damage to up to 6 opponents in seating order. It does not choose a target.
+- Minigun: allocate 6 damage among any opponents, max 3 per opponent. Attack bonuses add to the total damage pool, not to each target.
 
 ## Defense
 
@@ -119,7 +119,7 @@ Healing cannot exceed maximum health.
 - Pressure Zone: all living players take 1 damage.
 - Supply Drop: draw 3 cards. You may exceed max hand size during play, but must discard down before ending your turn.
 - Bounty: the highest-health living player takes 2 damage. If tied, each tied highest-health player takes 2 damage.
-- High Ground: each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.
+- Scavenge: each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.
 - Low Ammo: each player chooses one weapon from hand to discard or takes 3 damage if they have no weapon.
 - No Cover: each player chooses one defense card from hand to discard or takes 2 damage if they have no defense.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
