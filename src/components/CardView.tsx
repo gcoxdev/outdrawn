@@ -32,12 +32,21 @@ type CardViewProps = {
 type RulesAnchorRect = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
 
 function getCardFaceImage(card: Card) {
-  if (card.type !== "weapon") {
-    return null;
+  if (card.type === "weapon") {
+    const slug = card.id.replaceAll("_", "-");
+    return `/cards/fronts/weapons/ai-review/final/${slug}-dark-01.png`;
   }
 
-  const slug = card.id.replaceAll("_", "-");
-  return `/cards/fronts/weapons/ai-review/final/${slug}-dark-01.png`;
+  if (card.type === "defense") {
+    const slugById: Partial<Record<Card["id"], string>> = {
+      defense_decoy: "defense-ricochet",
+      defense_fake_death: "defense-revive"
+    };
+    const slug = slugById[card.id] ?? card.id.replaceAll("_", "-");
+    return `/cards/fronts/defense/ai-review/final/${slug}-dark-01.png`;
+  }
+
+  return null;
 }
 
 export function getRulesPopoverPosition(
