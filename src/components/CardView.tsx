@@ -46,6 +46,11 @@ function getCardFaceImage(card: Card) {
     return `/cards/fronts/defense/ai-review/final/${slug}-dark-01.png`;
   }
 
+  if (card.type === "ability") {
+    const slug = card.id.replaceAll("_", "-");
+    return `/cards/fronts/ability/ai-review/final/${slug}-dark-01.png`;
+  }
+
   return null;
 }
 
