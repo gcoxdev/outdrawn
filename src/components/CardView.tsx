@@ -51,6 +51,11 @@ function getCardFaceImage(card: Card) {
     return `/cards/fronts/ability/ai-review/final/${slug}-dark-01.png`;
   }
 
+  if (card.type === "healing") {
+    const slug = card.id.replaceAll("_", "-");
+    return `/cards/fronts/healing/ai-review/final/${slug}-dark-01.png`;
+  }
+
   return null;
 }
 
