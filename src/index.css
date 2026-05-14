@@ -1119,6 +1119,28 @@ p {
   text-align: left;
 }
 
+.card-view--image {
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.card-view--image:disabled {
+  cursor: not-allowed;
+}
+
+.card-view__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
 .card-back {
   display: block;
   align-self: start;

@@ -31,6 +31,15 @@ type CardViewProps = {
 
 type RulesAnchorRect = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
 
+function getCardFaceImage(card: Card) {
+  if (card.type !== "weapon") {
+    return null;
+  }
+
+  const slug = card.id.replaceAll("_", "-");
+  return `/cards/fronts/weapons/ai-review/final/${slug}-dark-01.png`;
+}
+
 export function getRulesPopoverPosition(
   rect: RulesAnchorRect,
   viewportWidth: number,
@@ -55,7 +64,10 @@ export function getRulesPopoverPosition(
 export function CardView({ card, mode = "hand", isSelected = false, isDisabled = false, onClick }: CardViewProps) {
   const [rulesPosition, setRulesPosition] = useState<ReturnType<typeof getRulesPopoverPosition> | null>(null);
   const TypeIcon = typeIcons[card.type];
-  const className = `card-view card-${card.type} card-${mode}${isSelected ? " is-selected" : ""}`;
+  const cardFaceImage = getCardFaceImage(card);
+  const className = `card-view card-${card.type} card-${mode}${cardFaceImage ? " card-view--image" : ""}${
+    isSelected ? " is-selected" : ""
+  }`;
   const stats = [
     card.damage ? { label: card.damage, icon: Swords, title: "Damage" } : null,
     card.splashDamage ? { label: card.splashDamage, icon: Bomb, title: "Splash" } : null,
@@ -64,7 +76,9 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     card.heal ? { label: card.heal, icon: HeartPulse, title: "Heal" } : null
   ].filter(Boolean);
 
-  const cardContent = (
+  const cardContent = cardFaceImage ? (
+    <img className="card-view__image" src={cardFaceImage} alt={`${card.name}: ${card.rulesText}`} draggable={false} />
+  ) : (
     <>
       <header className="card-view__header">
         <span className="card-view__name">{card.name}</span>
