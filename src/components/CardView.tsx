@@ -164,7 +164,12 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
 
   if (onClick) {
     return (
-      <button className={className} disabled={isDisabled} onClick={onClick} type="button">
+      <button
+        className={className}
+        disabled={isDisabled}
+        onClick={onClick}
+        type="button"
+      >
         {cardContent}
       </button>
     );

@@ -160,6 +160,19 @@ function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId
   const gameOverState = {
     ...state,
     phase: "gameOver" as const,
+    pendingEventDialog: null,
+    pendingReaction: null,
+    pendingRedirect: null,
+    pendingAttackCost: null,
+    pendingMultiHitAttack: null,
+    pendingDiscard: null,
+    pendingSearch: null,
+    pendingSupplyDrop: null,
+    pendingMarketSearch: null,
+    pendingBlackMarket: null,
+    pendingSteal: null,
+    pendingSecondaryDamage: null,
+    selectedCardId: null,
     winnerId: winner?.id ?? teamWinner?.id ?? null,
     winnerTeamId
   };
@@ -216,6 +229,10 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
     }
 
     const draw = drawCardsResolvingMixedEvents(state, 3, player.id, true);
+    if (draw.state.phase === "gameOver" || getPlayer(draw.state, player.id)?.eliminated) {
+      return draw.state;
+    }
+
     return enforceHandLimit(
       updatePlayer(draw.state, player.id, (currentPlayer) => ({
         ...currentPlayer,
@@ -242,7 +259,15 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
 
   if (eventId === "event_high_ground") {
     const drawnState = state.players.filter((player) => !player.eliminated).reduce((nextState, player) => {
+      if (nextState.phase === "gameOver") {
+        return nextState;
+      }
+
       const draw = drawCardsResolvingMixedEvents(nextState, 1, player.id, true);
+      if (draw.state.phase === "gameOver" || getPlayer(draw.state, player.id)?.eliminated) {
+        return draw.state;
+      }
+
       return updatePlayer(draw.state, player.id, (currentPlayer) => ({
         ...currentPlayer,
         hand: [...currentPlayer.hand, ...draw.drawn]
@@ -354,7 +379,12 @@ function drawCardsResolvingMixedEvents(state: GameState, count: number, playerId
   const drawn: CardInstance[] = [];
   let nextState = state;
 
-  while (drawn.length < count && (nextState.mainDeck.length > 0 || nextState.discardPile.length > 0)) {
+  while (
+    drawn.length < count &&
+    nextState.phase !== "gameOver" &&
+    !getPlayer(nextState, playerId)?.eliminated &&
+    (nextState.mainDeck.length > 0 || nextState.discardPile.length > 0)
+  ) {
     const draw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
     const card = draw.drawn[0];
     const definition = getCardDefinitionById(card?.definitionId ?? "");
@@ -439,11 +469,16 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
         [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
     };
     const eventLoggedState = log(eventState, `${player.name} drew ${definition.name}.`);
-    let resolved = logPlayerHealthChanges(state.players, applyImmediateEvent(eventLoggedState, definition.id, playerId, eventCard), definition.name);
+    const applied = applyImmediateEvent(eventLoggedState, definition.id, playerId, eventCard);
+    const shouldLogDirectHealthChanges = eventDirectlyChangesHealth(definition.id);
+    let resolved = shouldLogDirectHealthChanges ? logPlayerHealthChanges(state.players, applied, definition.name) : applied;
     if (definition.id === "event_critical_condition") {
       resolved = log(resolved, getCriticalConditionSummary(state.players, resolved.players));
     }
-    return resolved;
+    if (resolved.phase === "gameOver") {
+      return resolved;
+    }
+    return completeGameIfOver(resolved, state.players) ?? resolved;
   }
 
   if (definition.timing === "thisRound" || definition.timing === "ongoing") {
@@ -474,6 +509,16 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
       eventDiscardPile: [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
     },
     `${player.name} drew ${definition.name}.`
+  );
+}
+
+function eventDirectlyChangesHealth(eventId: string): boolean {
+  return (
+    eventId === "event_pressure_zone" ||
+    eventId === "event_bounty" ||
+    eventId === "event_low_ammo" ||
+    eventId === "event_critical_condition" ||
+    eventId === "event_no_cover"
   );
 }
 

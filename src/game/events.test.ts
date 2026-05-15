@@ -475,6 +475,63 @@ describe("event cards", () => {
       shield.instanceId,
       knife.instanceId
     ]);
+    expect(state.log.map((entry) => entry.message)).not.toContain("Ari took 1 Supply Drop damage.");
+  });
+
+  it("does not attribute nested event damage to Scavenge", () => {
+    let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+    const player = state.players[state.currentPlayerIndex];
+    const scavenge = event("event_high_ground");
+    const pressureZone = event("event_pressure_zone");
+    const pistol = main("weapon_pistol");
+    const shield = main("defense_shield_plate");
+    const knife = main("weapon_knife");
+    state = {
+      ...state,
+      mainDeck: [scavenge, pressureZone, pistol, shield, knife],
+      players: state.players.map((candidate) => (candidate.id === player.id ? { ...candidate, hand: [], actionsRemaining: 2 } : candidate))
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
+
+    const messages = state.log.map((entry) => entry.message);
+    expect(messages).toContain("Ari took 1 Pressure Zone damage.");
+    expect(messages).not.toContain("Ari took 1 Scavenge damage.");
+    expect(messages).not.toContain("Blake took 1 Scavenge damage.");
+    expect(messages).not.toContain("Casey took 1 Scavenge damage.");
+  });
+
+  it("stops resolving nested draw events as soon as they produce a winner", () => {
+    let state = createNewGame(["Ari", "Devon", "Casey"], () => 0);
+    const devon = state.players[1];
+    const supplyDrop = event("event_supply_drop");
+    const pressureZone = event("event_pressure_zone");
+    const pistol = main("weapon_pistol");
+    state = {
+      ...state,
+      currentPlayerIndex: 1,
+      mainDeck: [supplyDrop, pressureZone, pistol],
+      players: state.players.map((candidate) =>
+        candidate.id === "player_1"
+          ? { ...candidate, health: 2 }
+          : candidate.id === devon.id
+            ? { ...candidate, health: 1, hand: [], actionsRemaining: 2 }
+            : { ...candidate, health: 0, eliminated: true }
+      )
+    };
+
+    state = gameReducer(state, { type: "DRAW_CARD", playerId: devon.id });
+
+    const messages = state.log.map((entry) => entry.message);
+    expect(state.phase).toBe("gameOver");
+    expect(state.winnerId).toBe("player_1");
+    expect(state.pendingEventDialog).toBeNull();
+    expect(state.players.find((candidate) => candidate.id === devon.id)?.hand).toHaveLength(0);
+    expect(messages).toContain("Devon was eliminated by Pressure Zone.");
+    expect(messages).toContain("Ari wins.");
+    expect(messages.filter((message) => message === "Ari wins.")).toHaveLength(1);
+    expect(messages).not.toContain("Devon drew 1 card.");
+    expect(messages).not.toContain("Devon took 1 Supply Drop damage.");
   });
 
   it("Black Market offers a one-time trade only to the drawing player", () => {

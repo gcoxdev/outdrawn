@@ -80,6 +80,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     shouldShowDisplayHand &&
     handDisplayPlayer.id === displayPlayer.id &&
     displayPlayer.controller.type === "human" &&
+    !displayPlayer.eliminated &&
+    !handDisplayPlayer.eliminated &&
     !isComputerDecision &&
     !privacyGateActive &&
     state.phase !== "gameOver";
@@ -266,52 +268,57 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                     handDiscardRequirement.allowedCardInstanceIds.includes(card.instanceId);
                   const canSelectReaction = !playableReactionCardIds || playableReactionCardIds.includes(card.instanceId);
                   return definition ? (
-                    <CardView
-                      card={definition}
-                      isDisabled={Boolean((handDiscardRequirement && !canSelectDiscard) || (playableReactionCardIds && !canSelectReaction))}
-                      isSelected={handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : state.selectedCardId === card.instanceId}
-                      key={card.instanceId}
-                      onClick={
-                        canSelectDisplayHand ||
-                        (shouldShowDisplayHand &&
-                          handDisplayPlayer.controller.type === "human" &&
-                          handDiscardRequirement?.playerId === handDisplayPlayer.id)
-                          ? () => {
-                              if (handDiscardRequirement) {
-                                if (!canSelectDiscard) {
+                    <div className="hand-card-slot" key={card.instanceId}>
+                      <CardView
+                        card={definition}
+                        isDisabled={Boolean((handDiscardRequirement && !canSelectDiscard) || (playableReactionCardIds && !canSelectReaction))}
+                        isSelected={handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : state.selectedCardId === card.instanceId}
+                        onClick={
+                          canSelectDisplayHand ||
+                          (shouldShowDisplayHand &&
+                            handDisplayPlayer.controller.type === "human" &&
+                            handDiscardRequirement?.playerId === handDisplayPlayer.id)
+                            ? () => {
+                                if (handDiscardRequirement) {
+                                  if (!canSelectDiscard) {
+                                    return;
+                                  }
+
+                                  dispatch({ type: "SELECT_CARD", cardInstanceId: null });
+                                  setSelectedDiscardIds((current) => {
+                                    if (current.includes(card.instanceId)) {
+                                      return current.filter((id) => id !== card.instanceId);
+                                    }
+
+                                    return current.length >= handDiscardRequirement.count
+                                      ? [...current.slice(1), card.instanceId]
+                                      : [...current, card.instanceId];
+                                  });
                                   return;
                                 }
 
-                                dispatch({ type: "SELECT_CARD", cardInstanceId: null });
-                                setSelectedDiscardIds((current) => {
-                                  if (current.includes(card.instanceId)) {
-                                    return current.filter((id) => id !== card.instanceId);
-                                  }
+                                if (playableReactionCardIds && !canSelectReaction) {
+                                  return;
+                                }
 
-                                  return current.length >= handDiscardRequirement.count
-                                    ? [...current.slice(1), card.instanceId]
-                                    : [...current, card.instanceId];
+                                setSelectedDiscardIds([]);
+                                dispatch({
+                                  type: "SELECT_CARD",
+                                  cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
                                 });
-                                return;
                               }
-
-                              if (playableReactionCardIds && !canSelectReaction) {
-                                return;
-                              }
-
-                              setSelectedDiscardIds([]);
-                              dispatch({
-                                type: "SELECT_CARD",
-                                cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
-                              });
-                            }
-                          : undefined
-                      }
-                    />
+                            : undefined
+                        }
+                      />
+                    </div>
                   ) : null;
                 })
               ) : (
-                handDisplayPlayer.hand.map((card) => <CardBack key={card.instanceId} />)
+                handDisplayPlayer.hand.map((card) => (
+                  <div className="hand-card-slot" key={card.instanceId}>
+                    <CardBack />
+                  </div>
+                ))
               )}
             </div>
           </section>

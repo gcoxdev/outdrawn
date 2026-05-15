@@ -51,6 +51,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     !state.pendingMarketSearch &&
     !state.pendingBlackMarket &&
     !state.pendingSteal &&
+    !currentPlayer.eliminated &&
     currentPlayer.actionsRemaining > 0;
   const canDraw =
     state.phase === "action" &&
@@ -65,6 +66,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     !state.pendingMarketSearch &&
     !state.pendingBlackMarket &&
     !state.pendingSteal &&
+    !currentPlayer.eliminated &&
     (currentPlayer.freeDrawsRemaining > 0 || currentPlayer.actionsRemaining > 0);
   const canEndTurn =
     state.phase === "action" &&
@@ -78,7 +80,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     !state.pendingSupplyDrop &&
     !state.pendingMarketSearch &&
     !state.pendingBlackMarket &&
-    !state.pendingSteal;
+    !state.pendingSteal &&
+    !currentPlayer.eliminated;
   const activeReaction = state.pendingReaction ?? state.pendingSecondaryDamage;
   const pendingDefender = activeReaction ? getPlayer(state, activeReaction.defenderId) : undefined;
   const pendingAttacker = activeReaction ? getPlayer(state, activeReaction.attackerId) : undefined;
