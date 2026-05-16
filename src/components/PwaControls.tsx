@@ -21,7 +21,7 @@ export function PwaControls() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const canInstall = canInstallApp(installPrompt, isStandalone);
   const installLabel = getInstallStatusLabel({ canInstall, isStandalone });
-  const installDetail = getInstallStatusDetail({ canInstall, hasServiceWorkerRegistration, isStandalone });
+  const installDetail = getInstallStatusDetail({ canInstall, hasServiceWorkerRegistration, isStandalone, isSecureContext: window.isSecureContext });
   const updateMessage = useMemo(() => getUpdateMessage(updateStatus), [updateStatus]);
 
   useEffect(() => {

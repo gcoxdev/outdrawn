@@ -29,11 +29,13 @@ export function getInstallStatusLabel({
 export function getInstallStatusDetail({
   canInstall,
   hasServiceWorkerRegistration,
-  isStandalone
+  isStandalone,
+  isSecureContext = true
 }: {
   canInstall: boolean;
   hasServiceWorkerRegistration: boolean | null;
   isStandalone: boolean;
+  isSecureContext?: boolean;
 }) {
   if (isStandalone) {
     return "Outdrawn is running as an installed app.";
@@ -41,6 +43,10 @@ export function getInstallStatusDetail({
 
   if (canInstall) {
     return "Install Outdrawn for offline computer games.";
+  }
+
+  if (!isSecureContext) {
+    return "Install requires trusted HTTPS. Trust the mkcert certificate authority on this device, then reload.";
   }
 
   if (hasServiceWorkerRegistration === false) {
@@ -94,11 +100,18 @@ export function registerOfflineServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", () => {
+  const register = () => {
     navigator.serviceWorker.register("/sw.js").catch((error) => {
       console.warn("Offline support registration failed.", error);
     });
-  });
+  };
+
+  if (document.readyState === "complete") {
+    register();
+    return;
+  }
+
+  window.addEventListener("load", register, { once: true });
 }
 
 let installPromptListenerStarted = false;

@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { canInstallApp, getInstallStatusDetail, getInstallStatusLabel, getUpdateServiceWorkerRegistration, shouldRegisterServiceWorker } from "./pwa";
 
 afterEach(() => {
@@ -28,6 +30,7 @@ describe("PWA service worker registration", () => {
 
   it("explains why install may be unavailable", () => {
     expect(getInstallStatusDetail({ canInstall: true, hasServiceWorkerRegistration: true, isStandalone: false })).toContain("Install Outdrawn");
+    expect(getInstallStatusDetail({ canInstall: false, hasServiceWorkerRegistration: false, isStandalone: false, isSecureContext: false })).toContain("trusted HTTPS");
     expect(getInstallStatusDetail({ canInstall: false, hasServiceWorkerRegistration: false, isStandalone: false })).toContain("production app");
     expect(getInstallStatusDetail({ canInstall: false, hasServiceWorkerRegistration: true, isStandalone: false })).toContain("browser install option");
     expect(getInstallStatusDetail({ canInstall: false, hasServiceWorkerRegistration: true, isStandalone: true })).toContain("installed app");
@@ -60,4 +63,23 @@ describe("PWA service worker registration", () => {
     await vi.advanceTimersByTimeAsync(3000);
     await expect(result).resolves.toBeNull();
   });
+
+  it("lists every generated card face for offline caching", () => {
+    const offlineAssetPath = join(process.cwd(), "public", "offline-assets.json");
+    expect(existsSync(offlineAssetPath)).toBe(true);
+
+    const listedAssets = JSON.parse(readFileSync(offlineAssetPath, "utf8")) as string[];
+    const cardFacePaths = collectFiles(join(process.cwd(), "public", "cards", "fronts"))
+      .filter((filePath) => filePath.includes("/final/") && filePath.endsWith(".png"))
+      .map((filePath) => filePath.slice(join(process.cwd(), "public").length));
+
+    expect(listedAssets).toEqual(expect.arrayContaining(cardFacePaths));
+  });
 });
+
+function collectFiles(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+    return entry.isDirectory() ? collectFiles(entryPath) : [entryPath];
+  });
+}
