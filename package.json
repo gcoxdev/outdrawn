@@ -15,7 +15,8 @@
     "predev": "node scripts/generate-icons.mjs && node scripts/optimize-artwork.mjs",
     "prebuild": "node scripts/generate-icons.mjs && node scripts/optimize-artwork.mjs",
     "test:mobile": "npm run build && node scripts/mobile-smoke.mjs",
-    "test:lobby": "npm run build && node scripts/lobby-smoke.mjs"
+    "test:lobby": "npm run build && node scripts/lobby-smoke.mjs",
+    "test:menu": "npm run build && node scripts/menu-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

@@ -160,7 +160,7 @@ Players may exceed maximum hand size during play. They must discard down to the 
 
 ## Tie Scenarios
 
-A tie means the game reaches `gameOver` without a declared winner. This happens when final non-attack eliminations remain tied after the tiebreaker, or when the final combat sequence leaves nobody alive. Complete all pending counter and secondary damage before deciding the result.
+A tie means the match ends without a winner. This happens when final non-attack eliminations remain tied after the tiebreaker, or when the final combat sequence leaves nobody alive. Complete all pending counter and secondary damage before deciding the result.
 
 Known tie scenarios:
 

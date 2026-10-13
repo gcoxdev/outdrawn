@@ -105,10 +105,9 @@ export function PwaControls({ allowUpdate = true }: { allowUpdate?: boolean }) {
   }
 
   return (
-    <section className="pwa-controls setting-control setting-control--wide" aria-label="Offline app controls">
-      <div>
-        <span>Offline App</span>
-        <p>{installLabel}</p>
+    <section className="pwa-controls" aria-label="Offline app controls">
+      <header className="pwa-controls__heading"><h3><Download size={16} />Offline app</h3><span>{installLabel}</span></header>
+      <div className="pwa-controls__detail">
         <p>{installDetail}</p>
         {updateMessage && <p role="status">{updateMessage}</p>}
         {updateStatus === "ready" && !allowUpdate && <p>Finish the match or return to the lobby to apply the update.</p>}

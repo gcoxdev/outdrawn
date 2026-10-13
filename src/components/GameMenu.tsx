@@ -1,15 +1,31 @@
-import { Home, Menu, Plus, RotateCcw, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import { allCards, deckSummary, eventDeckCards, mainDeckCards } from "../data/cards";
+import { BookOpen, ChevronDown, Home, Layers, Maximize2, Menu, Plus, RotateCcw, Search, Settings2, Shield, X } from "lucide-react";
+import { useId, useMemo, useState, type KeyboardEvent } from "react";
+import { allCards, deckSummary, type Card, type CardType } from "../data/cards";
 import { blackMarketPresets, type GameSettings } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
 import type { GamePhase } from "../game/types";
 import { PwaControls } from "./PwaControls";
 import { Dialog } from "./Dialog";
+import { CardView } from "./CardView";
 import rulesText from "../../docs/current-rules.md?raw";
+import "./GameMenu.css";
 
 type MenuTab = "settings" | "rules" | "cards";
+const menuTabs = [
+  { id: "settings", label: "Settings", icon: Settings2 },
+  { id: "rules", label: "Rules", icon: BookOpen },
+  { id: "cards", label: "Cards", icon: Layers }
+] as const;
+const cardTypes: Array<{ id: CardType; label: string }> = [
+  { id: "weapon", label: "Weapons" }, { id: "defense", label: "Defense" },
+  { id: "ability", label: "Abilities" }, { id: "healing", label: "Healing" }, { id: "event", label: "Events" }
+];
+// Keep the full written rules as the source; card reference belongs in the Cards tab.
+const ruleSections = rulesText.split(/^## /m).slice(1).map(section => {
+  const [title, ...lines] = section.trim().split("\n");
+  return { title, lines };
+}).filter(section => !cardTypes.some(type => type.label === section.title));
 
 type GameMenuProps = {
   settings: GameSettings;
@@ -19,171 +35,169 @@ type GameMenuProps = {
 };
 
 export function GameMenu({ settings, dispatch, phase = "setup", variant = "floating" }: GameMenuProps) {
+  const menuId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
-  const cardsByType = useMemo(
-    () =>
-      allCards.reduce<Record<string, typeof allCards>>((groups, card) => {
-        groups[card.type] = [...(groups[card.type] ?? []), card];
-        return groups;
-      }, {}),
-    []
-  );
+  const [cardSearch, setCardSearch] = useState("");
+  const [cardType, setCardType] = useState<CardType | "all">("all");
+  const [previewCard, setPreviewCard] = useState<Card | null>(null);
+  const filteredCards = useMemo(() => {
+    const query = cardSearch.trim().toLowerCase();
+    return allCards.filter(card => (cardType === "all" || card.type === cardType)
+      && `${card.name} ${card.rulesText}`.toLowerCase().includes(query));
+  }, [cardSearch, cardType]);
 
   function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode", value: boolean) {
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
+  function closeMenu() {
+    setPreviewCard(null);
+    setIsOpen(false);
+  }
+
   function returnToLobby() {
     if (phase === "action" && !window.confirm("End this match and return to the lobby?")) return;
     dispatch({ type: "RESET_GAME" });
-    setIsOpen(false);
+    closeMenu();
   }
 
   function restartGame() {
     if (phase === "action" && !window.confirm("End this match and start a new one?")) return;
     dispatch({ type: "RESTART_GAME" });
-    setIsOpen(false);
+    closeMenu();
+  }
+
+  function navigateTabs(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let next: number;
+    if (event.key === "ArrowRight") next = (index + 1) % menuTabs.length;
+    else if (event.key === "ArrowLeft") next = (index + menuTabs.length - 1) % menuTabs.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = menuTabs.length - 1;
+    else return;
+    event.preventDefault();
+    setActiveTab(menuTabs[next].id);
+    document.getElementById(`${menuId}-${menuTabs[next].id}`)?.focus();
   }
 
   return (
     <>
-      <button
-        className={`menu-trigger ${variant === "mobileIcon" ? "menu-trigger--mobile-icon" : ""}`}
-        type="button"
-        onClick={() => setIsOpen(true)}
-        aria-label="Open menu"
-      >
+      <button className={`menu-trigger ${variant === "mobileIcon" ? "menu-trigger--mobile-icon" : ""}`}
+        type="button" onClick={() => setIsOpen(true)} aria-label="Open menu" aria-haspopup="dialog" aria-expanded={isOpen}>
         <Menu size={18} />
         {variant === "floating" && <span className="menu-trigger__label">Menu</span>}
       </button>
       {isOpen && (
-        <Dialog className="menu-overlay" label="Game menu" onClose={() => setIsOpen(false)}>
-          <button className="menu-backdrop" type="button" onClick={() => setIsOpen(false)} aria-label="Close menu" />
+        <Dialog className="menu-overlay" label="Game menu" onClose={closeMenu}>
+          <button className="menu-backdrop" type="button" tabIndex={-1} aria-hidden="true" onClick={closeMenu} />
           <section className="menu-panel">
             <header className="menu-panel__header">
-              <div>
-                <p className="eyebrow">Reference</p>
-                <h2>Game Menu</h2>
-              </div>
-              <button className="icon-command" type="button" onClick={() => setIsOpen(false)} aria-label="Close menu">
-                <X size={18} />
-              </button>
+              <div className="menu-panel__title"><img src="/icons/outdrawn-app-192.png" alt="" width="30" height="30" /><h2>Game menu</h2></div>
+              <button className="menu-close" type="button" onClick={closeMenu} aria-label="Close menu"><X size={19} /></button>
             </header>
 
-            <div className="menu-primary-action">
-              <button type="button" onClick={returnToLobby}>
-                <Home size={16} />
-                Return to Lobby
-              </button>
-              {phase === "action" && (
-                <button type="button" onClick={restartGame}>
-                  <RotateCcw size={16} />
-                  Restart Game
-                </button>
-              )}
-              {phase === "gameOver" && (
-                <button type="button" onClick={restartGame}>
-                  <Plus size={16} />
-                  New Game
-                </button>
-              )}
-            </div>
-
-            <nav className="menu-tabs" aria-label="Menu sections">
-              {(["settings", "rules", "cards"] as MenuTab[]).map((tab) => (
-                <button className={activeTab === tab ? "is-active" : ""} key={tab} type="button" onClick={() => setActiveTab(tab)}>
-                  {tab}
+            <nav className="menu-tabs" role="tablist" aria-label="Menu sections">
+              {menuTabs.map(({ id, label, icon: Icon }, index) => (
+                <button className={activeTab === id ? "is-active" : ""} key={id} type="button" role="tab"
+                  id={`${menuId}-${id}`} aria-selected={activeTab === id} aria-controls={`${menuId}-panel`}
+                  tabIndex={activeTab === id ? 0 : -1} onClick={() => setActiveTab(id)} onKeyDown={event => navigateTabs(event, index)}>
+                  <Icon size={16} />{label}
                 </button>
               ))}
             </nav>
 
-            {activeTab === "settings" && (
-              <div className="menu-section settings-grid">
-                <label className="setting-control setting-toggle">
-                  <span>Pass device mode</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.passDeviceMode}
-                    onChange={(event) => updateBooleanSetting("passDeviceMode", event.target.checked)}
-                  />
-                </label>
-                {import.meta.env.DEV && (
-                  <label className="setting-control setting-toggle">
-                    <span>Debug hand snapshots</span>
-                    <input
-                      type="checkbox"
-                      checked={settings.debugHandSnapshots}
-                      onChange={(event) => updateBooleanSetting("debugHandSnapshots", event.target.checked)}
-                    />
+            <div className={`menu-section menu-section--${activeTab}`} key={activeTab} role="tabpanel"
+              id={`${menuId}-panel`} aria-labelledby={`${menuId}-${activeTab}`} tabIndex={0}>
+              {activeTab === "settings" && <>
+                <section className="menu-preferences" aria-label="Preferences">
+                  <label className="menu-toggle">
+                    <span className="menu-toggle__copy"><span><Shield size={16} />Pass device mode</span><small id={`${menuId}-privacy-note`}>Hide hands when passing the device.</small></span>
+                    <input type="checkbox" aria-label="Pass device mode" aria-describedby={`${menuId}-privacy-note`} checked={settings.passDeviceMode}
+                      onChange={event => updateBooleanSetting("passDeviceMode", event.target.checked)} />
+                    <span className="menu-switch" aria-hidden="true" />
                   </label>
-                )}
-                <PwaControls allowUpdate={phase !== "action"} />
-                <p className="menu-note">Game setup is configured in the lobby before a match starts.</p>
-                <section className="current-game-rules" aria-label="Current game rules">
-                  <h3>Current Game Rules</h3>
-                  <dl>
-                    {getCurrentGameRules(settings).map((rule) => (
-                      <div key={rule.label}>
-                        <dt>{rule.label}</dt>
-                        <dd>{rule.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                  {import.meta.env.DEV && <label className="menu-toggle">
+                    <span className="menu-toggle__copy"><span>Debug hand snapshots</span></span>
+                    <input type="checkbox" aria-label="Debug hand snapshots" checked={settings.debugHandSnapshots}
+                      onChange={event => updateBooleanSetting("debugHandSnapshots", event.target.checked)} />
+                    <span className="menu-switch" aria-hidden="true" />
+                  </label>}
                 </section>
-              </div>
-            )}
+                <PwaControls allowUpdate={phase !== "action"} />
+                <details className="current-game-rules" open>
+                  <summary>Match rules<ChevronDown size={16} /></summary>
+                  <p className="menu-settings-note">Configured in the lobby.</p>
+                  <dl>{getCurrentGameRules(settings).map(rule => <div key={rule.label}><dt>{rule.label}</dt><dd>{rule.value}</dd></div>)}</dl>
+                </details>
+              </>}
 
-            {activeTab === "rules" && (
-              <div className="menu-section rules-document">
-                {rulesText.split("\n").map((line, index) => {
-                  if (line.startsWith("# ")) {
-                    return <h2 key={index}>{line.replace(/^# /, "")}</h2>;
-                  }
-                  if (line.startsWith("## ")) {
-                    return <h3 key={index}>{line.replace(/^## /, "")}</h3>;
-                  }
-                  if (line.startsWith("- ")) {
-                    return <p className="rule-bullet" key={index}>{line.replace(/^- /, "")}</p>;
-                  }
-                  return line.trim() ? <p key={index}>{line}</p> : null;
-                })}
-              </div>
-            )}
+              {activeTab === "rules" && <div className="rules-document">
+                <p className="menu-section-intro">Lobby settings override the defaults below.</p>
+                {ruleSections.map((section, index) => <details className="menu-rule-section" key={section.title} open={index === 0}>
+                  <summary>{section.title}<ChevronDown size={16} /></summary>
+                  <div className="menu-rule-section__body">{section.lines.map((line, lineIndex) => {
+                    const text = line.trim();
+                    if (!text) return null;
+                    return <p key={lineIndex} className={`${text.startsWith("- ") ? "rule-bullet" : ""}${line.startsWith("   ") ? " rule-indented" : ""}`}>
+                      {text.replace(/^- /, "").split(/(`[^`]+`)/g).map((part, partIndex) => part.startsWith("`")
+                        ? <code key={partIndex}>{part.slice(1, -1)}</code> : part)}
+                    </p>;
+                  })}</div>
+                </details>)}
+              </div>}
 
-            {activeTab === "cards" && (
-              <div className="menu-section card-catalog">
-                <div className="deck-summary">
-                  <span>Main deck: {deckSummary.mainDeckTotal + deckSummary.eventDeckTotal}</span>
-                  <span>Events: {deckSummary.eventDeckTotal}</span>
-                  <span>Definitions: {mainDeckCards.length + eventDeckCards.length}</span>
+              {activeTab === "cards" && <>
+                <div className="menu-card-tools">
+                  <label className="menu-search"><Search size={17} /><input id={`${menuId}-search`} type="search" aria-label="Search cards" placeholder="Search cards…" value={cardSearch} onChange={event => setCardSearch(event.target.value)} />
+                    {cardSearch && <button type="button" aria-label="Clear card search" onClick={() => { setCardSearch(""); document.getElementById(`${menuId}-search`)?.focus(); }}><X size={15} /></button>}
+                  </label>
+                  <select aria-label="Card type" value={cardType} onChange={event => setCardType(event.target.value as CardType | "all")}>
+                    <option value="all">All types</option>{cardTypes.map(type => <option value={type.id} key={type.id}>{type.label}</option>)}
+                  </select>
                 </div>
-                {Object.entries(cardsByType).map(([type, cards]) => (
-                  <section className="catalog-group" key={type}>
-                    <h3>{type}</h3>
-                    <div className="catalog-list">
-                      {cards.map((card) => {
+                <div className="deck-summary"><span role="status">{filteredCards.length} of {allCards.length} cards</span><span>{deckSummary.mainDeckTotal + deckSummary.eventDeckTotal} in deck</span></div>
+                <div className="card-catalog">
+                  {cardTypes.map(type => {
+                    const cards = filteredCards.filter(card => card.type === type.id);
+                    if (!cards.length) return null;
+                    return <section className={`catalog-group card-${type.id}`} key={type.id} aria-label={type.label}>
+                      <h3><span />{type.label}<small>{cards.length}</small></h3>
+                      <div className="catalog-list">{cards.map(card => {
                         const status = getCardImplementationStatus(card);
-                        const implementationNote = getCardImplementationNote(card);
-                        return (
-                          <article className={`catalog-card card-${card.type}`} key={card.id}>
-                            <div>
-                              <strong>{card.name}</strong>
-                              <p>{card.rulesText}</p>
-                              {implementationNote && <small>{implementationNote}</small>}
-                            </div>
-                            <div className="catalog-card__meta">
-                              <span>x{card.count}</span>
-                              {status !== "implemented" && <span className={`status-pill status-${status}`}>{status}</span>}
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            )}
+                        const note = getCardImplementationNote(card);
+                        return <article className="catalog-card" key={card.id}>
+                          <div className="catalog-card__copy">
+                            <strong>{card.name}</strong>
+                            <p>{card.rulesText}</p>
+                            {status !== "implemented" && <small>{note}</small>}
+                          </div>
+                          <div className="catalog-card__actions">
+                            <span aria-label={`${card.count} copies`}>×{card.count}</span>
+                            <button className="catalog-card__view" type="button" aria-label={`View ${card.name} card`} aria-haspopup="dialog"
+                              onClick={event => { event.currentTarget.focus(); setPreviewCard(card); }}><Maximize2 size={13} />View card</button>
+                          </div>
+                        </article>;
+                      })}</div>
+                    </section>;
+                  })}
+                  {filteredCards.length === 0 && <div className="menu-empty"><Search size={24} /><p>No matching cards.</p><button type="button" onClick={() => { setCardSearch(""); setCardType("all"); document.getElementById(`${menuId}-search`)?.focus(); }}>Clear filters</button></div>}
+                </div>
+              </>}
+            </div>
+
+            {phase !== "setup" && <footer className="menu-match-actions">
+              <button type="button" onClick={returnToLobby}><Home size={16} />Return to Lobby</button>
+              <button type="button" onClick={restartGame}>{phase === "action" ? <RotateCcw size={16} /> : <Plus size={16} />}{phase === "action" ? "Restart Game" : "New Game"}</button>
+            </footer>}
+          </section>
+        </Dialog>
+      )}
+      {isOpen && previewCard && (
+        <Dialog className="card-preview-overlay" label={`${previewCard.name} card preview`} onClose={() => setPreviewCard(null)}>
+          <button className="menu-backdrop" type="button" tabIndex={-1} aria-hidden="true" onClick={() => setPreviewCard(null)} />
+          <section className="card-preview-panel">
+            <header><h2>{previewCard.name}</h2><button className="menu-close" type="button" aria-label="Close card preview" onClick={() => setPreviewCard(null)}><X size={19} /></button></header>
+            <CardView card={previewCard} mode="detail" />
           </section>
         </Dialog>
       )}
