@@ -22,8 +22,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
     <section className={`player-roster ${compactRoster ? "player-roster--compact" : ""}`} aria-label="Players">
       <div className="sidebar-section__header">
         <div>
-          <p className="eyebrow">Players</p>
-          <h2>Roster</h2>
+          <h2>Players</h2>
         </div>
         <strong>{aliveCount} alive</strong>
       </div>

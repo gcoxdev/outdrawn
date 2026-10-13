@@ -1,8 +1,45 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { canInstallApp, findWaitingWorker, getInstallStatusDetail, getInstallStatusLabel, getUpdateServiceWorkerRegistration, shouldRegisterServiceWorker } from "./pwa";
+import { canInstallApp, clearDevelopmentOfflineCache, findWaitingWorker, getInstallStatusDetail, getInstallStatusLabel, getUpdateServiceWorkerRegistration, shouldRegisterServiceWorker } from "./pwa";
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+describe("development offline cleanup", () => {
+  it("retires only Outdrawn's worker and caches, preserving saved games", async () => {
+    const unregister = vi.fn().mockResolvedValue(true);
+    const otherUnregister = vi.fn();
+    const removeCache = vi.fn().mockResolvedValue(true);
+    const removeItem = vi.fn();
+    const worker = { scriptURL: "http://localhost:5173/sw.js" };
+    vi.stubGlobal("location", { origin: "http://localhost:5173" });
+    vi.stubGlobal("navigator", { serviceWorker: {
+      controller: worker,
+      getRegistrations: async () => [
+        { active: worker, unregister },
+        { active: { scriptURL: "http://localhost:5173/other/sw.js" }, unregister: otherUnregister }
+      ]
+    } });
+    vi.stubGlobal("caches", { keys: async () => ["outdrawn-old", "other-app"], delete: removeCache });
+    vi.stubGlobal("localStorage", { removeItem, clear: removeItem });
+    expect(await clearDevelopmentOfflineCache()).toBe(true);
+    expect(unregister).toHaveBeenCalledOnce();
+    expect(otherUnregister).not.toHaveBeenCalled();
+    expect(removeCache).toHaveBeenCalledExactlyOnceWith("outdrawn-old");
+    expect(removeItem).not.toHaveBeenCalled();
+  });
+
+  it("does not reload a clean development page", async () => {
+    vi.stubGlobal("location", { origin: "http://localhost:5173" });
+    vi.stubGlobal("navigator", { serviceWorker: { controller: null, getRegistrations: async () => [] } });
+    expect(await clearDevelopmentOfflineCache()).toBe(false);
+  });
+
+  it("works when service workers are unavailable", async () => {
+    vi.stubGlobal("navigator", {});
+    expect(await clearDevelopmentOfflineCache()).toBe(false);
+  });
 });
 
 describe("PWA service worker registration", () => {

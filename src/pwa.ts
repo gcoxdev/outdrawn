@@ -8,6 +8,23 @@ export function shouldRegisterServiceWorker({
   return isProduction && hasServiceWorker;
 }
 
+export async function clearDevelopmentOfflineCache(): Promise<boolean> {
+  if (!("serviceWorker" in navigator)) return false;
+  const workerUrl = new URL("/sw.js", location.origin).href;
+  const controlled = navigator.serviceWorker.controller?.scriptURL === workerUrl;
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  const owned = registrations.filter(registration =>
+    [registration.active, registration.waiting, registration.installing].some(worker => worker?.scriptURL === workerUrl)
+  );
+  if (!controlled && owned.length === 0) return false;
+  await Promise.all(owned.map(registration => registration.unregister()));
+  const names = await caches.keys();
+  await Promise.all(names.filter(name => name.startsWith("outdrawn-")).map(name => caches.delete(name)));
+  // Unregistering does not detach the current page; one reload releases it.
+  // localStorage, including the saved match, is deliberately untouched.
+  return controlled;
+}
+
 export function canInstallApp(promptEvent: BeforeInstallPromptEvent | null, isStandalone: boolean) {
   return Boolean(promptEvent && !isStandalone);
 }

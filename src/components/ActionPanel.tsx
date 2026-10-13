@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowRight, CopyPlus, SkipForward } from "lucide-react";
 import type { Card } from "../data/cards";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
@@ -445,30 +446,29 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
 
   return (
     <section className="action-panel">
-      {state.settings.freeDrawsPerTurn > 0 && (
+      <div className="turn-toolbar">
         <div className="turn-resource-strip" aria-label="Turn resources">
-          <span>
-            Free draws: {currentPlayer.freeDrawsRemaining}/{state.settings.freeDrawsPerTurn}
-          </span>
-          <span>Actions: {currentPlayer.actionsRemaining}</span>
+          <span><strong>{currentPlayer.actionsRemaining}</strong> actions left</span>
+          {state.settings.freeDrawsPerTurn > 0 && <span><strong>{currentPlayer.freeDrawsRemaining}/{state.settings.freeDrawsPerTurn}</strong> free draws</span>}
         </div>
-      )}
-      <div className="action-panel__commands">
-        <button
-          disabled={!canDraw || (state.mainDeck.length === 0 && state.discardPile.length === 0)}
-          onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
-        >
-          Draw
-        </button>
-        <button disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
-          Pass
-        </button>
-        <button
-          disabled={!canEndTurn || Boolean(handLimitWarning)}
-          onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
-        >
-          End Turn
-        </button>
+        <div className="action-panel__commands">
+          <button
+            className="turn-draw"
+            disabled={!canDraw || (state.mainDeck.length === 0 && state.discardPile.length === 0)}
+            onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
+          >
+            <CopyPlus size={16} /> Draw
+          </button>
+          <button disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
+            <SkipForward size={16} /> Pass
+          </button>
+          <button
+            disabled={!canEndTurn || Boolean(handLimitWarning)}
+            onClick={() => dispatch({ type: "END_TURN", playerId: currentPlayer.id })}
+          >
+            End Turn <ArrowRight size={16} />
+          </button>
+        </div>
       </div>
       {handLimitWarning && (
         <p className="hand-limit-warning" role="status">
@@ -553,7 +553,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         ) : (
           <div className="empty-selection">
             <h2>Select a card</h2>
-            <p>Play weapons, healing, and abilities from hand, or discard down to {state.settings.maxHandSize} cards.</p>
+            <p>Choose from your hand to see your options.</p>
           </div>
         )}
 

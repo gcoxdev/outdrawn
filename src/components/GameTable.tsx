@@ -1,5 +1,5 @@
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
@@ -133,15 +133,19 @@ export function GameTable({ state, dispatch }: GameTableProps) {
           dispatch={dispatch}
         />
       ) : null}
-      <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} />
+      <header className="match-header">
+        <img src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" width="260" height="84" />
+        <div className="match-header__status"><span>Round <strong>{state.round}</strong></span><span>{state.players.filter(player => !player.eliminated).length} alive</span></div>
+        <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} />
+      </header>
 
       <nav className="mobile-board-tabs" aria-label="Board sections">
         {(["play", "players", "log"] as MobileTab[]).map((tab) => (
-          <button className={activeMobileTab === tab ? "is-active" : ""} key={tab} type="button" onClick={() => setActiveMobileTab(tab)}>
-            {tab}
+          <button className={activeMobileTab === tab ? "is-active" : ""} key={tab} type="button" aria-pressed={activeMobileTab === tab} onClick={() => setActiveMobileTab(tab)}>
+            {tab === "play" ? <Swords size={16} /> : tab === "players" ? <Users size={16} /> : <ScrollText size={16} />}
+            {tab === "play" ? "Table" : tab === "players" ? "Players" : "Log"}
           </button>
         ))}
-        <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} variant="mobileIcon" />
       </nav>
 
       <section className="game-shell">
@@ -175,10 +179,6 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             onPointerDown={startSidebarResize}
           />
           <div className="sidebar-pane sidebar-pane--log board-panel-log">
-            <div className="log-panel__meta">
-              <span>{state.mainDeck.length} deck</span>
-              <button type="button" onClick={() => setShowDiscards(true)}>{state.discardPile.length} discard · View piles</button>
-            </div>
             <GameLog entries={state.log} players={logPlayers} />
           </div>
         </aside>
@@ -186,8 +186,12 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         <section className="decision-workspace board-panel board-panel-play">
           <header className="decision-strip">
             <div>
-              <p className="eyebrow">Round {state.round}</p>
+              <p className="eyebrow">{decision ? "Decision" : "At the table"}</p>
               <h1>{decisionText}</h1>
+            </div>
+            <div className="log-panel__meta">
+              <span><Layers size={14} /> {state.mainDeck.length} in deck</span>
+              <button type="button" onClick={() => setShowDiscards(true)}>Discards <span>{state.discardPile.length}</span></button>
             </div>
           </header>
 
@@ -195,11 +199,12 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             <div className="board-heading">
               <div>
                 <p className="eyebrow">
-                  {decision ? handLabels[decision.kind] : "Current Player"}
+                  {decision ? handLabels[decision.kind] : "Hand"} · {handDisplayPlayer.hand.length} cards
                 </p>
                 <h2>{handDisplayPlayer.name}</h2>
               </div>
               <div className="board-heading__health" aria-label={`${handDisplayPlayer.name} has ${handDisplayPlayer.health} health`}>
+                <Heart size={16} aria-hidden="true" />
                 <strong>{handDisplayPlayer.health}</strong>
                 <span>HP</span>
               </div>
@@ -243,7 +248,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
                 )}
               </div>
             </div>
-            <div className="hand-rail">
+            <div className="hand-rail" role="region" aria-label={`${handDisplayPlayer.name}'s cards`} tabIndex={0}>
+              {handDisplayPlayer.hand.length === 0 && <p className="hand-empty">No cards in hand.</p>}
               {shouldShowDisplayHand ? (
                 handDisplayPlayer.hand.map((card) => {
                   const definition = definitionFor(card);
