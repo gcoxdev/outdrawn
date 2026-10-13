@@ -22,48 +22,25 @@ export function getCardFromPlayer(player: PlayerState, cardInstanceId: CardInsta
   return player.hand.find((card) => card.instanceId === cardInstanceId);
 }
 
+export function hasPendingDecision(state: GameState): boolean {
+  return Boolean(state.pendingEventDialog || state.pendingReaction || state.pendingRedirect ||
+    state.pendingAttackCost || state.pendingMultiHitAttack || state.pendingDiscard || state.pendingSearch ||
+    state.pendingSupplyDrop || state.pendingMarketSearch || state.pendingBlackMarket || state.pendingSteal ||
+    state.pendingSecondaryDamage || state.drawContinuations?.length);
+}
+
+export function canPlayerEndTurn(state: GameState, playerId: PlayerId): boolean {
+  return state.phase === "action" && !hasPendingDecision(state) && getCurrentPlayer(state)?.id === playerId;
+}
+
 export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
   const player = getCurrentPlayer(state);
-  return (
-    state.phase === "action" &&
-    !state.pendingReaction &&
-    !state.pendingRedirect &&
-    !state.pendingAttackCost &&
-    !state.pendingMultiHitAttack &&
-    !state.pendingDiscard &&
-    !state.pendingSearch &&
-    !state.pendingSupplyDrop &&
-    !state.pendingMarketSearch &&
-    !state.pendingBlackMarket &&
-    !state.pendingSteal &&
-    !state.pendingSecondaryDamage &&
-    player.id === playerId &&
-    !player.eliminated &&
-    player.actionsRemaining > 0
-  );
+  return canPlayerEndTurn(state, playerId) && !player.eliminated && player.actionsRemaining > 0;
 }
 
 export function canPlayerDraw(state: GameState, playerId: PlayerId): boolean {
   const player = getCurrentPlayer(state);
-  const hasDrawResource = player.freeDrawsRemaining > 0 || player.actionsRemaining > 0;
-
-  return (
-    state.phase === "action" &&
-    !state.pendingReaction &&
-    !state.pendingRedirect &&
-    !state.pendingAttackCost &&
-    !state.pendingMultiHitAttack &&
-    !state.pendingDiscard &&
-    !state.pendingSearch &&
-    !state.pendingSupplyDrop &&
-    !state.pendingMarketSearch &&
-    !state.pendingBlackMarket &&
-    !state.pendingSteal &&
-    !state.pendingSecondaryDamage &&
-    player.id === playerId &&
-    !player.eliminated &&
-    hasDrawResource
-  );
+  return canPlayerEndTurn(state, playerId) && !player.eliminated && (player.freeDrawsRemaining > 0 || player.actionsRemaining > 0);
 }
 
 export function isGameOver(state: GameState): boolean {
@@ -102,4 +79,20 @@ export function labelTeam(teamId: TeamId): string {
   };
 
   return labels[teamId] ?? labelGeneratedTeam(teamId);
+}
+
+export function getDecisionPlayerId(state: GameState): string {
+  return (
+    state.pendingReaction?.defenderId ??
+    state.pendingRedirect?.defenderId ??
+    state.pendingSecondaryDamage?.defenderId ??
+    state.pendingAttackCost?.attackerId ??
+    state.pendingDiscard?.playerId ??
+    state.pendingSearch?.playerId ??
+    state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
+    state.pendingMarketSearch?.playerId ??
+    state.pendingBlackMarket?.playerId ??
+    state.pendingSteal?.playerId ??
+    getCurrentPlayer(state).id
+  );
 }

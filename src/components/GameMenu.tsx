@@ -6,6 +6,7 @@ import type { GameAction } from "../game/actions";
 import { getCardImplementationNote, getCardImplementationStatus } from "../game/cardStatus";
 import type { GamePhase } from "../game/types";
 import { PwaControls } from "./PwaControls";
+import { Dialog } from "./Dialog";
 import rulesText from "../../docs/current-rules.md?raw";
 
 type MenuTab = "settings" | "rules" | "cards";
@@ -34,11 +35,13 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
   }
 
   function returnToLobby() {
+    if (phase === "action" && !window.confirm("End this match and return to the lobby?")) return;
     dispatch({ type: "RESET_GAME" });
     setIsOpen(false);
   }
 
   function restartGame() {
+    if (phase === "action" && !window.confirm("End this match and start a new one?")) return;
     dispatch({ type: "RESTART_GAME" });
     setIsOpen(false);
   }
@@ -55,7 +58,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
         {variant === "floating" && <span className="menu-trigger__label">Menu</span>}
       </button>
       {isOpen && (
-        <div className="menu-overlay" role="dialog" aria-modal="true" aria-label="Game menu">
+        <Dialog className="menu-overlay" label="Game menu" onClose={() => setIsOpen(false)}>
           <button className="menu-backdrop" type="button" onClick={() => setIsOpen(false)} aria-label="Close menu" />
           <section className="menu-panel">
             <header className="menu-panel__header">
@@ -115,7 +118,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
                     />
                   </label>
                 )}
-                <PwaControls />
+                <PwaControls allowUpdate={phase !== "action"} />
                 <p className="menu-note">Game setup is configured in the lobby before a match starts.</p>
                 <section className="current-game-rules" aria-label="Current game rules">
                   <h3>Current Game Rules</h3>
@@ -182,7 +185,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
               </div>
             )}
           </section>
-        </div>
+        </Dialog>
       )}
     </>
   );

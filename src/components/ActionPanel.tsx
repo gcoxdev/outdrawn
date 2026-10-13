@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Card } from "../data/cards";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
-import { getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
+import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
 import { CardBack, CardView } from "./CardView";
 import type { HandDiscardRequirement } from "./GameTable";
@@ -38,50 +38,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
   const teammateTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && currentPlayer.teamId && player.teamId === currentPlayer.teamId
   );
-  const canAct =
-    state.phase === "action" &&
-    !state.pendingReaction &&
-    !state.pendingRedirect &&
-    !state.pendingSecondaryDamage &&
-    !state.pendingAttackCost &&
-    !state.pendingMultiHitAttack &&
-    !state.pendingDiscard &&
-    !state.pendingSearch &&
-    !state.pendingSupplyDrop &&
-    !state.pendingMarketSearch &&
-    !state.pendingBlackMarket &&
-    !state.pendingSteal &&
-    !currentPlayer.eliminated &&
-    currentPlayer.actionsRemaining > 0;
-  const canDraw =
-    state.phase === "action" &&
-    !state.pendingReaction &&
-    !state.pendingRedirect &&
-    !state.pendingSecondaryDamage &&
-    !state.pendingAttackCost &&
-    !state.pendingMultiHitAttack &&
-    !state.pendingDiscard &&
-    !state.pendingSearch &&
-    !state.pendingSupplyDrop &&
-    !state.pendingMarketSearch &&
-    !state.pendingBlackMarket &&
-    !state.pendingSteal &&
-    !currentPlayer.eliminated &&
-    (currentPlayer.freeDrawsRemaining > 0 || currentPlayer.actionsRemaining > 0);
-  const canEndTurn =
-    state.phase === "action" &&
-    !state.pendingReaction &&
-    !state.pendingRedirect &&
-    !state.pendingSecondaryDamage &&
-    !state.pendingAttackCost &&
-    !state.pendingMultiHitAttack &&
-    !state.pendingDiscard &&
-    !state.pendingSearch &&
-    !state.pendingSupplyDrop &&
-    !state.pendingMarketSearch &&
-    !state.pendingBlackMarket &&
-    !state.pendingSteal &&
-    !currentPlayer.eliminated;
+  const canAct = canPlayerAct(state, currentPlayer.id);
+  const canDraw = canPlayerDraw(state, currentPlayer.id);
+  const canEndTurn = canPlayerEndTurn(state, currentPlayer.id);
   const activeReaction = state.pendingReaction ?? state.pendingSecondaryDamage;
   const pendingDefender = activeReaction ? getPlayer(state, activeReaction.defenderId) : undefined;
   const pendingAttacker = activeReaction ? getPlayer(state, activeReaction.attackerId) : undefined;

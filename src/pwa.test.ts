@@ -1,13 +1,34 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { canInstallApp, getInstallStatusDetail, getInstallStatusLabel, getUpdateServiceWorkerRegistration, shouldRegisterServiceWorker } from "./pwa";
+import { canInstallApp, findWaitingWorker, getInstallStatusDetail, getInstallStatusLabel, getUpdateServiceWorkerRegistration, shouldRegisterServiceWorker } from "./pwa";
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe("PWA service worker registration", () => {
+  it("waits through installing states and rejects failed installations", async () => {
+    const worker = Object.assign(new EventTarget(), { state: "installing" });
+    const registration = { installing: worker, waiting: null } as unknown as ServiceWorkerRegistration;
+    let resolved = false;
+    const waiting = findWaitingWorker(registration).then(value => { resolved = true; return value; });
+    worker.dispatchEvent(new Event("statechange"));
+    await Promise.resolve();
+    expect(resolved).toBe(false);
+    worker.state = "installed";
+    worker.dispatchEvent(new Event("statechange"));
+    expect(await waiting).toBe(worker);
+    worker.state = "redundant";
+    await expect(findWaitingWorker(registration)).rejects.toThrow("failed");
+  });
+
+  it("treats installation timeout as an error rather than an up-to-date result", async () => {
+    vi.useFakeTimers();
+    const worker = Object.assign(new EventTarget(), { state: "installing" });
+    const promise = findWaitingWorker({ installing: worker } as unknown as ServiceWorkerRegistration, 100);
+    const rejected = expect(promise).rejects.toThrow("timed out");
+    await vi.advanceTimersByTimeAsync(100);
+    await rejected;
+  });
   it("registers only for production browsers with service worker support", () => {
     expect(shouldRegisterServiceWorker({ isProduction: true, hasServiceWorker: true })).toBe(true);
     expect(shouldRegisterServiceWorker({ isProduction: false, hasServiceWorker: true })).toBe(false);
@@ -64,22 +85,4 @@ describe("PWA service worker registration", () => {
     await expect(result).resolves.toBeNull();
   });
 
-  it("lists every generated card face for offline caching", () => {
-    const offlineAssetPath = join(process.cwd(), "public", "offline-assets.json");
-    expect(existsSync(offlineAssetPath)).toBe(true);
-
-    const listedAssets = JSON.parse(readFileSync(offlineAssetPath, "utf8")) as string[];
-    const cardFacePaths = collectFiles(join(process.cwd(), "public", "cards", "fronts"))
-      .filter((filePath) => filePath.includes("/final/") && filePath.endsWith(".png"))
-      .map((filePath) => filePath.slice(join(process.cwd(), "public").length));
-
-    expect(listedAssets).toEqual(expect.arrayContaining(cardFacePaths));
-  });
 });
-
-function collectFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const entryPath = join(directory, entry.name);
-    return entry.isDirectory() ? collectFiles(entryPath) : [entryPath];
-  });
-}

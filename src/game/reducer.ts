@@ -1,7 +1,9 @@
 import { allCards, type CardType } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
 import { drawCardsWithRefill } from "./deck";
-import type { CardInstance, PlayerId, SecondaryDamageItem, SecondaryDamageSource } from "./types";
+import { finalizeEliminations } from "./elimination";
+import { normalizeSettings } from "./settings";
+import type { CardInstance, DrawContinuation, PlayerId, SecondaryDamageItem, SecondaryDamageSource } from "./types";
 import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
@@ -9,6 +11,8 @@ import { createPendingReaction, getBaseAttackDamage, getGrenadeSplashTargets, re
 import { getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
 import {
   canPlayerAct,
+  canPlayerEndTurn,
+  hasPendingDecision,
   canPlayerDraw,
   areTeammates,
   getCardDefinitionById,
@@ -28,9 +32,9 @@ function log(state: GameState, message: string): GameState {
   return {
     ...state,
     log: [
-      ...state.log,
+      ...state.log.slice(-999),
       {
-        id: `log_${state.log.length + 1}_${Date.now()}`,
+        id: `log_${(Number(state.log.at(-1)?.id.split("_")[1]) || 0) + 1}`,
         round: state.round,
         message,
         debugHandSnapshots,
@@ -91,7 +95,7 @@ function advanceTurn(state: GameState): GameState {
       ? findNextLivingIndex(state.players, state.firstPlayerIndex)
       : state.firstPlayerIndex;
   const nextRound = state.settings.turnOrder === "roundRobin" ? nextLivingIndex === roundRobinFirstPlayerIndex : allLivingActed;
-  const collapseState = nextRound ? logPlayerHealthChanges(state.players, applyCollapseDamage(state), "collapse") : state;
+  const collapseState = nextRound ? logPlayerHealthChanges(state.players, finalizeEliminations(applyCollapseDamage(state)), "collapse") : state;
   const collapseGameOver = nextRound ? completeGameIfOver(collapseState, state.players) : null;
   if (collapseGameOver) {
     return collapseGameOver;
@@ -146,13 +150,14 @@ function advanceTurn(state: GameState): GameState {
   );
 }
 
-function completeGameIfOver(state: GameState, beforePlayers: PlayerState[]): GameState | null {
+function completeGameIfOver(state: GameState, beforePlayers: PlayerState[], breakTie = true): GameState | null {
   const winnerTeamId = getWinningTeamId(state);
   if (state.players.filter((player) => !player.eliminated).length > 1 && !winnerTeamId) {
     return null;
   }
 
-  return completeGame(state, getWinner(state) ?? breakEliminationTie(beforePlayers), winnerTeamId);
+  const winner = getWinner(state) ?? (breakTie ? breakEliminationTie(beforePlayers.filter(player => !player.eliminated)) : null);
+  return completeGame(state, winner, winnerTeamId ?? winner?.teamId ?? null);
 }
 
 function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId = getWinningTeamId(state)): GameState {
@@ -161,6 +166,9 @@ function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId
     ...state,
     phase: "gameOver" as const,
     pendingEventDialog: null,
+    eventDialogQueue: [],
+    drawContinuations: [],
+    discardPile: [...state.discardPile, ...(state.drawContinuations ?? []).flatMap(job => [...job.cards, ...(job.playedCard ? [job.playedCard] : [])])],
     pendingReaction: null,
     pendingRedirect: null,
     pendingAttackCost: null,
@@ -228,18 +236,7 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
       return state;
     }
 
-    const draw = drawCardsResolvingMixedEvents(state, 3, player.id, true);
-    if (draw.state.phase === "gameOver" || getPlayer(draw.state, player.id)?.eliminated) {
-      return draw.state;
-    }
-
-    return enforceHandLimit(
-      updatePlayer(draw.state, player.id, (currentPlayer) => ({
-        ...currentPlayer,
-        hand: [...currentPlayer.hand, ...draw.drawn]
-      })),
-      player.id
-    );
+    return queueDraws(state, [{ playerId: player.id, remaining: 3, cards: [], destination: "hand", replaceEvents: true }]);
   }
 
   if (eventId === "event_bounty") {
@@ -258,23 +255,9 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
   }
 
   if (eventId === "event_high_ground") {
-    const drawnState = state.players.filter((player) => !player.eliminated).reduce((nextState, player) => {
-      if (nextState.phase === "gameOver") {
-        return nextState;
-      }
-
-      const draw = drawCardsResolvingMixedEvents(nextState, 1, player.id, true);
-      if (draw.state.phase === "gameOver" || getPlayer(draw.state, player.id)?.eliminated) {
-        return draw.state;
-      }
-
-      return updatePlayer(draw.state, player.id, (currentPlayer) => ({
-        ...currentPlayer,
-        hand: [...currentPlayer.hand, ...draw.drawn]
-      }));
-    }, state);
-
-    return drawnState;
+    return queueDraws(state, state.players.filter(player => !player.eliminated).map(player => ({
+      playerId: player.id, remaining: 1, cards: [], destination: "hand", replaceEvents: true
+    })));
   }
 
   if (eventId === "event_low_ammo") {
@@ -375,44 +358,51 @@ function expireActiveEvent(state: GameState): GameState {
   };
 }
 
-function drawCardsResolvingMixedEvents(state: GameState, count: number, playerId: PlayerId, replaceEvents: boolean) {
-  const drawn: CardInstance[] = [];
-  let nextState = state;
+function queueDraws(state: GameState, jobs: DrawContinuation[]): GameState {
+  return { ...state, drawContinuations: [...jobs, ...(state.drawContinuations ?? [])] };
+}
 
-  while (
-    drawn.length < count &&
-    nextState.phase !== "gameOver" &&
-    !getPlayer(nextState, playerId)?.eliminated &&
-    (nextState.mainDeck.length > 0 || nextState.discardPile.length > 0)
-  ) {
-    const draw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
-    const card = draw.drawn[0];
-    const definition = getCardDefinitionById(card?.definitionId ?? "");
-    nextState = {
-      ...nextState,
-      mainDeck: draw.mainDeck,
-      discardPile: draw.discardPile
-    };
+function hasInteractiveEffect(state: GameState): boolean {
+  return Boolean(state.pendingDiscard || state.pendingSearch || state.pendingMarketSearch || state.pendingBlackMarket ||
+    state.pendingSupplyDrop || state.pendingSteal || state.pendingReaction || state.pendingSecondaryDamage || state.pendingRedirect);
+}
 
-    if (!card) {
-      break;
-    }
-
-    if (definition?.type === "event") {
-      nextState = resolveDrawnEvent(nextState, card, playerId);
-      if (!replaceEvents) {
-        break;
+/** Draw jobs form a stack: nested events finish before the interrupted draw resumes. */
+function resumeDraws(state: GameState): GameState {
+  let next = state;
+  while (next.phase === "action" && next.drawContinuations?.length && !hasInteractiveEffect(next)) {
+    const [job, ...rest] = next.drawContinuations;
+    const player = getPlayer(next, job.playerId);
+    if (!player || player.eliminated || job.remaining === 0 || (!next.mainDeck.length && !next.discardPile.length)) {
+      next = { ...next, drawContinuations: rest,
+        discardPile: [...next.discardPile, ...(job.playedCard ? [job.playedCard] : [])] };
+      if (!player || player.eliminated) {
+        next = { ...next, discardPile: [...next.discardPile, ...job.cards] };
+      } else if (job.destination === "search" && job.cards.length) {
+        next = log({ ...next, pendingSearch: { playerId: job.playerId, cards: job.cards } }, `${player.name} searched and must keep 1 of ${job.cards.length} cards.`);
+      } else {
+        next = updatePlayer(next, job.playerId, current => ({ ...current, hand: [...current.hand, ...job.cards] }));
+        if (job.destination === "search") next = log(next, `${player.name} searched but found no cards.`);
+        if (job.spendDraw && job.cards.length) next = log(spendDraw(next, job.playerId), `${player.name} drew 1 card.`);
       }
       continue;
     }
-
-    drawn.push(card);
+    const draw = drawCardsWithRefill(next.mainDeck, next.discardPile, 1);
+    const card = draw.drawn[0];
+    const isEvent = getCardDefinitionById(card.definitionId)?.type === "event";
+    const updatedJob = { ...job,
+      remaining: isEvent ? (job.replaceEvents ? job.remaining : 0) : job.remaining - 1,
+      cards: isEvent ? job.cards : [...job.cards, card] };
+    next = { ...next, mainDeck: draw.mainDeck, discardPile: draw.discardPile, drawContinuations: [updatedJob, ...rest] };
+    if (isEvent) next = resolveDrawnEvent(next, card, job.playerId);
   }
+  return next;
+}
 
-  return {
-    state: nextState,
-    drawn
-  };
+function expireTurnEffects(state: GameState): GameState {
+  const playerId = getCurrentPlayer(state).id;
+  return { ...state, attackBonuses: omitKey(state.attackBonuses, playerId),
+    reloadPlayerIds: state.reloadPlayerIds.filter(id => id !== playerId), selectedCardId: null };
 }
 
 function drawMarketCardsSkippingEvents(state: GameState, count: number) {
@@ -464,12 +454,15 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
     const shouldShowEventDialog = stateWithoutActiveEvent.players.some((candidate) => !candidate.eliminated && candidate.controller.type === "human");
     const eventState = {
       ...stateWithoutActiveEvent,
-      pendingEventDialog: shouldShowEventDialog ? { card: eventCard, playerId } : null,
+      resolvedEventCount: (state.resolvedEventCount ?? 0) + 1,
+      pendingEventDialog: state.pendingEventDialog ?? (shouldShowEventDialog ? { card: eventCard, playerId } : null),
+      eventDialogQueue: shouldShowEventDialog && state.pendingEventDialog
+        ? [...(state.eventDialogQueue ?? []), { card: eventCard, playerId }] : state.eventDialogQueue,
       eventDiscardPile:
         [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
     };
     const eventLoggedState = log(eventState, `${player.name} drew ${definition.name}.`);
-    const applied = applyImmediateEvent(eventLoggedState, definition.id, playerId, eventCard);
+    const applied = finalizeEliminations(applyImmediateEvent(eventLoggedState, definition.id, playerId, eventCard));
     const shouldLogDirectHealthChanges = eventDirectlyChangesHealth(definition.id);
     let resolved = shouldLogDirectHealthChanges ? logPlayerHealthChanges(state.players, applied, definition.name) : applied;
     if (definition.id === "event_critical_condition") {
@@ -589,20 +582,19 @@ function getBlackMarketConfig(state: GameState) {
   return state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
 }
 
-function normalizeSettings(settings: GameState["settings"]): GameState["settings"] {
-  return {
-    ...settings,
-    blackMarketCustom: {
-      ...settings.blackMarketCustom,
-      actionCost: 0
-    },
-    maxHealth: Math.max(1, settings.maxHealth, settings.startingHealth),
-    maxHandSize: Math.max(1, settings.maxHandSize, settings.startingHandSize),
-    freeDrawsPerTurn: Math.max(0, settings.freeDrawsPerTurn ?? 0)
-  };
+export function gameReducer(state: GameState, action: GameAction): GameState {
+  let next = reduceGameAction(state, action);
+  if (next === state || next.phase === "setup") return next;
+  next = finalizeEliminations(next);
+  if (next.phase === "action") next = resumeMultiHit(resumeDraws(next));
+  if (next.phase === "action" && !hasPendingDecision(next)) {
+    next = completeGameIfOver(next, state.players, false) ?? next;
+    if (next.phase === "action" && getCurrentPlayer(next).eliminated) next = advanceTurn(expireTurnEffects(next));
+  }
+  return next;
 }
 
-export function gameReducer(state: GameState, action: GameAction): GameState {
+function reduceGameAction(state: GameState, action: GameAction): GameState {
   if (
     state.phase === "gameOver" &&
     action.type !== "RESET_GAME" &&
@@ -625,25 +617,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "SELECT_CARD":
       return { ...state, selectedCardId: action.cardInstanceId };
     case "ACKNOWLEDGE_EVENT_DIALOG":
-      return { ...state, pendingEventDialog: null };
+      return { ...state, pendingEventDialog: state.eventDialogQueue?.[0] ?? null, eventDialogQueue: state.eventDialogQueue?.slice(1) ?? [] };
     case "DRAW_CARD": {
       if (!canPlayerDraw(state, action.playerId) || (state.mainDeck.length === 0 && state.discardPile.length === 0)) {
         return state;
       }
 
-      const draw = drawCardsResolvingMixedEvents(state, 1, action.playerId, false);
-      let nextState = draw.state;
-
-      nextState = updatePlayer(nextState, action.playerId, (player) => ({
-        ...player,
-        hand: [...player.hand, ...draw.drawn]
-      }));
-      if (draw.drawn.length === 0) {
-        return nextState;
-      }
-
-      nextState = spendDraw(nextState, action.playerId);
-      return log(enforceHandLimit(nextState, action.playerId), `${getCurrentPlayer(state).name} drew 1 card.`);
+      return queueDraws(state, [{ playerId: action.playerId, remaining: 1, cards: [], destination: "hand", replaceEvents: false, spendDraw: true }]);
     }
     case "DISCARD_CARD": {
       const player = getPlayer(state, action.playerId);
@@ -652,6 +632,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (
         !player ||
         !card ||
+        !canPlayerEndTurn(state, action.playerId) ||
+        player.eliminated ||
         state.pendingReaction ||
         state.pendingRedirect ||
         state.pendingAttackCost ||
@@ -682,6 +664,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (
         !player ||
+        !canPlayerEndTurn(state, action.playerId) ||
+        player.eliminated ||
         selected.length !== selectedIds.length ||
         state.pendingReaction ||
         state.pendingRedirect ||
@@ -1030,14 +1014,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 : candidate
           )
         };
-        const draw = drawCardsResolvingMixedEvents(stateBeforeDraw, definition.draw ?? 0, player.id, true);
-        const nextState = {
-          ...updatePlayer(draw.state, player.id, (currentPlayer) => ({
-            ...currentPlayer,
-            hand: [...currentPlayer.hand, ...draw.drawn]
-          })),
-          discardPile: [...draw.state.discardPile, card]
-        };
+        const nextState = queueDraws(stateBeforeDraw, [{ playerId: player.id, remaining: definition.draw ?? 0,
+          cards: [], destination: "hand", replaceEvents: true, playedCard: card }]);
         const message =
           player.id === target.id
             ? `${player.name} played ${definition.name} and healed ${healedAmount}.`
@@ -1106,6 +1084,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         )
       };
       const reloadActive = stateBeforeRedirect.reloadPlayerIds.includes(attacker.id);
+      const multi = state.pendingMultiHitAttack;
+      const keepWeapon = reloadActive || Boolean(multi && multi.hitsRemaining > 1);
+      const spendAttackAction = !multi || multi.hitsRemaining === 2;
       if (state.settings.allowSecondaryDefense) {
         const redirectedState = {
           ...stateBeforeRedirect,
@@ -1120,29 +1101,29 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           discardPile: [
             ...stateBeforeRedirect.discardPile,
             pending.decoy,
-            ...(reloadActive ? [] : [pending.weapon])
+            ...(keepWeapon ? [] : [pending.weapon])
           ],
-          reloadPlayerIds: reloadActive ? stateBeforeRedirect.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : stateBeforeRedirect.reloadPlayerIds,
+          reloadPlayerIds: reloadActive && !multi ? stateBeforeRedirect.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : stateBeforeRedirect.reloadPlayerIds,
           attackBonuses: omitKey(stateBeforeRedirect.attackBonuses, attacker.id),
           players: stateBeforeRedirect.players.map((player) =>
             player.id === attacker.id
               ? {
                   ...player,
-                  hand: reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== pending.weapon.instanceId),
+                  hand: keepWeapon ? player.hand : player.hand.filter((card) => card.instanceId !== pending.weapon.instanceId),
                   attackedThisRound: true,
                   actedThisRound: true,
-                  actionsRemaining: Math.max(0, player.actionsRemaining - 1)
+                  actionsRemaining: spendAttackAction ? Math.max(0, player.actionsRemaining - 1) : player.actionsRemaining
                 }
               : player
           )
         };
-        return log(redirectedState, `${defender.name} redirected ${attacker.name}'s attack to ${target.name}. ${target.name} may defend.`);
+        return log(finishMultiHit(redirectedState), `${defender.name} redirected ${attacker.name}'s attack to ${target.name}. ${target.name} may defend.`);
       }
 
       const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy, {
-        keepWeaponInHand: reloadActive
+        keepWeaponInHand: keepWeapon, spendAction: spendAttackAction, baseDamageOverride: pending.baseDamage, deferGameOver: true
       });
-      const resolvedState = reloadActive ? consumeReload(result.state, attacker.id) : result.state;
+      const resolvedState = multi ? finishMultiHit(result.state) : reloadActive ? consumeReload(result.state, attacker.id) : result.state;
       return result.messages.reduce((nextState, message) => log(nextState, message), resolvedState);
     }
     case "RESOLVE_PENDING_ATTACK_COST": {
@@ -1184,11 +1165,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      const result = createPendingReaction(paidState, updatedAttacker, updatedTarget, weapon);
-      return result.messages.reduce(
-        (nextState, message) => log(nextState, message),
-        log(result.state, `${attacker.name} discarded a card to attack through Intimidate.`)
-      );
+      const attacked = reduceGameAction({ ...paidState, intimidations: {
+        ...paidState.intimidations,
+        [attacker.id]: (paidState.intimidations[attacker.id] ?? []).filter(id => id !== target.id)
+      } }, { type: "ATTACK", attackerId: attacker.id, targetPlayerId: target.id, weaponInstanceId: weapon.instanceId });
+      return log({ ...attacked, intimidations: paidState.intimidations }, `${attacker.name} discarded a card to attack through Intimidate.`);
     }
     case "ATTACK": {
       if (!canPlayerAct(state, action.attackerId)) {
@@ -1370,7 +1351,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return log(nextState, `${getCurrentPlayer(state).name} passed an action.`);
     }
     case "END_TURN": {
-      if (getCurrentPlayer(state).id !== action.playerId) {
+      if (!canPlayerEndTurn(state, action.playerId)) {
         return state;
       }
 
@@ -1385,10 +1366,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }));
       return advanceTurn(
         log(
-          {
-            ...ended,
-            reloadPlayerIds: ended.reloadPlayerIds.filter((playerId) => playerId !== action.playerId)
-          },
+          expireTurnEffects(ended),
           `${getCurrentPlayer(state).name} ended their turn.`
         )
       );
@@ -1433,6 +1411,7 @@ function resolvePendingAttack(
   if (!multiHit || multiHit.weapon.instanceId !== weapon.instanceId) {
     const result = resolveAttack(state, attacker, defender, weapon, reaction, {
       keepWeaponInHand: reloadActive,
+      deferGameOver: true,
       resolveSplash: !deferSplash,
       resolveCounterDamage: !deferCounterDamage
     });
@@ -1455,49 +1434,38 @@ function resolvePendingAttack(
   const isFinalHit = multiHit.hitsRemaining <= 1;
   const hitDamage = multiHit.hitsRemaining === 2 ? (state.pendingReaction?.baseDamage ?? multiHit.hitDamage) : multiHit.hitDamage;
   const result = resolveAttack(state, attacker, defender, weapon, reaction, {
+    deferGameOver: true,
     baseDamageOverride: hitDamage,
     keepWeaponInHand: !isFinalHit || reloadActive,
     spendAction: multiHit.hitsRemaining === 2,
+    resolveCounterDamage: !deferCounterDamage,
     clearAttackBonuses: true
   });
-  const nextDefender = getPlayer(result.state, defender.id);
-  const shouldContinue =
-    !isFinalHit &&
-    nextDefender &&
-    !nextDefender.eliminated &&
-    !result.state.smokeProtectedPlayerIds.includes(defender.id) &&
-    result.state.phase !== "gameOver";
+  const afterHit = finishMultiHit(result.state);
+  return enqueueSecondaryDamage(afterHit, result.messages, deferCounterDamage ? [{
+    attackerId: defender.id, defenderId: attacker.id, weapon, baseDamage: counterDamage,
+    source: reactionDefinition?.id === "defense_backfire" ? "backfire" : "counterattack"
+  }] : []);
+}
 
-  if (!shouldContinue || !nextDefender) {
-    const shouldDiscardInterruptedWeapon = !isFinalHit && !reloadActive;
-    const interruptedState = shouldDiscardInterruptedWeapon ? discardInterruptedWeapon(result.state, attacker.id, weapon) : result.state;
-    return {
-      ...result,
-      state: {
-        ...interruptedState,
-        reloadPlayerIds: isFinalHit || reloadActive ? interruptedState.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : interruptedState.reloadPlayerIds,
-        pendingMultiHitAttack: null
-      }
-    };
+function finishMultiHit(state: GameState): GameState {
+  if (!state.pendingMultiHitAttack) return state;
+  return { ...state, pendingReaction: null, pendingMultiHitAttack: {
+    ...state.pendingMultiHitAttack, hitsRemaining: state.pendingMultiHitAttack.hitsRemaining - 1
+  } };
+}
+
+function resumeMultiHit(state: GameState): GameState {
+  const multi = state.pendingMultiHitAttack;
+  if (!multi || state.pendingReaction || state.pendingRedirect || state.pendingSecondaryDamage) return state;
+  const attacker = getPlayer(state, multi.attackerId), defender = getPlayer(state, multi.defenderId);
+  if (!attacker || !defender || attacker.eliminated || defender.eliminated || multi.hitsRemaining <= 0 || state.smokeProtectedPlayerIds.includes(defender.id)) {
+    const cleaned = state.reloadPlayerIds.includes(multi.attackerId) ? state : discardInterruptedWeapon(state, multi.attackerId, multi.weapon);
+    return { ...consumeReload(cleaned, multi.attackerId), pendingMultiHitAttack: null };
   }
-
-  return {
-    ...result,
-    state: {
-      ...result.state,
-      pendingMultiHitAttack: {
-        ...multiHit,
-        hitsRemaining: multiHit.hitsRemaining - 1
-      },
-      pendingReaction: {
-        attackerId: attacker.id,
-        defenderId: defender.id,
-        weapon,
-        baseDamage: multiHit.hitDamage
-      }
-    },
-    messages: [...result.messages, `${attacker.name}'s SMG fires again at ${defender.name}.`]
-  };
+  return log({ ...state, pendingReaction: {
+    attackerId: multi.attackerId, defenderId: multi.defenderId, weapon: multi.weapon, baseDamage: multi.hitDamage
+  } }, `${attacker.name}'s SMG fires again at ${defender.name}.`);
 }
 
 function getGrenadeSplashItems(
@@ -1566,7 +1534,7 @@ function resolveCurrentSecondaryDamage(state: GameState, reaction: CardInstance 
   const counterDamage = getReactionCounterDamage(reactionDefinition, pending.baseDamage);
   const deferCounterDamage = state.settings.allowSecondaryDefense && counterDamage > 0;
   const result = resolveSecondaryDamage(baseState, attacker, defender, pending.weapon, pending.baseDamage, pending.source, reaction, {
-    resolveCounterDamage: !deferCounterDamage
+    resolveCounterDamage: !deferCounterDamage, deferGameOver: true
   });
   const counterItems: SecondaryDamageItem[] = deferCounterDamage
     ? [
@@ -1884,6 +1852,7 @@ function resolveAbility(
     nextState = updatePlayer(nextState, player.id, (currentPlayer) => ({
       ...currentPlayer,
       health: Math.max(0, currentPlayer.health - 2),
+      eliminated: currentPlayer.health <= 2,
       actionsRemaining: currentPlayer.actionsRemaining + 2
     }));
     message = `${player.name} played Adrenaline, gained an action, and lost 2 health.`;
@@ -1905,28 +1874,8 @@ function resolveAbility(
   }
 
   if (definitionId === "ability_search") {
-    const discardWithoutSearch = nextState.discardPile.filter((discardedCard) => discardedCard.instanceId !== card.instanceId);
-    const searchDraw = drawCardsResolvingMixedEvents({ ...nextState, discardPile: discardWithoutSearch }, 3, player.id, true);
-    if (searchDraw.drawn.length === 0) {
-      return log(
-        {
-          ...searchDraw.state,
-          discardPile: [...searchDraw.state.discardPile, card],
-          pendingSearch: null
-        },
-        `${player.name} searched but found no cards.`
-      );
-    }
-
-    nextState = {
-      ...searchDraw.state,
-      discardPile: [...searchDraw.state.discardPile, card],
-      pendingSearch: {
-        playerId: player.id,
-        cards: searchDraw.drawn
-      }
-    };
-    message = `${player.name} searched and must keep 1 of ${searchDraw.drawn.length} cards.`;
+    return queueDraws({ ...nextState, discardPile: nextState.discardPile.filter(discarded => discarded.instanceId !== card.instanceId) },
+      [{ playerId: player.id, remaining: 3, cards: [], destination: "search", replaceEvents: true, playedCard: card }]);
   }
 
   if (definitionId === "ability_reload") {
@@ -2020,7 +1969,7 @@ function scheduleForcedDiscard(state: GameState, playerIds: PlayerId[], cardType
     .filter((card) => getCardDefinitionById(card.definitionId)?.type === cardType)
     .map((card) => card.instanceId);
 
-  if (allowedIds.length === 0) {
+  if (player.eliminated || allowedIds.length === 0) {
     return scheduleForcedDiscard(state, remainingPlayerIds, cardType, reason);
   }
 

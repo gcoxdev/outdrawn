@@ -2,6 +2,7 @@ import { allCards } from "../data/cards";
 import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState, SecondaryDamageSource } from "./types";
 import { areTeammates, getCardDefinitionById, getWinner, getWinningTeamId, labelTeam } from "./rules";
 import { drawCardsWithRefill } from "./deck";
+import { finalizeEliminations } from "./elimination";
 
 export type AttackResult = {
   state: GameState;
@@ -15,6 +16,7 @@ export type ResolveAttackOptions = {
   clearAttackBonuses?: boolean;
   resolveSplash?: boolean;
   resolveCounterDamage?: boolean;
+  deferGameOver?: boolean;
 };
 
 export function getBaseAttackDamage(
@@ -70,7 +72,6 @@ export function resolveAttack(
     : reaction
       ? target.hand.filter((card) => card.instanceId !== reaction.instanceId)
       : target.hand;
-  const loot = eliminated ? targetHandAfterReaction : [];
   let winnerId = state.winnerId;
   let phase = state.phase;
   const messages = [
@@ -109,10 +110,10 @@ export function resolveAttack(
 
   const players = state.players.map((player) => {
     if (player.id === attacker.id) {
-      const attackerHealth = Math.max(0, player.health - counterDamage);
+      const attackerHealth = attackerHealthAfterCounter;
       return {
         ...player,
-        hand: [...(options.keepWeaponInHand ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...loot],
+        hand: options.keepWeaponInHand && attackerHealth > 0 ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId),
         health: attackerRewardedHealth,
         eliminated: attackerHealth === 0,
         eliminations: player.eliminations + attackerEliminations,
@@ -125,7 +126,7 @@ export function resolveAttack(
     if (player.id === target.id) {
       return {
         ...player,
-        hand: eliminated ? [] : targetHandAfterReaction,
+        hand: targetHandAfterReaction,
         health: defenderRewardedHealth,
         eliminated,
         eliminations: player.eliminations + (counterEliminatesAttacker ? 1 : 0)
@@ -176,14 +177,14 @@ export function resolveAttack(
   const winner = getWinner(nextState);
   const winnerTeamId = getWinningTeamId(nextState);
 
-  if (winner || winnerTeamId) {
+  if (!options.deferGameOver && (winner || winnerTeamId)) {
     winnerId = winner?.id ?? nextState.players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null;
     phase = "gameOver";
     messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} wins.`);
   }
 
   return {
-    state: {
+    state: finalizeEliminations({
       ...nextState,
       pendingReaction: null,
       pendingRedirect: null,
@@ -194,14 +195,16 @@ export function resolveAttack(
           : nextState.smokeProtectedPlayerIds,
       discardPile: [
         ...nextState.discardPile,
-        ...(options.keepWeaponInHand ? [] : [weapon]),
+        ...(options.keepWeaponInHand && attackerHealthAfterCounter > 0 ? [] : [weapon]),
         ...(reaction ? [reaction] : []),
         ...(reactionResult.discardsDefenderHand ? revivedDiscardedCards : [])
       ],
       phase,
       winnerId,
       winnerTeamId
-    },
+    }, Object.fromEntries([
+      [target.id, attacker.id], ...splashTargets.map(player => [player.id, attacker.id]), [attacker.id, target.id]
+    ])),
     messages
   };
 }
@@ -214,7 +217,7 @@ export function resolveSecondaryDamage(
   baseDamage: number,
   source: SecondaryDamageSource,
   reaction: CardInstance | null,
-  options: Pick<ResolveAttackOptions, "resolveCounterDamage"> = {}
+  options: Pick<ResolveAttackOptions, "resolveCounterDamage" | "deferGameOver"> = {}
 ): AttackResult {
   const weaponDefinition = getCardDefinitionById(weapon.definitionId);
   if (!weaponDefinition || weaponDefinition.type !== "weapon") {
@@ -239,7 +242,6 @@ export function resolveSecondaryDamage(
     : reaction
       ? defender.hand.filter((card) => card.instanceId !== reaction.instanceId)
       : defender.hand;
-  const loot = eliminated ? defenderHandAfterReaction : [];
   const sourceLabel = getSecondarySourceLabel(source, weaponDefinition.name);
   const messages = [`${defender.name} took ${damage} ${sourceLabel}.`];
 
@@ -267,9 +269,9 @@ export function resolveSecondaryDamage(
     if (player.id === attacker.id) {
       return {
         ...player,
-        hand: [...player.hand, ...loot],
+        hand: player.hand,
         health: attackerRewardedHealth,
-        eliminated: attackerHealthAfterCounter === 0,
+        eliminated: player.eliminated || attackerHealthAfterCounter === 0,
         eliminations: player.eliminations + (eliminated ? 1 : 0)
       };
     }
@@ -277,7 +279,7 @@ export function resolveSecondaryDamage(
     if (player.id === defender.id) {
       return {
         ...player,
-        hand: eliminated ? [] : defenderHandAfterReaction,
+        hand: defenderHandAfterReaction,
         health: defenderRewardedHealth,
         eliminated,
         eliminations: player.eliminations + (counterEliminatesAttacker ? 1 : 0)
@@ -307,7 +309,7 @@ export function resolveSecondaryDamage(
 
   const winner = getWinner(nextState);
   const winnerTeamId = getWinningTeamId(nextState);
-  if (winner || winnerTeamId) {
+  if (!options.deferGameOver && (winner || winnerTeamId)) {
     nextState = {
       ...nextState,
       phase: "gameOver",
@@ -317,7 +319,7 @@ export function resolveSecondaryDamage(
     messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} wins.`);
   }
 
-  return { state: nextState, messages };
+  return { state: finalizeEliminations(nextState, { [defender.id]: attacker.id, [attacker.id]: defender.id }), messages };
 }
 
 function getSecondarySourceLabel(source: SecondaryDamageSource, weaponName: string): string {

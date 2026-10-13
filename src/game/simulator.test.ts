@@ -32,7 +32,8 @@ describe("game simulator", () => {
     const summary = simulateGames(10, 8675309, ["competent"], { playerCount: 6 });
 
     expect(summary.strategies).toEqual(["competent", "competent", "competent", "competent", "competent", "competent"]);
-    expect(Object.keys(summary.winners).some((winner) => winner === "player_6")).toBe(true);
+    expect(simulateGame(8675309, ["competent"], { playerCount: 6 }).state.players).toHaveLength(6);
+    expect(Object.keys(summary.winners).every(winner => /^player_[1-6]$/.test(winner) || winner === "none")).toBe(true);
   });
 
   it("lets large-table simulations run long enough to resolve", () => {

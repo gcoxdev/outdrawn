@@ -1,18 +1,19 @@
 import { Eye, EyeOff } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getPassDeviceContext } from "../game/privacy";
-import { getCurrentPlayer, getTeamMembers, isHostileTarget, labelTeam } from "../game/rules";
-import { getDecisionPlayerId } from "../game/simulator";
+import { getCurrentPlayer, getTeamMembers, hasPendingDecision as hasDecision, isHostileTarget, labelTeam } from "../game/rules";
+import { getDecisionPlayerId } from "../game/rules";
 import type { CardInstance, GameState, PlayerId } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
 import { CardBack, CardView } from "./CardView";
 import { GameLog } from "./GameLog";
 import { GameMenu } from "./GameMenu";
 import { PlayerRoster } from "./PlayerRoster";
+import { Dialog } from "./Dialog";
 import { WinnerModal } from "./WinnerModal";
 
 function definitionFor(card: CardInstance | null) {
@@ -27,6 +28,7 @@ type GameTableProps = {
 type MobileTab = "play" | "players" | "log";
 
 export function GameTable({ state, dispatch }: GameTableProps) {
+  const [showDiscards, setShowDiscards] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("play");
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
   const [sidebarPlayerPercent, setSidebarPlayerPercent] = useState(62);
@@ -37,32 +39,9 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const decisionPlayerId = getDecisionPlayerId(state);
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
   const logPlayers = useMemo(() => state.players.map((player) => ({ id: player.id, name: player.name })), [state.players]);
-  const displayPlayer =
-    state.players.find((player) => player.id === state.pendingReaction?.defenderId) ??
-    state.players.find((player) => player.id === state.pendingRedirect?.defenderId) ??
-    state.players.find((player) => player.id === state.pendingSecondaryDamage?.defenderId) ??
-    state.players.find((player) => player.id === state.pendingAttackCost?.attackerId) ??
-    state.players.find((player) => player.id === state.pendingDiscard?.playerId) ??
-    state.players.find((player) => player.id === state.pendingSearch?.playerId) ??
-    state.players.find((player) => player.id === state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex]) ??
-    state.players.find((player) => player.id === state.pendingMarketSearch?.playerId) ??
-    state.players.find((player) => player.id === state.pendingBlackMarket?.playerId) ??
-    state.players.find((player) => player.id === state.pendingSteal?.playerId) ??
-    currentPlayer;
+  const displayPlayer = state.players.find(player => player.id === decisionPlayerId) ?? currentPlayer;
   const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
-  const hasPendingDecision =
-    Boolean(
-      state.pendingReaction ||
-        state.pendingRedirect ||
-        state.pendingSecondaryDamage ||
-        state.pendingAttackCost ||
-        state.pendingDiscard ||
-        state.pendingSearch ||
-        state.pendingSupplyDrop ||
-        state.pendingMarketSearch ||
-        state.pendingBlackMarket ||
-        state.pendingSteal
-    );
+  const hasPendingDecision = hasDecision(state);
   const teamHandViewers =
     displayPlayer.teamId && !hasPendingDecision
       ? getTeamMembers(state, displayPlayer.teamId).filter((player) => !player.eliminated)
@@ -104,12 +83,16 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     setSelectedDiscardIds((current) => current.filter((id) => handDisplayPlayer.hand.some((card) => card.instanceId === id)));
   }, [handDisplayPlayer.id, handDisplayPlayer.hand.length]);
 
+  const resizeCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => resizeCleanup.current?.(), []);
+
   function startSidebarResize(event: ReactPointerEvent<HTMLDivElement>) {
     const sidebar = event.currentTarget.closest(".operations-sidebar");
     if (!sidebar) {
       return;
     }
 
+    resizeCleanup.current?.();
     event.currentTarget.setPointerCapture(event.pointerId);
     const bounds = sidebar.getBoundingClientRect();
     const update = (clientY: number) => {
@@ -122,9 +105,12 @@ export function GameTable({ state, dispatch }: GameTableProps) {
     const handleUp = () => {
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
     };
     window.addEventListener("pointermove", handleMove);
     window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
+    resizeCleanup.current = handleUp;
   }
 
   return (
@@ -168,12 +154,22 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             role="separator"
             aria-orientation="horizontal"
             aria-label="Resize player roster and log"
+            tabIndex={0}
+            aria-valuemin={28}
+            aria-valuemax={82}
+            aria-valuenow={sidebarPlayerPercent}
+            onKeyDown={event => {
+              if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                event.preventDefault();
+                setSidebarPlayerPercent(value => Math.min(82, Math.max(28, value + (event.key === "ArrowDown" ? 2 : -2))));
+              }
+            }}
             onPointerDown={startSidebarResize}
           />
           <div className="sidebar-pane sidebar-pane--log board-panel-log">
             <div className="log-panel__meta">
               <span>{state.mainDeck.length} deck</span>
-              <span>{state.discardPile.length} discard</span>
+              <button type="button" onClick={() => setShowDiscards(true)}>{state.discardPile.length} discard · View piles</button>
             </div>
             <GameLog entries={state.log} players={logPlayers} />
           </div>
@@ -335,8 +331,22 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         </section>
       </section>
 
-      {privacyGateActive && (
-        <section className="pass-device-gate" role="dialog" aria-modal="true" aria-label={`Pass device to ${passDeviceContext!.playerName}`}>
+      {showDiscards && !privacyGateActive && !state.pendingEventDialog && (
+        <Dialog className="event-dialog-backdrop" label="Discard piles" onClose={() => setShowDiscards(false)}>
+          <section className="discard-piles-panel">
+            <button type="button" onClick={() => setShowDiscards(false)}>Close discard piles</button>
+            <h2>Discard piles</h2>
+            {([ ["Main deck", state.discardPile], ["Events", state.eventDiscardPile] ] as const).map(([label, cards]) => (
+              <section key={label}><h3>{label} ({cards.length})</h3>
+                <ol>{[...cards].reverse().map(card => <li key={card.instanceId}>{definitionFor(card)?.name ?? "Unknown card"}</li>)}</ol>
+                {!cards.length && <p>No discarded cards.</p>}
+              </section>
+            ))}
+          </section>
+        </Dialog>
+      )}
+      {privacyGateActive && !state.pendingEventDialog && (
+        <Dialog className="pass-device-gate" label={`Pass device to ${passDeviceContext!.playerName}`}>
           <div className="pass-device-gate__panel">
             <p className="eyebrow">Private turn</p>
             <h2>Pass to {passDeviceContext!.playerName}</h2>
@@ -347,7 +357,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
               Reveal Hand
             </button>
           </div>
-        </section>
+        </Dialog>
       )}
     </main>
   );
@@ -552,7 +562,7 @@ function EventDialog({ state, dispatch }: GameTableProps) {
   }
 
   return (
-    <section className="event-dialog-backdrop" role="dialog" aria-modal="true" aria-label={`${definition.name} event`}>
+    <Dialog className="event-dialog-backdrop" label={`${definition.name} event`}>
       <div className="event-dialog-panel">
         <div className="event-dialog-card">
           <CardView card={definition} mode="detail" />
@@ -567,6 +577,6 @@ function EventDialog({ state, dispatch }: GameTableProps) {
           </button>
         </div>
       </div>
-    </section>
+    </Dialog>
   );
 }

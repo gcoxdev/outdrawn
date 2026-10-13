@@ -2,6 +2,7 @@ import { Download, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   canInstallApp,
+  findWaitingWorker,
   clearDeferredInstallPrompt,
   getDeferredInstallPrompt,
   getInstallStatusDetail,
@@ -12,9 +13,10 @@ import {
   type BeforeInstallPromptEvent
 } from "../pwa";
 
-type UpdateStatus = "idle" | "checking" | "updated" | "current" | "unsupported" | "error";
+type UpdateStatus = "idle" | "checking" | "ready" | "updated" | "current" | "unsupported" | "error";
 
-export function PwaControls() {
+export function PwaControls({ allowUpdate = true }: { allowUpdate?: boolean }) {
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(() => isStandaloneDisplay());
   const [hasServiceWorkerRegistration, setHasServiceWorkerRegistration] = useState<boolean | null>(null);
@@ -48,7 +50,7 @@ export function PwaControls() {
 
     navigator.serviceWorker.getRegistration().then((registration) => {
       setHasServiceWorkerRegistration(Boolean(registration));
-    });
+    }).catch(() => setHasServiceWorkerRegistration(false));
   }, []);
 
   async function installApp() {
@@ -56,11 +58,9 @@ export function PwaControls() {
       return;
     }
 
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice;
-    if (choice.outcome === "accepted") {
-      clearDeferredInstallPrompt();
-    }
+    try { await installPrompt.prompt(); await installPrompt.userChoice; }
+    catch { setUpdateStatus("error"); }
+    finally { clearDeferredInstallPrompt(); }
   }
 
   async function checkForUpdates() {
@@ -84,18 +84,24 @@ export function PwaControls() {
         return;
       }
 
-      navigator.serviceWorker.addEventListener(
-        "controllerchange",
-        () => {
-          window.location.reload();
-        },
-        { once: true }
-      );
-      waitingWorker.postMessage({ type: "SKIP_WAITING" });
-      setUpdateStatus("updated");
+      setWaitingWorker(waitingWorker);
+      setUpdateStatus("ready");
     } catch {
       setUpdateStatus("error");
     }
+  }
+
+  function applyUpdate() {
+    if (!waitingWorker || !allowUpdate) return;
+    setUpdateStatus("updated");
+    const reload = () => { window.clearTimeout(timeout); window.location.reload(); };
+    const timeout = window.setTimeout(() => {
+      navigator.serviceWorker.removeEventListener("controllerchange", reload);
+      setUpdateStatus("error");
+    }, 15000);
+    navigator.serviceWorker.addEventListener("controllerchange", reload, { once: true });
+    if (waitingWorker.state === "activated") reload();
+    else waitingWorker.postMessage({ type: "SKIP_WAITING" });
   }
 
   return (
@@ -104,9 +110,11 @@ export function PwaControls() {
         <span>Offline App</span>
         <p>{installLabel}</p>
         <p>{installDetail}</p>
-        {updateMessage && <p>{updateMessage}</p>}
+        {updateMessage && <p role="status">{updateMessage}</p>}
+        {updateStatus === "ready" && !allowUpdate && <p>Finish the match or return to the lobby to apply the update.</p>}
       </div>
       <div className="pwa-controls__actions">
+        {updateStatus === "ready" && <button type="button" disabled={!allowUpdate} onClick={applyUpdate}>Apply Update and Reload</button>}
         <button type="button" disabled={!canInstall} onClick={installApp}>
           <Download size={16} />
           Install
@@ -124,37 +132,12 @@ function isStandaloneDisplay() {
   return window.matchMedia("(display-mode: standalone)").matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
 }
 
-function findWaitingWorker(registration: ServiceWorkerRegistration) {
-  if (registration.waiting) {
-    return Promise.resolve(registration.waiting);
-  }
-
-  const installingWorker = registration.installing;
-  if (!installingWorker) {
-    return Promise.resolve(null);
-  }
-
-  return new Promise<ServiceWorker | null>((resolve) => {
-    const timeout = window.setTimeout(() => {
-      resolve(null);
-    }, 3000);
-
-    installingWorker.addEventListener(
-      "statechange",
-      () => {
-        window.clearTimeout(timeout);
-        resolve(registration.waiting ?? null);
-      },
-      { once: true }
-    );
-  });
-}
-
 function getUpdateMessage(status: UpdateStatus) {
   const messages: Record<UpdateStatus, string> = {
     idle: "",
     checking: "Checking for the latest online version...",
-    updated: "Update found. Reloading...",
+    ready: "Update downloaded and ready.",
+    updated: "Applying update. Reloading...",
     current: "Offline copy is up to date.",
     unsupported: "Update checks require the installed production app.",
     error: "Could not check for updates."

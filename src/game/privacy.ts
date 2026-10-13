@@ -1,4 +1,4 @@
-import { getDecisionPlayerId } from "./simulator";
+import { getDecisionPlayerId } from "./rules";
 import type { GameState, PlayerId } from "./types";
 
 export type PassDeviceContext = {

@@ -3,6 +3,7 @@ import { defaultGameSettings, type GameSettings } from "../data/constants";
 import { drawCards, expandDeck, shuffleDeck } from "./deck";
 import { getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
 import { MAX_PLAYERS, MIN_PLAYERS } from "./setupOptions";
+import { normalizeSettings } from "./settings";
 import type { GameState, PlayerSetup, PlayerState } from "./types";
 
 export function createNewGame(
@@ -10,6 +11,7 @@ export function createNewGame(
   random: () => number = Math.random,
   settings: GameSettings = defaultGameSettings
 ): GameState {
+  settings = normalizeSettings(settings);
   const playerSetups = normalizePlayerSetups(playerInputs);
 
   if (playerSetups.length < MIN_PLAYERS || playerSetups.length > MAX_PLAYERS) {

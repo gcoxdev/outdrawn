@@ -89,7 +89,7 @@ https://192.168.1.50:4173
 ## 4. Install and update
 
 Use the browser's install option after opening the HTTPS URL. Outdrawn's PWA
-controls can check for service worker updates while the device is online.
+controls can check for service worker updates while the device is online. A successful check downloads a complete new release. Use **Apply Update and Reload** from the lobby or after the match to activate it; updates do not interrupt an active match. Match state is saved in this browser and restored after ordinary reloads.
 
 If the install option is unavailable:
 
@@ -112,3 +112,11 @@ Override them when needed:
 ```bash
 PORT=8443 HTTPS_CERT=/path/cert.pem HTTPS_KEY=/path/key.pem npm run host:https
 ```
+
+## Build and cache behavior
+
+Always deploy the complete output of `npm run build`. Its final step generates a content-versioned worker and offline manifest; running `vite build` alone does not complete that step. Critical download failures reject installation and keep the previous release usable. The first offline installation downloads approximately 24 MiB, so keep the page online until installation finishes.
+
+The host returns 400 for malformed paths and 404 for absent files. Stable filenames revalidate; only hashed build assets receive immutable caching. Updating a card image changes the release version even when its filename stays the same.
+
+The activation flow follows the browser's [worker state lifecycle](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker/state) and requests [skipWaiting](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting) only when applying a downloaded update.

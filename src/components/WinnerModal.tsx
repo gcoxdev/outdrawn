@@ -1,4 +1,5 @@
 import { Trophy, X } from "lucide-react";
+import { Dialog } from "./Dialog";
 import { useState } from "react";
 import type { GameAction } from "../game/actions";
 import { labelTeam } from "../game/rules";
@@ -25,7 +26,7 @@ export function WinnerModal({ winner, winnerTeamId, winnerTeamMembers, dispatch 
   }
 
   return (
-    <div className="winner-modal" role="dialog" aria-modal="true" aria-label="Game winner">
+    <Dialog className="winner-modal" label="Game winner" onClose={() => setIsVisible(false)}>
       <section className="winner-modal__panel">
         <div className="winner-modal__burst" aria-hidden="true" />
         <button className="winner-modal__close" type="button" onClick={() => setIsVisible(false)} aria-label="Close winner screen">
@@ -39,6 +40,6 @@ export function WinnerModal({ winner, winnerTeamId, winnerTeamMembers, dispatch 
           New Game
         </button>
       </section>
-    </div>
+    </Dialog>
   );
 }

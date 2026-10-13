@@ -1,7 +1,8 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { GameTable } from "./components/GameTable";
 import { SetupScreen } from "./components/SetupScreen";
 import { defaultGameSettings } from "./data/constants";
+import { loadGame, saveGame } from "./game/persistence";
 import { gameReducer } from "./game/reducer";
 import { chooseAutomatedAction, getDecisionPlayerId } from "./game/simulator";
 import type { GameState, PlayerSetup } from "./game/types";
@@ -42,7 +43,13 @@ const initialState: GameState = {
 };
 
 export default function App() {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, dispatch] = useReducer(gameReducer, initialState, fallback => {
+    try { return loadGame(fallback, window.localStorage); } catch { return fallback; }
+  });
+  const [saveFailed, setSaveFailed] = useState(false);
+  useEffect(() => {
+    try { setSaveFailed(!saveGame(state, window.localStorage)); } catch { setSaveFailed(true); }
+  }, [state]);
   const aiRandom = useRef(createRng(Date.now()));
 
   useEffect(() => {
@@ -84,7 +91,7 @@ export default function App() {
     );
   }
 
-  return <GameTable state={state} dispatch={dispatch} />;
+  return <>{saveFailed && <p className="save-warning" role="status">This browser could not save the match. Keep this tab open to continue playing.</p>}<GameTable state={state} dispatch={dispatch} /></>;
 }
 
 function createRng(seed: number): () => number {

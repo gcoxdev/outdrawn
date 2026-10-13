@@ -31,6 +31,7 @@ describe("game settings", () => {
       () => 0,
       {
         ...defaultGameSettings,
+        startingHandSize: 3,
         maxHandSize: 3
       }
     );

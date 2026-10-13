@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/build-offline.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "host:https": "node scripts/serve-https.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:host": "node --test tests/hosting.test.mjs tests/offline.test.mjs",
+    "test:browser": "npm run build && node scripts/browser-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
@@ -22,6 +24,10 @@
     "@types/node": "^25.8.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "esbuild": "^0.27.7"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

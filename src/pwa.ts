@@ -114,6 +114,27 @@ export function registerOfflineServiceWorker() {
   window.addEventListener("load", register, { once: true });
 }
 
+export function findWaitingWorker(registration: ServiceWorkerRegistration, timeoutMs = 60000): Promise<ServiceWorker | null> {
+  if (registration.waiting) return Promise.resolve(registration.waiting);
+  const worker = registration.installing;
+  if (!worker) return Promise.resolve(null);
+  return new Promise((resolve, reject) => {
+    const timeout = globalThis.setTimeout(() => finish(new Error("Offline installation timed out")), timeoutMs);
+    function finish(error?: Error) {
+      globalThis.clearTimeout(timeout);
+      worker!.removeEventListener("statechange", changed);
+      if (error) reject(error);
+      else resolve(registration.waiting ?? worker);
+    }
+    function changed() {
+      if (worker!.state === "redundant") finish(new Error("Offline installation failed"));
+      else if (["installed", "activating", "activated"].includes(worker!.state)) finish();
+    }
+    worker.addEventListener("statechange", changed);
+    changed();
+  });
+}
+
 let installPromptListenerStarted = false;
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 const installPromptSubscribers = new Set<(event: BeforeInstallPromptEvent | null) => void>();

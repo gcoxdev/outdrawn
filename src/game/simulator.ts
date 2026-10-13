@@ -4,7 +4,7 @@ import type { GameAction } from "./actions";
 import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
 import type { CardInstance, GameState, PlayerId, PlayerState, StrategyLevel } from "./types";
-import { getCardDefinitionById, getCurrentPlayer, getPlayer, isHostileTarget } from "./rules";
+import { getCardDefinitionById, getCurrentPlayer, getDecisionPlayerId, getPlayer, isHostileTarget } from "./rules";
 
 export type SimulationSummary = {
   gamesPlayed: number;
@@ -68,6 +68,7 @@ export type SimulationOptions = {
   settings?: Partial<GameSettings>;
   playerCount?: number;
   playerNames?: string[];
+  strict?: boolean;
 };
 
 export function simulateGames(
@@ -165,6 +166,7 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     eventCardsResolved: 0,
     issues: {}
   };
+  const initialCards = ownedCards(state).map(card => card.instanceId).sort();
   let safety = 0;
   const maxSteps = Math.max(1200, simulationPlayerNames.length * 75);
 
@@ -181,6 +183,13 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     }
 
     collectStateIssues(state, metrics);
+    if (options.strict) {
+      const issues = getStateIssues(state);
+      const ids = ownedCards(state).map(card => card.instanceId).sort();
+      if (ids.length !== initialCards.length || ids.some((id, index) => id !== initialCards[index])) issues.push("card ownership changed");
+      if (Object.keys(state).filter(key => key !== "log").every(key => state[key as keyof GameState] === before[key as keyof GameState])) issues.push(`rejected action ${action.type}`);
+      if (issues.length) throw new Error(`Seed ${seed}, step ${safety}, ${action.type}: ${issues.join(", ")}`);
+    }
 
     if (state === before) {
       addIssue(metrics, `no-op:${action.type}`);
@@ -284,7 +293,7 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
       type: "RESOLVE_PENDING_STEAL",
       playerId: state.pendingSteal.playerId,
       targetPlayerId: target.id,
-      cardInstanceId: pickBestCard(target.hand, strategy, random).instanceId
+      cardInstanceId: randomItem(target.hand, random).instanceId
     };
   }
 
@@ -346,24 +355,13 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
     return { type: "DRAW_CARD", playerId: player.id };
   }
 
+  if (player.hand.length > state.settings.maxHandSize) {
+    return { type: "DISCARD_CARD", playerId: player.id, cardInstanceId: pickLowestCards(player.hand, 1, strategy, random)[0].instanceId };
+  }
   return { type: "END_TURN", playerId: player.id };
 }
 
-export function getDecisionPlayerId(state: GameState): string {
-  return (
-    state.pendingReaction?.defenderId ??
-    state.pendingRedirect?.defenderId ??
-    state.pendingSecondaryDamage?.defenderId ??
-    state.pendingAttackCost?.attackerId ??
-    state.pendingDiscard?.playerId ??
-    state.pendingSearch?.playerId ??
-    state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
-    state.pendingMarketSearch?.playerId ??
-    state.pendingBlackMarket?.playerId ??
-    state.pendingSteal?.playerId ??
-    getCurrentPlayer(state).id
-  );
-}
+export { getDecisionPlayerId } from "./rules";
 
 function chooseReaction(state: GameState, strategy: StrategyLevel, random: () => number): GameAction {
   const pending = state.pendingReaction ?? state.pendingSecondaryDamage!;
@@ -569,7 +567,9 @@ function chooseMasterAttack(state: GameState, player: PlayerState, weapons: Card
     getValidAttackTargets(state, player, weapon).map((target) => ({
       target,
       weapon,
-      damage: getWeaponDamagePotential(state, player, weapon)
+      damage: getCardDefinitionById(weapon.definitionId)?.id === "weapon_minigun"
+          ? Math.min(getWeaponDamagePotential(state, player, weapon), getCardDefinitionById(weapon.definitionId)?.maxDamagePerTarget ?? 3) + (state.markedTargets[target.id] ?? 0)
+          : getWeaponDamagePotential(state, player, weapon) + (state.markedTargets[target.id] ?? 0)
     }))
   );
   const killOptions = attackOptions.filter((option) => option.damage >= option.target.health);
@@ -581,6 +581,10 @@ function chooseMasterAttack(state: GameState, player: PlayerState, weapons: Card
         left.damage - right.damage ||
         cardValue(left.weapon) - cardValue(right.weapon)
     )[0];
+    if (getCardDefinitionById(chosen.weapon.definitionId)?.id === "weapon_minigun") {
+      return { type: "ATTACK", attackerId: player.id, weaponInstanceId: chosen.weapon.instanceId,
+        damageByTarget: chooseMinigunAllocation(state, player, getValidAttackTargets(state, player, chosen.weapon), "master", random, chosen.target.id) };
+    }
     return { type: "ATTACK", attackerId: player.id, targetPlayerId: chosen.target.id, weaponInstanceId: chosen.weapon.instanceId };
   }
 
@@ -625,7 +629,8 @@ function chooseMinigunAllocation(
   player: PlayerState,
   validTargets: PlayerState[],
   strategy: StrategyLevel,
-  random: () => number
+  random: () => number,
+  preferredTargetId?: PlayerId
 ): Record<PlayerId, number> {
   const minigun = mainDeckCards.find((card) => card.id === "weapon_minigun");
   let remaining = (minigun?.damage ?? 6) + (state.attackBonuses[player.id] ?? 0);
@@ -634,6 +639,7 @@ function chooseMinigunAllocation(
     strategy === "beginner" || strategy === "novice"
       ? shuffle(validTargets, random)
       : [...validTargets].sort((left, right) => threatScore(right) - threatScore(left));
+  if (preferredTargetId) targets.sort((a, b) => Number(b.id === preferredTargetId) - Number(a.id === preferredTargetId));
   const allocation: Record<PlayerId, number> = {};
 
   for (const target of targets) {
@@ -650,9 +656,10 @@ function chooseMinigunAllocation(
 
 function dispatchWithMetrics(state: GameState, action: GameAction, metrics: SimulationMetrics): GameState {
   const beforeHealth = new Map(state.players.map((player) => [player.id, player.health]));
-  const pendingBaseDamage = state.pendingReaction?.baseDamage ?? 0;
+  const reaction = state.pendingReaction ?? state.pendingSecondaryDamage;
+  const pendingBaseDamage = reaction?.baseDamage ?? 0;
   const beforeRound = state.round;
-  const beforeEventDiscard = state.eventDiscardPile.length;
+  const beforeEventCount = state.resolvedEventCount ?? 0;
   const next = gameReducer(state, action);
   const healthDelta = next.players.reduce(
     (total, player) => total + Math.max(0, (beforeHealth.get(player.id) ?? player.health) - player.health),
@@ -663,7 +670,7 @@ function dispatchWithMetrics(state: GameState, action: GameAction, metrics: Simu
     0
   );
 
-  if (action.type === "PLAY_REACTION") {
+  if (action.type === "PLAY_REACTION" || action.type === "PLAY_SECONDARY_REACTION") {
     metrics.defenseCardsPlayed += next !== state ? 1 : 0;
   }
 
@@ -680,18 +687,18 @@ function dispatchWithMetrics(state: GameState, action: GameAction, metrics: Simu
     metrics.attackCardsPlayed += next !== state ? 1 : 0;
   }
 
-  if (action.type === "SKIP_REACTION" || action.type === "PLAY_REACTION" || action.type === "RESOLVE_PENDING_REDIRECT") {
+  if (["ATTACK", "SKIP_REACTION", "PLAY_REACTION", "RESOLVE_PENDING_REDIRECT", "SKIP_SECONDARY_REACTION", "PLAY_SECONDARY_REACTION"].includes(action.type)) {
     metrics.attackDamage += healthDelta;
-    metrics.preventedAttackDamage += Math.max(0, pendingBaseDamage - healthDelta);
-  } else if (action.type === "END_TURN" && next.round > beforeRound) {
+    const defender = next.players.find(player => player.id === reaction?.defenderId);
+    const defenderDamage = defender ? Math.max(0, (beforeHealth.get(defender.id) ?? defender.health) - defender.health) : 0;
+    metrics.preventedAttackDamage += Math.max(0, pendingBaseDamage - defenderDamage);
+  } else if ((action.type === "END_TURN" && (next.round > beforeRound || next.phase === "gameOver")) || (next.resolvedEventCount ?? 0) > beforeEventCount) {
     metrics.eventDamage += healthDelta;
   } else if (action.type === "PLAY_ABILITY") {
     metrics.selfDamage += healthDelta;
   }
 
-  if (next.eventDiscardPile.length > beforeEventDiscard || (state.activeEvent?.card.instanceId !== next.activeEvent?.card.instanceId && next.activeEvent)) {
-    metrics.eventCardsResolved += 1;
-  }
+  metrics.eventCardsResolved += Math.max(0, (next.resolvedEventCount ?? 0) - beforeEventCount);
 
   return next;
 }
@@ -717,16 +724,34 @@ function forceProgress(state: GameState, metrics: SimulationMetrics): GameState 
   return gameReducer(state, { type: "END_TURN", playerId: player.id });
 }
 
-function collectStateIssues(state: GameState, metrics: SimulationMetrics) {
-  state.players.forEach((player) => {
-    if (player.health < 0) {
-      addIssue(metrics, "negative health");
-    }
-  });
+export function ownedCards(state: GameState): CardInstance[] {
+  return [...state.mainDeck, ...state.eventDeck, ...state.discardPile, ...state.eventDiscardPile,
+    ...state.players.flatMap(player => player.hand), ...(state.activeEvent ? [state.activeEvent.card] : []),
+    ...(state.pendingSearch?.cards ?? []), ...(state.pendingMarketSearch?.cards ?? []),
+    ...(state.pendingSupplyDrop?.revealedCards ?? []),
+    ...(state.drawContinuations ?? []).flatMap(job => [...job.cards, ...(job.playedCard ? [job.playedCard] : [])])];
+}
 
-  if (state.phase === "gameOver" && !state.winnerId) {
-    addIssue(metrics, "unresolved true tie");
+export function getStateIssues(state: GameState): string[] {
+  const issues: string[] = [];
+  for (const player of state.players) {
+    if (!Number.isFinite(player.health) || player.health < 0) issues.push("invalid health");
+    if ((player.health === 0) !== player.eliminated) issues.push("health and elimination disagree");
+    if (player.eliminated && player.hand.length) issues.push("eliminated player has cards");
   }
+  if (new Set(state.log.map(entry => entry.id)).size !== state.log.length) issues.push("duplicate log identifiers");
+  const cards = ownedCards(state);
+  if (new Set(cards.map(card => card.instanceId)).size !== cards.length) issues.push("duplicate card ownership");
+  const decidingIds = [state.pendingReaction?.defenderId, state.pendingRedirect?.defenderId,
+    state.pendingSecondaryDamage?.defenderId, state.pendingAttackCost?.attackerId, state.pendingDiscard?.playerId,
+    state.pendingSearch?.playerId, state.pendingMarketSearch?.playerId, state.pendingBlackMarket?.playerId, state.pendingSteal?.playerId];
+  if (decidingIds.some(id => id && !state.players.some(player => player.id === id && !player.eliminated))) issues.push("decision belongs to eliminated player");
+  return issues;
+}
+
+function collectStateIssues(state: GameState, metrics: SimulationMetrics) {
+  getStateIssues(state).forEach(issue => addIssue(metrics, issue));
+  if (state.phase === "gameOver" && !state.winnerId) addIssue(metrics, "unresolved true tie");
 }
 
 function scoreReaction(card: CardInstance, damage: number, defenderHealth: number): number {

@@ -19,14 +19,14 @@ The current web prototype is a local browser game for 3-100 players. Each player
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
 - Event cards are shuffled into the main deck after starting hands are dealt. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
 - The first player is randomly selected by the app.
-- Team modes enforce their selected team sizes before a game can start: 2v2 requires two players per team, 3v3 requires three players per team, and 2v2v2 requires two players on each of three teams. Teammates can see each other's hands, area damage has no friendly fire, and teammate healing/card transfer can be enabled or disabled before the game starts.
+- Team modes validate the selected roster before a game can start: duos, trios, and squads use teams of two, three, and four; two teams splits the roster into equal teams; custom teams require at least two populated teams. Teammates can see each other's hands, area damage has no friendly fire, and teammate healing/card transfer can be enabled or disabled before the game starts.
 
 ## Card Visibility
 
 - Human players can see only the active human decision hand.
-- Computer hands are hidden from humans unless only computer players remain.
+- Computer opponents' hands are hidden. Human players may view their computer teammates' hands; when no humans remain, computer hands become visible.
 - Played cards are revealed by the log and then discarded unless a card says otherwise.
-- Discard piles and event cards are public.
+- Discard piles and event cards are public. Use View piles in the sidebar to inspect the current main and event discards.
 - Debug hand snapshots are available only in development mode and only when the debug setting is enabled.
 
 ## Turn Structure
@@ -43,7 +43,7 @@ If free draws are enabled, a player may draw up to the configured free-draw limi
 
 A player may not end their turn while above the maximum hand size.
 
-If a draw or reveal effect finds an event card, resolve that event immediately and continue revealing until the effect has the expected number of non-event cards or the deck is exhausted. Events are one-time effects when drawn and do not remain active after their immediate resolution.
+If a draw or reveal effect finds an event card, resolve that event immediately and continue revealing until the effect has the expected number of non-event cards or the deck is exhausted. Events are one-time effects when drawn and do not remain active after their immediate resolution. If an event requires a discard or market decision, finish that choice before the interrupted draw continues.
 
 ## Round Structure
 
@@ -103,7 +103,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Sabotage: target discards up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.
 - Mark Target: any attack against the target deals +1 damage this round.
 - Intimidate: target must discard 1 card to attack you before your next turn.
-- Adrenaline: gain 1 net action this turn and lose 2 health.
+- Adrenaline: gain 1 net action this turn and lose 2 health. This loss can eliminate you; at 1 or 2 health you are eliminated immediately.
 
 ## Healing
 
@@ -135,13 +135,13 @@ Healing cannot exceed maximum health.
 If a player is eliminated by another player's attack:
 
 1. The attacker gains the eliminated player's remaining hand.
-2. The eliminated player's hand is emptied.
+2. The eliminated player's hand is emptied. Splash and counterattack eliminations follow the same rule; if the credited player is also eliminated, the cards go to discard.
 3. Loot can temporarily put the attacker over the max hand size.
 4. The attacker must discard down before ending their turn.
 
 If a player is eliminated by event or collapse damage:
 
-- Their cards are discarded.
+- Their cards are discarded. The same applies to self-inflicted Adrenaline elimination.
 - No player gains loot.
 
 ## Hand Limit
@@ -150,7 +150,7 @@ Players may exceed maximum hand size during play. They must discard down to the 
 
 ## Tie Scenarios
 
-A tie means the game reaches `gameOver` without one living winner. In the current implementation, this can happen only after non-attack damage eliminates all remaining players and the tiebreaker cannot distinguish them.
+A tie means the game reaches `gameOver` without a declared winner. This happens when final non-attack eliminations remain tied after the tiebreaker, or when the final combat sequence leaves nobody alive. Complete all pending counter and secondary damage before deciding the result.
 
 Known tie scenarios:
 
@@ -177,10 +177,10 @@ Known tie scenarios:
 
 5. Splash or counterattack double elimination:
    - Combat can eliminate multiple players through Grenade splash or Counterattack.
-   - Usually the attacker or another living player still wins.
-   - A true no-winner tie is unlikely here because combat checks for a living winner after resolution, but simultaneous combat eliminations can still create unusual end states that should be watched in manual playtesting.
+   - If the full combat sequence leaves nobody alive, no winner is declared.
+   - A living attacker or another surviving player can still win after all pending damage resolves.
 
-Current tiebreaker:
+Current tiebreaker, considering only players alive immediately before the final effect (a selected player wins for their team in team mode):
 
 1. Most player eliminations wins.
 2. If tied, highest pre-effect health wins.

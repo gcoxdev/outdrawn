@@ -154,6 +154,16 @@ export type PendingSecondaryDamage = SecondaryDamageItem & {
 
 export type GamePhase = "setup" | "action" | "gameOver";
 
+export type DrawContinuation = {
+  playerId: PlayerId;
+  remaining: number;
+  cards: CardInstance[];
+  destination: "hand" | "search";
+  replaceEvents: boolean;
+  spendDraw?: boolean;
+  playedCard?: CardInstance;
+};
+
 export type GameState = {
   phase: GamePhase;
   settings: GameSettings;
@@ -167,6 +177,9 @@ export type GameState = {
   eventDiscardPile: CardInstance[];
   activeEvent: ActiveEvent | null;
   pendingEventDialog: PendingEventDialog | null;
+  eventDialogQueue?: PendingEventDialog[];
+  resolvedEventCount?: number;
+  drawContinuations?: DrawContinuation[];
   pendingReaction: PendingReaction | null;
   pendingRedirect: PendingRedirect | null;
   pendingAttackCost: PendingAttackCost | null;
