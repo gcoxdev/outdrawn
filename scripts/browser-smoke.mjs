@@ -110,7 +110,7 @@ try {
   const oldTitle = await js("return document.title");
   const shell = await readFile(join(root, "index.html"), "utf8");
   await writeFile(join(root, "index.html"), shell.replace("<title>", "<title>Updated "));
-  const logo = "branding/logos/outdrawn-logo-dark-01.png";
+  const logo = "optimized/branding/logos/outdrawn-logo-dark-01.webp";
   const oldLogo = await readFile(join(root, logo));
   await writeFile(join(root, logo), Buffer.concat([oldLogo, Buffer.from("release-b")]));
   await buildOffline(root);

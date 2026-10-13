@@ -1,9 +1,9 @@
 import type { GameState, PlayerState } from "./types";
 
-export const DEBUG_SNAPSHOT_PRECAPTURE_PLAYER_LIMIT = 24;
+export const DEBUG_SNAPSHOT_LOG_LIMIT = 50;
 
-export function shouldCaptureHandSnapshots(playerCount: number, debugSnapshotsVisible: boolean): boolean {
-  return import.meta.env.DEV && (debugSnapshotsVisible || playerCount <= DEBUG_SNAPSHOT_PRECAPTURE_PLAYER_LIMIT);
+export function shouldCaptureHandSnapshots(debugSnapshotsVisible: boolean): boolean {
+  return import.meta.env.DEV && debugSnapshotsVisible;
 }
 
 export function getHandSnapshots(players: PlayerState[]): GameState["log"][number]["debugHandSnapshots"] {

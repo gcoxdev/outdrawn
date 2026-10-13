@@ -1,3 +1,4 @@
+import { getPendingDecision, getPlayerDecision } from "./decisions";
 import { allCards } from "../data/cards";
 import { labelGeneratedTeam } from "./setupOptions";
 import type { CardInstanceId, GameState, PlayerId, PlayerState, TeamId } from "./types";
@@ -23,10 +24,7 @@ export function getCardFromPlayer(player: PlayerState, cardInstanceId: CardInsta
 }
 
 export function hasPendingDecision(state: GameState): boolean {
-  return Boolean(state.pendingEventDialog || state.pendingReaction || state.pendingRedirect ||
-    state.pendingAttackCost || state.pendingMultiHitAttack || state.pendingDiscard || state.pendingSearch ||
-    state.pendingSupplyDrop || state.pendingMarketSearch || state.pendingBlackMarket || state.pendingSteal ||
-    state.pendingSecondaryDamage || state.drawContinuations?.length);
+  return Boolean(getPendingDecision(state) || state.pendingMultiHitAttack || state.drawContinuations?.length);
 }
 
 export function canPlayerEndTurn(state: GameState, playerId: PlayerId): boolean {
@@ -82,17 +80,5 @@ export function labelTeam(teamId: TeamId): string {
 }
 
 export function getDecisionPlayerId(state: GameState): string {
-  return (
-    state.pendingReaction?.defenderId ??
-    state.pendingRedirect?.defenderId ??
-    state.pendingSecondaryDamage?.defenderId ??
-    state.pendingAttackCost?.attackerId ??
-    state.pendingDiscard?.playerId ??
-    state.pendingSearch?.playerId ??
-    state.pendingSupplyDrop?.playerOrder[state.pendingSupplyDrop.currentIndex] ??
-    state.pendingMarketSearch?.playerId ??
-    state.pendingBlackMarket?.playerId ??
-    state.pendingSteal?.playerId ??
-    getCurrentPlayer(state).id
-  );
+  return getPlayerDecision(state)?.playerId ?? getCurrentPlayer(state)?.id ?? "";
 }

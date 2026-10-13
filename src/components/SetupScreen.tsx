@@ -159,7 +159,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
       <GameMenu settings={settings} dispatch={dispatch} phase="setup" />
       <section className="setup-screen__panel">
         <h1 className="setup-screen__logo-title">
-          <img src="/branding/logos/outdrawn-logo-dark-01.png" alt="Outdrawn" />
+          <img src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" />
         </h1>
 
         <div className="lobby-grid">

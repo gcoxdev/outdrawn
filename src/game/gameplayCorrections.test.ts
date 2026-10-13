@@ -91,7 +91,7 @@ describe("gameplay corrections", () => {
 
     const latest = state.log.at(-1)!;
     expect(latest.handSnapshots).toHaveLength(0);
-    expect(latest.debugHandSnapshots).toHaveLength(3);
+    expect(latest.debugHandSnapshots).toHaveLength(0);
   });
 
   it("does not pre-capture hidden hand snapshots on large-table log entries", () => {
@@ -122,7 +122,7 @@ describe("gameplay corrections", () => {
     expect(currentSnapshot?.health).toBe(current.health);
   });
 
-  it("reveals historical hand snapshots when debug snapshots are turned on mid-game", () => {
+  it("captures only future hand snapshots when enabled mid-game", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: false });
 
     expect(state.log[0].handSnapshots).toHaveLength(0);
@@ -132,7 +132,7 @@ describe("gameplay corrections", () => {
       settings: { ...state.settings, debugHandSnapshots: true }
     });
 
-    expect(state.log[0].handSnapshots).toHaveLength(3);
+    expect(state.log[0].handSnapshots).toHaveLength(0);
     expect(state.log).toHaveLength(1);
   });
 
@@ -149,7 +149,7 @@ describe("gameplay corrections", () => {
     });
 
     expect(state.log.every((entry) => entry.handSnapshots.length === 0)).toBe(true);
-    expect(state.log.every((entry) => entry.debugHandSnapshots.length === 3)).toBe(true);
+    expect(state.log.every((entry) => entry.debugHandSnapshots.length === 0)).toBe(true);
   });
 
   it("keeps log snapshot health fixed at the time of the log entry", () => {

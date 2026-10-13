@@ -6,3 +6,4 @@ dist/
 .codex
 certs/
 /internal/
+/public/optimized/

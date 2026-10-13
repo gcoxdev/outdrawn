@@ -186,3 +186,7 @@ Current tiebreaker, considering only players alive immediately before the final 
 2. If tied, highest pre-effect health wins.
 3. If tied, largest hand wins.
 4. If still tied, no winner is declared.
+
+## Computer knowledge
+
+Computers choose from their own cards and public information, including health, hand counts, elimination credit, and public choices. They cannot inspect opposing or teammate hand contents or draw-pile contents. Disarm may find no weapon; Steal chooses a random face-down card. Higher difficulty changes heuristics without granting hidden information. Computers do not model memory of cards revealed earlier.

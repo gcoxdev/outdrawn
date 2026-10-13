@@ -1,3 +1,4 @@
+import { getPlayerDecision } from "./decisions";
 import { getDecisionPlayerId } from "./rules";
 import type { GameState, PlayerId } from "./types";
 
@@ -35,43 +36,44 @@ export function getPassDeviceContext(state: GameState, lastRevealedHumanId: Play
 }
 
 function getPassDeviceReason(state: GameState): string {
-  if (state.pendingReaction) {
+  const decision = getPlayerDecision(state);
+  if (decision?.kind === "reaction") {
     return "They are being attacked and need to choose a defense or take the hit.";
   }
 
-  if (state.pendingRedirect) {
+  if (decision?.kind === "redirect") {
     return "They played Ricochet and need to redirect the attack.";
   }
 
-  if (state.pendingSecondaryDamage) {
+  if (decision?.kind === "secondary") {
     return "They can defend against secondary damage or take the hit.";
   }
 
-  if (state.pendingAttackCost) {
+  if (decision?.kind === "attackCost") {
     return "They are attacking an intimidated player and must discard a card first.";
   }
 
-  if (state.pendingDiscard) {
+  if (decision?.kind === "discard") {
     return "They need to choose which cards to discard.";
   }
 
-  if (state.pendingSearch) {
+  if (decision?.kind === "search") {
     return "They need to choose which Search card to keep.";
   }
 
-  if (state.pendingSupplyDrop) {
+  if (decision?.kind === "supplyDrop") {
     return "They need to choose a Supply Drop card or pass.";
   }
 
-  if (state.pendingMarketSearch) {
+  if (decision?.kind === "marketSearch") {
     return "They need to choose which Black Market card to keep.";
   }
 
-  if (state.pendingBlackMarket) {
+  if (decision?.kind === "blackMarket") {
     return "They need to decide whether to use the Black Market.";
   }
 
-  if (state.pendingSteal) {
+  if (decision?.kind === "steal") {
     return "They need to choose which face-down card to steal.";
   }
 

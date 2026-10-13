@@ -34,7 +34,7 @@ type RulesAnchorRect = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
 function getCardFaceImage(card: Card) {
   if (card.type === "weapon") {
     const slug = card.id.replaceAll("_", "-");
-    return `/cards/fronts/weapons/ai-review/final/${slug}-dark-01.png`;
+    return `/optimized/cards/fronts/weapons/ai-review/final/${slug}-dark-01.webp`;
   }
 
   if (card.type === "defense") {
@@ -43,22 +43,22 @@ function getCardFaceImage(card: Card) {
       defense_fake_death: "defense-revive"
     };
     const slug = slugById[card.id] ?? card.id.replaceAll("_", "-");
-    return `/cards/fronts/defense/ai-review/final/${slug}-dark-01.png`;
+    return `/optimized/cards/fronts/defense/ai-review/final/${slug}-dark-01.webp`;
   }
 
   if (card.type === "ability") {
     const slug = card.id.replaceAll("_", "-");
-    return `/cards/fronts/ability/ai-review/final/${slug}-dark-01.png`;
+    return `/optimized/cards/fronts/ability/ai-review/final/${slug}-dark-01.webp`;
   }
 
   if (card.type === "healing") {
     const slug = card.id.replaceAll("_", "-");
-    return `/cards/fronts/healing/ai-review/final/${slug}-dark-01.png`;
+    return `/optimized/cards/fronts/healing/ai-review/final/${slug}-dark-01.webp`;
   }
 
   if (card.type === "event") {
     const slug = card.id.replaceAll("_", "-");
-    return `/cards/fronts/events/ai-review/final/${slug}-dark-01.png`;
+    return `/optimized/cards/fronts/events/ai-review/final/${slug}-dark-01.webp`;
   }
 
   return null;
@@ -185,7 +185,7 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
 export function CardBack() {
   return (
     <div className="card-back" aria-label="Hidden card">
-      <img className="card-back__image" src="/cards/backs/outdrawn-back-dark-logo-01.png" alt="" aria-hidden="true" />
+      <img className="card-back__image" src="/optimized/cards/backs/outdrawn-back-dark-logo-01.webp" alt="" aria-hidden="true" />
     </div>
   );
 }

@@ -66,11 +66,11 @@ describe("game setup", () => {
     expect(state.currentPlayerIndex).toBeLessThan(100);
   });
 
-  it("stores debug snapshots even when they are hidden", () => {
+  it("does not capture debug snapshots while disabled", () => {
     const state = createNewGame(["Ari", "Blake", "Casey"], () => 0, { ...defaultGameSettings, debugHandSnapshots: false });
 
     expect(state.log[0].handSnapshots).toHaveLength(0);
-    expect(state.log[0].debugHandSnapshots).toHaveLength(3);
+    expect(state.log[0].debugHandSnapshots).toHaveLength(0);
   });
 
   it("skips hidden debug snapshots for large games unless debug snapshots are enabled", () => {

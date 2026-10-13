@@ -11,14 +11,16 @@ async function files(directory) {
 export async function buildOffline(directory = "dist") {
   const root = resolve(directory);
   const kept = new Set(["index.html", "manifest.webmanifest", "icons/outdrawn-icon-192.png", "icons/outdrawn-icon-512.png",
-    "branding/logos/outdrawn-logo-dark-01.png", "cards/backs/outdrawn-back-dark-logo-01.png"]);
+    "optimized/branding/logos/outdrawn-logo-dark-01.webp", "optimized/cards/backs/outdrawn-back-dark-logo-01.webp"]);
   for (const name of kept) await readFile(resolve(root, name));
   const paths = [];
   for (const file of await files(root)) {
     const name = relative(root, file).replaceAll("\\", "/");
-    if (kept.has(name) || name.startsWith("assets/") || (name.startsWith("cards/fronts/") && name.includes("/final/"))) paths.push(name);
+    if (kept.has(name) || name.startsWith("assets/") || (name.startsWith("optimized/cards/fronts/") && name.includes("/final/") && name.endsWith(".webp"))) paths.push(name);
     else if (/^(cards|branding)\//.test(name) && /\.(png|jpe?g)$/i.test(name)) await unlink(file);
   }
+  // Build-only fingerprints are unnecessary in the deployed app.
+  await unlink(resolve(root, "optimized/artwork-manifest.json")).catch(error => { if (error.code !== "ENOENT") throw error; });
   paths.sort();
   for (const name of kept) if (!paths.includes(name)) throw new Error(`Missing offline asset: ${name}`);
   const urls = paths.map(name => name === "index.html" ? "/" : `/${name}`);

@@ -1,3 +1,4 @@
+import { getPendingDecision } from "./decisions";
 import { mainDeckCards } from "../data/cards";
 import { blackMarketPresets, defaultGameSettings, type GameSettings } from "../data/constants";
 import type { GameAction } from "./actions";
@@ -205,96 +206,76 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
   return { state, metrics, stalled };
 }
 
+// Keep private information out of every heuristic, including future additions.
+export function getBotObservation(state: GameState): GameState {
+  const actorId = getDecisionPlayerId(state);
+  const hidden = (cards: CardInstance[]) => cards.map((_card, index) => ({ instanceId: `hidden_${index}`, definitionId: "unknown" }));
+  return {
+    ...state,
+    players: state.players.map(player => player.id === actorId ? player : { ...player, hand: hidden(player.hand) }),
+    mainDeck: hidden(state.mainDeck),
+    eventDeck: hidden(state.eventDeck),
+    log: [],
+    selectedCardId: null,
+    pendingSearch: state.pendingSearch && { ...state.pendingSearch, cards: state.pendingSearch.playerId === actorId ? state.pendingSearch.cards : hidden(state.pendingSearch.cards) },
+    pendingMarketSearch: state.pendingMarketSearch && { ...state.pendingMarketSearch, cards: state.pendingMarketSearch.playerId === actorId ? state.pendingMarketSearch.cards : hidden(state.pendingMarketSearch.cards) },
+    drawContinuations: state.drawContinuations?.map(job => ({ ...job, cards: hidden(job.cards) }))
+  };
+}
+
 export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel, random: () => number = Math.random): GameAction {
-  if (state.pendingEventDialog) {
-    return { type: "ACKNOWLEDGE_EVENT_DIALOG" };
+  const observation = getBotObservation(state);
+  const action = chooseObservedAction(observation, strategy, random);
+  if (action.type === "RESOLVE_PENDING_STEAL") {
+    // Translate an opaque face-down position only after the policy has chosen it.
+    const index = getPlayer(observation, action.targetPlayerId)!.hand.findIndex(card => card.instanceId === action.cardInstanceId);
+    return { ...action, cardInstanceId: getPlayer(state, action.targetPlayerId)!.hand[index].instanceId };
   }
+  return action;
+}
 
-  if (state.pendingReaction) {
-    return chooseReaction(state, strategy, random);
-  }
-
-  if (state.pendingSecondaryDamage) {
-    return chooseReaction(state, strategy, random);
-  }
-
-  if (state.pendingRedirect) {
-    const attackerId = state.pendingRedirect.attackerId;
-    const defenderId = state.pendingRedirect.defenderId;
-    const target = chooseRedirectTarget(state, attackerId, defenderId, strategy, random);
-    return { type: "RESOLVE_PENDING_REDIRECT", defenderId, targetPlayerId: target.id };
-  }
-
-  if (state.pendingAttackCost) {
-    const attacker = getPlayer(state, state.pendingAttackCost.attackerId)!;
-    const costCard = pickLowestCards(attacker.hand.filter((card) => card.instanceId !== state.pendingAttackCost!.weaponInstanceId), 1, strategy, random)[0];
-    return { type: "RESOLVE_PENDING_ATTACK_COST", attackerId: attacker.id, cardInstanceId: costCard.instanceId };
-  }
-
-  if (state.pendingDiscard) {
-    const player = getPlayer(state, state.pendingDiscard.playerId)!;
-    const discardable = state.pendingDiscard.allowedCardInstanceIds
-      ? player.hand.filter((card) => state.pendingDiscard!.allowedCardInstanceIds!.includes(card.instanceId))
-      : player.hand;
-    return {
-      type: "RESOLVE_PENDING_DISCARD",
-      playerId: player.id,
-      cardInstanceIds: pickLowestCards(discardable, state.pendingDiscard.count, strategy, random).map((card) => card.instanceId)
-    };
-  }
-
-  if (state.pendingSearch) {
-    return {
-      type: "RESOLVE_PENDING_SEARCH",
-      playerId: state.pendingSearch.playerId,
-      keepCardInstanceId: pickBestCard(state.pendingSearch.cards, strategy, random).instanceId
-    };
-  }
-
-  if (state.pendingSupplyDrop) {
-    const playerId = state.pendingSupplyDrop.playerOrder[state.pendingSupplyDrop.currentIndex];
-    return {
-      type: "RESOLVE_SUPPLY_DROP_PICK",
-      playerId,
-      cardInstanceId: chooseSupplyDropCard(state.pendingSupplyDrop.revealedCards, strategy, random)?.instanceId ?? null
-    };
-  }
-
-  if (state.pendingMarketSearch) {
-    return {
-      type: "RESOLVE_MARKET_SEARCH",
-      playerId: state.pendingMarketSearch.playerId,
-      keepCardInstanceIds: pickBestCards(state.pendingMarketSearch.cards, state.pendingMarketSearch.keepCount, strategy, random).map((card) => card.instanceId)
-    };
-  }
-
-  if (state.pendingBlackMarket) {
-    const player = getPlayer(state, state.pendingBlackMarket.playerId)!;
-    const marketConfig =
-      state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
-    if (
-      player.health > marketConfig.healthCost &&
-      player.hand.length >= marketConfig.discardCost &&
-      state.mainDeck.length + state.discardPile.length > 0
-    ) {
-      return {
-        type: "START_BLACK_MARKET",
-        playerId: player.id,
-        cardInstanceIds: pickLowestCards(player.hand, marketConfig.discardCost, strategy, random).map((card) => card.instanceId)
-      };
+function chooseObservedAction(state: GameState, strategy: StrategyLevel, random: () => number): GameAction {
+  const decision = getPendingDecision(state);
+  if (decision) {
+    const player = getPlayer(state, decision.playerId)!;
+    switch (decision.kind) {
+      case "event": return { type: "ACKNOWLEDGE_EVENT_DIALOG" };
+      case "reaction":
+      case "secondary": return chooseReaction(state, strategy, random);
+      case "redirect": {
+        const target = chooseRedirectTarget(state, decision.pending.attackerId, decision.playerId, strategy, random);
+        return { type: "RESOLVE_PENDING_REDIRECT", defenderId: decision.playerId, targetPlayerId: target.id };
+      }
+      case "attackCost": {
+        const card = pickLowestCards(player.hand.filter(card => card.instanceId !== decision.pending.weaponInstanceId), 1, strategy, random)[0];
+        return { type: "RESOLVE_PENDING_ATTACK_COST", attackerId: player.id, cardInstanceId: card.instanceId };
+      }
+      case "discard": {
+        const cards = decision.pending.allowedCardInstanceIds
+          ? player.hand.filter(card => decision.pending.allowedCardInstanceIds!.includes(card.instanceId)) : player.hand;
+        return { type: "RESOLVE_PENDING_DISCARD", playerId: player.id,
+          cardInstanceIds: pickLowestCards(cards, decision.pending.count, strategy, random).map(card => card.instanceId) };
+      }
+      case "search": return { type: "RESOLVE_PENDING_SEARCH", playerId: player.id,
+        keepCardInstanceId: pickBestCard(decision.pending.cards, strategy, random).instanceId };
+      case "supplyDrop": return { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: player.id,
+        cardInstanceId: chooseSupplyDropCard(decision.pending.revealedCards, strategy, random)?.instanceId ?? null };
+      case "marketSearch": return { type: "RESOLVE_MARKET_SEARCH", playerId: player.id,
+        keepCardInstanceIds: pickBestCards(decision.pending.cards, decision.pending.keepCount, strategy, random).map(card => card.instanceId) };
+      case "blackMarket": {
+        const config = state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
+        if (player.health > config.healthCost && player.hand.length >= config.discardCost && state.mainDeck.length + state.discardPile.length > 0) {
+          return { type: "START_BLACK_MARKET", playerId: player.id,
+            cardInstanceIds: pickLowestCards(player.hand, config.discardCost, strategy, random).map(card => card.instanceId) };
+        }
+        return { type: "PASS_BLACK_MARKET", playerId: player.id };
+      }
+      case "steal": {
+        const target = getPlayer(state, decision.pending.targetPlayerId)!;
+        return { type: "RESOLVE_PENDING_STEAL", playerId: player.id, targetPlayerId: target.id,
+          cardInstanceId: randomItem(target.hand, random).instanceId };
+      }
     }
-
-    return { type: "PASS_BLACK_MARKET", playerId: player.id };
-  }
-
-  if (state.pendingSteal) {
-    const target = getPlayer(state, state.pendingSteal.targetPlayerId)!;
-    return {
-      type: "RESOLVE_PENDING_STEAL",
-      playerId: state.pendingSteal.playerId,
-      targetPlayerId: target.id,
-      cardInstanceId: randomItem(target.hand, random).instanceId
-    };
   }
 
   const player = getCurrentPlayer(state);
@@ -496,7 +477,7 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
 
     if (definition.id === "ability_disarm") {
       const target = chooseAbilityTarget(
-        livingTargets.filter((candidate) => candidate.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon")),
+        livingTargets.filter((candidate) => candidate.hand.length > 0),
         "highestThreat",
         strategy,
         random
@@ -937,16 +918,8 @@ function chooseThreatTarget(players: PlayerState[], strategy: StrategyLevel, ran
 }
 
 function threatScore(player: PlayerState): number {
-  const weaponPressure = player.hand.reduce((total, card) => {
-    const definition = getCardDefinitionById(card.definitionId);
-    return definition?.type === "weapon" ? total + (definition.damage ?? 0) + (definition.splashDamage ?? 0) : total;
-  }, 0);
-  const defensePressure = player.hand.filter((card) => {
-    const definition = getCardDefinitionById(card.definitionId);
-    return definition?.type === "defense" || definition?.isLethalDefense;
-  }).length;
-
-  return player.health * 0.35 + player.hand.length * 0.8 + weaponPressure * 0.55 + defensePressure * 1.2;
+  // Health, hand size, and elimination credit are public information.
+  return player.health * 0.35 + player.hand.length * 0.8 + player.eliminations * 1.2;
 }
 
 function randomItem<T>(items: T[], random: () => number): T {

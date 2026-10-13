@@ -1,3 +1,4 @@
+import { optimizeArtwork } from "../scripts/optimize-artwork.mjs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, writeFile, mkdtemp, mkdir, cp, rm, access } from "node:fs/promises";
@@ -50,6 +51,7 @@ test("release generation is deterministic and versions replaced artwork", async 
     await writeFile(join(root, "index.html"), '<html><script src="/assets/app-abcdefgh.js"></script></html>');
     await mkdir(join(root, "assets"));
     await writeFile(join(root, "assets/app-abcdefgh.js"), "console.log('app')");
+    await optimizeArtwork(root);
     const first = await buildOffline(root);
     const again = await buildOffline(root);
     assert.equal(first.version, again.version);
@@ -57,7 +59,7 @@ test("release generation is deterministic and versions replaced artwork", async 
     assert(first.urls.some(url => url.includes("/final/")));
     assert(!first.urls.includes("/cards/backs/outdrawn-back-light-01.png"));
     await assert.rejects(access(join(root, "cards/backs/outdrawn-back-light-01.png")));
-    const image = join(root, "branding/logos/outdrawn-logo-dark-01.png");
+    const image = join(root, "optimized/branding/logos/outdrawn-logo-dark-01.webp");
     await writeFile(image, Buffer.concat([await readFile(image), Buffer.from("changed")]));
     const changed = await buildOffline(root);
     assert.notEqual(changed.version, first.version);

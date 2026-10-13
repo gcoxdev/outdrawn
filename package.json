@@ -9,8 +9,11 @@
     "preview": "vite preview --host 0.0.0.0",
     "host:https": "node scripts/serve-https.mjs",
     "test": "vitest run",
-    "test:host": "node --test tests/hosting.test.mjs tests/offline.test.mjs",
-    "test:browser": "npm run build && node scripts/browser-smoke.mjs"
+    "test:host": "node --test tests/hosting.test.mjs tests/offline.test.mjs tests/artwork.test.mjs",
+    "test:browser": "npm run build && node scripts/browser-smoke.mjs",
+    "predev": "node scripts/optimize-artwork.mjs",
+    "prebuild": "node scripts/optimize-artwork.mjs",
+    "test:mobile": "npm run build && node scripts/mobile-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
@@ -24,8 +27,10 @@
     "@types/node": "^25.8.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "vitest": "^3.0.0",
-    "esbuild": "^0.27.7"
+    "esbuild": "^0.27.7",
+    "playwright": "^1.64.0",
+    "sharp": "^0.35.5",
+    "vitest": "^3.0.0"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Card } from "../data/cards";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
-import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
+import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getDecisionPlayerId, getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
 import { CardBack, CardView } from "./CardView";
 import type { HandDiscardRequirement } from "./GameTable";
@@ -90,16 +90,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
   }, [selectedCard?.instanceId]);
 
   if (isComputerDecision) {
-    const decisionPlayer =
-      pendingDefender ??
-      pendingRedirectDefender ??
-      pendingAttackCostPlayer ??
-      pendingDiscardPlayer ??
-      getPlayer(state, state.pendingSearch?.playerId ?? "") ??
-      pendingSupplyDropPlayer ??
-      pendingMarketPlayer ??
-      pendingStealPlayer ??
-      currentPlayer;
+    const decisionPlayer = getPlayer(state, getDecisionPlayerId(state)) ?? currentPlayer;
 
     return (
       <section className="action-panel ai-thinking-panel">

@@ -115,8 +115,10 @@ PORT=8443 HTTPS_CERT=/path/cert.pem HTTPS_KEY=/path/key.pem npm run host:https
 
 ## Build and cache behavior
 
-Always deploy the complete output of `npm run build`. Its final step generates a content-versioned worker and offline manifest; running `vite build` alone does not complete that step. Critical download failures reject installation and keep the previous release usable. The first offline installation downloads approximately 24 MiB, so keep the page online until installation finishes.
+Always deploy the complete output of `npm run build`. Its preparation step produces lossless WebP artwork from the original PNGs. Its final step generates a content-versioned worker and offline manifest; running `vite build` alone does not complete that step. Critical download failures reject installation and keep the previous release usable. The first offline installation downloads approximately 15.4 MiB, so keep the page online until installation finishes.
 
 The host returns 400 for malformed paths and 404 for absent files. Stable filenames revalidate; only hashed build assets receive immutable caching. Updating a card image changes the release version even when its filename stays the same.
 
 The activation flow follows the browser's [worker state lifecycle](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker/state) and requests [skipWaiting](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting) only when applying a downloaded update.
+
+Run the [device verification steps](device-verification.md) before treating a particular phone/browser as verified.

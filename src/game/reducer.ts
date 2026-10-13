@@ -1,3 +1,4 @@
+import { acceptsDecisionAction, getPlayerDecision } from "./decisions";
 import { allCards, type CardType } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
 import { drawCardsWithRefill } from "./deck";
@@ -8,7 +9,7 @@ import type { GameAction } from "./actions";
 import { createNewGame } from "./setup";
 import type { GameState, PlayerState } from "./types";
 import { createPendingReaction, getBaseAttackDamage, getGrenadeSplashTargets, resolveAttack, resolveHealing, resolveSecondaryDamage } from "./combat";
-import { getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
+import { DEBUG_SNAPSHOT_LOG_LIMIT, getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
 import {
   canPlayerAct,
   canPlayerEndTurn,
@@ -25,14 +26,18 @@ import {
 } from "./rules";
 
 function log(state: GameState, message: string): GameState {
-  const debugHandSnapshots = shouldCaptureHandSnapshots(state.players.length, state.settings.debugHandSnapshots)
+  const debugHandSnapshots = shouldCaptureHandSnapshots(state.settings.debugHandSnapshots)
     ? getHandSnapshots(state.players)
     : [];
   const handSnapshots = state.settings.debugHandSnapshots ? debugHandSnapshots : [];
   return {
     ...state,
     log: [
-      ...state.log.slice(-999),
+      ...state.log.slice(-999).map((entry, index, entries) =>
+        index <= entries.length - DEBUG_SNAPSHOT_LOG_LIMIT && entry.debugHandSnapshots.length
+          ? { ...entry, debugHandSnapshots: [], handSnapshots: [] }
+          : entry
+      ),
       {
         id: `log_${(Number(state.log.at(-1)?.id.split("_")[1]) || 0) + 1}`,
         round: state.round,
@@ -49,6 +54,7 @@ function setLogSnapshotVisibility(state: GameState, visible: boolean): GameState
     ...state,
     log: state.log.map((entry) => ({
       ...entry,
+      debugHandSnapshots: visible ? entry.debugHandSnapshots : [],
       handSnapshots: visible ? entry.debugHandSnapshots : []
     }))
   };
@@ -363,8 +369,7 @@ function queueDraws(state: GameState, jobs: DrawContinuation[]): GameState {
 }
 
 function hasInteractiveEffect(state: GameState): boolean {
-  return Boolean(state.pendingDiscard || state.pendingSearch || state.pendingMarketSearch || state.pendingBlackMarket ||
-    state.pendingSupplyDrop || state.pendingSteal || state.pendingReaction || state.pendingSecondaryDamage || state.pendingRedirect);
+  return getPlayerDecision(state) !== null;
 }
 
 /** Draw jobs form a stack: nested events finish before the interrupted draw resumes. */
@@ -605,7 +610,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
     return state;
   }
 
-  if (state.pendingEventDialog && action.type !== "ACKNOWLEDGE_EVENT_DIALOG" && action.type !== "RESET_GAME" && action.type !== "UPDATE_SETTINGS") {
+  if (!acceptsDecisionAction(state, action)) {
     return state;
   }
 

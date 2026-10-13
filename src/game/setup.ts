@@ -40,7 +40,7 @@ export function createNewGame(
   });
   mainDeck = shuffleDeck([...mainDeck, ...expandDeck(eventDeckCards, "event")], random);
   const firstPlayerIndex = Math.floor(random() * players.length);
-  const debugHandSnapshots = shouldCaptureHandSnapshots(players.length, settings.debugHandSnapshots) ? getHandSnapshots(players) : [];
+  const debugHandSnapshots = shouldCaptureHandSnapshots(settings.debugHandSnapshots) ? getHandSnapshots(players) : [];
 
   return {
     phase: "action",

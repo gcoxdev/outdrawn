@@ -1,3 +1,4 @@
+import { getPlayerDecision, type PendingDecision } from "../game/decisions";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -15,6 +16,12 @@ import { GameMenu } from "./GameMenu";
 import { PlayerRoster } from "./PlayerRoster";
 import { Dialog } from "./Dialog";
 import { WinnerModal } from "./WinnerModal";
+
+const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
+  reaction: "Defender Hand", redirect: "Redirecting Hand", secondary: "Secondary Defense",
+  attackCost: "Attack Cost", discard: "Discarding Hand", search: "Searching Hand",
+  supplyDrop: "Supply Drop", marketSearch: "Black Market", blackMarket: "Black Market", steal: "Stealing"
+};
 
 function definitionFor(card: CardInstance | null) {
   return card ? allCards.find((definition) => definition.id === card.definitionId) : undefined;
@@ -37,6 +44,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
   const [selectedDiscardIds, setSelectedDiscardIds] = useState<string[]>([]);
   const currentPlayer = getCurrentPlayer(state);
   const decisionPlayerId = getDecisionPlayerId(state);
+  const decision = getPlayerDecision(state);
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
   const logPlayers = useMemo(() => state.players.map((player) => ({ id: player.id, name: player.name })), [state.players]);
   const displayPlayer = state.players.find(player => player.id === decisionPlayerId) ?? currentPlayer;
@@ -187,27 +195,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
             <div className="board-heading">
               <div>
                 <p className="eyebrow">
-                  {state.pendingReaction
-                    ? "Defender Hand"
-                    : state.pendingRedirect
-                      ? "Redirecting Hand"
-                      : state.pendingSecondaryDamage
-                        ? "Secondary Defense"
-                        : state.pendingAttackCost
-                        ? "Attack Cost"
-                        : state.pendingDiscard
-                          ? "Discarding Hand"
-                          : state.pendingSearch
-                            ? "Searching Hand"
-                            : state.pendingSupplyDrop
-                              ? "Supply Drop"
-                              : state.pendingMarketSearch
-                                ? "Black Market"
-                                : state.pendingBlackMarket
-                                  ? "Black Market"
-                                  : state.pendingSteal
-                                    ? "Stealing"
-                                    : "Current Player"}
+                  {decision ? handLabels[decision.kind] : "Current Player"}
                 </p>
                 <h2>{handDisplayPlayer.name}</h2>
               </div>
@@ -412,23 +400,24 @@ export function getHandDiscardRequirement(
   currentPlayer: GameState["players"][number],
   handDisplayPlayer: GameState["players"][number]
 ): HandDiscardRequirement | null {
-  if (state.pendingDiscard?.playerId === handDisplayPlayer.id) {
-    const allowedCardInstanceIds = state.pendingDiscard.allowedCardInstanceIds;
+  const decision = getPlayerDecision(state);
+  if (decision?.kind === "discard" && decision.playerId === handDisplayPlayer.id) {
+    const allowedCardInstanceIds = decision.pending.allowedCardInstanceIds;
     const discardableCount = allowedCardInstanceIds
       ? handDisplayPlayer.hand.filter((card) => allowedCardInstanceIds.includes(card.instanceId)).length
       : handDisplayPlayer.hand.length;
     return {
       type: "pendingDiscard",
       playerId: handDisplayPlayer.id,
-      count: Math.min(state.pendingDiscard.count, discardableCount),
-      reason: state.pendingDiscard.reason,
+      count: Math.min(decision.pending.count, discardableCount),
+      reason: decision.pending.reason,
       allowedCardInstanceIds
     };
   }
 
-  if (state.pendingAttackCost?.attackerId === handDisplayPlayer.id) {
+  if (decision?.kind === "attackCost" && decision.playerId === handDisplayPlayer.id) {
     const allowedCardInstanceIds = handDisplayPlayer.hand
-      .filter((card) => card.instanceId !== state.pendingAttackCost!.weaponInstanceId)
+      .filter((card) => card.instanceId !== decision.pending.weaponInstanceId)
       .map((card) => card.instanceId);
     return {
       type: "attackCost",
@@ -439,8 +428,7 @@ export function getHandDiscardRequirement(
     };
   }
 
-  const pendingBlackMarketPlayerId = state.pendingBlackMarket?.playerId;
-  if (pendingBlackMarketPlayerId === handDisplayPlayer.id) {
+  if (decision?.kind === "blackMarket" && decision.playerId === handDisplayPlayer.id) {
     const config =
       state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
     if (config.discardCost > 0) {
@@ -453,7 +441,7 @@ export function getHandDiscardRequirement(
     }
   }
 
-  if (currentPlayer.id === handDisplayPlayer.id && currentPlayer.actionsRemaining <= 0 && currentPlayer.hand.length > state.settings.maxHandSize) {
+  if (!hasDecision(state) && currentPlayer.id === handDisplayPlayer.id && currentPlayer.actionsRemaining <= 0 && currentPlayer.hand.length > state.settings.maxHandSize) {
     return {
       type: "handLimit",
       playerId: currentPlayer.id,
@@ -502,47 +490,48 @@ export function getPlayableReactionCardIds(state: GameState, handDisplayPlayer: 
 }
 
 function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {
+  const decision = getPlayerDecision(state);
   if (state.phase === "gameOver") {
     return `${winnerName ?? "Nobody"} wins`;
   }
 
-  if (state.pendingReaction) {
+  if (decision?.kind === "reaction") {
     return `${displayPlayerName} is defending`;
   }
 
-  if (state.pendingRedirect) {
+  if (decision?.kind === "redirect") {
     return `${displayPlayerName} is redirecting`;
   }
 
-  if (state.pendingSecondaryDamage) {
+  if (decision?.kind === "secondary") {
     return `${displayPlayerName} is defending`;
   }
 
-  if (state.pendingAttackCost) {
+  if (decision?.kind === "attackCost") {
     return `${displayPlayerName} must discard to attack`;
   }
 
-  if (state.pendingDiscard) {
+  if (decision?.kind === "discard") {
     return `${displayPlayerName} must discard`;
   }
 
-  if (state.pendingSupplyDrop) {
+  if (decision?.kind === "supplyDrop") {
     return `${displayPlayerName} is choosing supply`;
   }
 
-  if (state.pendingMarketSearch) {
+  if (decision?.kind === "marketSearch") {
     return `${displayPlayerName} is choosing market loot`;
   }
 
-  if (state.pendingBlackMarket) {
+  if (decision?.kind === "blackMarket") {
     return `${displayPlayerName} is deciding on Black Market`;
   }
 
-  if (state.pendingSteal) {
+  if (decision?.kind === "steal") {
     return `${displayPlayerName} is stealing`;
   }
 
-  if (state.pendingSearch) {
+  if (decision?.kind === "search") {
     return `${displayPlayerName} is searching`;
   }
 
