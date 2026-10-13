@@ -29,7 +29,7 @@
 ## Task 2: Data And Deck Tests
 
 - [ ] Write failing Vitest tests for deck expansion count and unique instance IDs.
-- [ ] Add card data from `last_hand_standing_card_dataset_v_0.ts`.
+- [ ] Add card data from [the original card dataset](../../last-hand-standing/last_hand_standing_card_dataset_v_0.ts).
 - [ ] Implement constants and deck helpers.
 - [ ] Run targeted tests and confirm they pass.
 

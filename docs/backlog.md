@@ -2,9 +2,9 @@
 
 ## Expansion
 
-- Support arbitrary player counts beyond the current 3-6 player setup.
+- Player counts from 3–100 and generated/custom teams are implemented. Further expansion should focus on pacing and usability at large tables.
 - Design large-table battle royale pacing, deck scaling, event scaling, and UI behavior for high player counts such as 20, 50, or 100 players.
-- Extend team modes beyond the current 2v2, 2v2v2, and 3v3 foundation into larger team formats.
+- Evaluate additional team formats beyond the implemented duos, trios, squads, two teams, and custom teams.
 - Add roster grouping for larger team games with expand/collapse team sections.
 - Simulate larger player counts and team modes before changing card counts or balance assumptions.
 - Add deck configuration support so a game can use predefined decks or a custom deck with selected card types/cards enabled.
@@ -12,10 +12,13 @@
 - Analyze and simulate deck-composition variants, including weapon-heavy, defense-light, ability-heavy, no-events, high-events, large-table, and beginner-friendly decks.
 - Build an online multiplayer version with lobby creation, configurable game parameters, and private games joinable by key/code.
 - Research Steam publishing requirements, including executable packaging options such as NW.js or Electron, Steamworks API integration, online play/auth/lobby support, server hosting needs, build/signing/release workflow, save/cloud support, achievements, controller/Steam Deck considerations, and store compliance.
-- Generate AI-rendered PNG card faces, not SVG or rasterized SVG, following the root reference examples and preserving 2.5" x 3.5" width/height.
-- Consider a configurable refill setting with options for current rules, start-turn draw-up, round-start fixed draw, low-hand refill, or full draw-up to max; see [draw-up rule analysis](draw-up-rule-analysis-2026-05-09.md).
+- Current card faces are implemented. For future cards, generate AI-rendered PNG originals following the [archived reference material](archive/last-hand-standing/README.md) and preserving 2.5" x 3.5" proportions; the build produces optimized web images.
+- Consider a configurable refill setting with options for current rules, start-turn draw-up, round-start fixed draw, low-hand refill, or full draw-up to max; see [draw-up rule analysis](archive/reports/draw-up-rule-analysis-2026-05-09.md).
 
 ## Rules To Clarify
+
+- Resolve the existing engine/card-text exceptions confirmed during the October 13 documentation audit: Minigun bypasses Intimidate's discard cost, and Ricochet can choose a smoke-protected player. Current rules now state this behavior; decide whether to change these interactions or retain them explicitly.
+- Reconcile Minigun's card-catalog/art wording with its setting-dependent defense window. The engine permits defense only when secondary defense is enabled, while the catalog text says each chosen opponent may defend without that qualification.
 
 - Decide the final true-tie rule for simultaneous non-attack eliminations: allow no winner or add a deterministic final tiebreaker such as seating order from the current turn marker.
 - Revisit any future area-damage cards for large player counts so their value does not scale without a cap or damage pool.
@@ -126,7 +129,7 @@ Healing/support candidates:
 
 Team-mode candidates:
 
-- Current team foundation: 2v2, 2v2v2, and 3v3 setup, teammate hand visibility, team win condition, no friendly fire on area damage, optional teammate healing, and optional card transfer are implemented.
+- Current team foundation: duos, trios, squads, two teams, and custom team setup, teammate hand visibility, team win condition, no friendly fire on area damage, optional teammate healing, and optional card transfer are implemented.
 - Cover Ally: when a teammate is attacked, reduce that damage by 3.
 - Intercept: take an attack meant for a teammate, then reduce that damage by 2.
 - Coordinated Strike: you and a teammate each discard 1 card; deal bonus damage to one shared target.

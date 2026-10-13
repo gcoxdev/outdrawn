@@ -1,5 +1,7 @@
 # Outdrawn - Current Web Prototype Rules
 
+These rules describe the implemented browser game. Lobby settings override the defaults listed below.
+
 ## Goal
 
 Be the last player alive, or the last team with any living players in team mode.
@@ -23,11 +25,12 @@ The current web prototype is a local browser game for 3-100 players. Each player
 
 ## Card Visibility
 
-- Human players can see only the active human decision hand.
+- Human hands are shown for the active decision. Between pending choices, team players can also switch the hand view to a living teammate.
 - Computer opponents' hands are hidden. Human players may view their computer teammates' hands; when no humans remain, computer hands become visible.
 - Played cards are revealed by the log and then discarded unless a card says otherwise.
 - Discard piles and event cards are public. Use View piles in the sidebar to inspect the current main and event discards.
-- Debug hand snapshots are available only in development mode and only when the debug setting is enabled.
+- With multiple living humans, optional pass-device mode hides hands until the receiving player chooses Reveal Hand. Reloading resets this privacy gate.
+- Debug hand snapshots are development-only and opt-in. They capture future log entries, retain at most the latest 50 entries, and are cleared when disabled.
 
 ## Turn Structure
 
@@ -37,13 +40,18 @@ On a player's turn, they may spend actions to:
 - Play a weapon as an attack.
 - Play an ability.
 - Play a healing card.
-- Pass.
+- Pass one action.
+- Transfer one card to a living teammate for 1 action, if team card transfer is enabled.
 
 If free draws are enabled, a player may draw up to the configured free-draw limit before drawing starts spending actions.
 
-A player may not end their turn while above the maximum hand size.
+A player may end their turn early and forfeit unused actions and free draws. They cannot end while above the maximum hand size or while an attack, reaction, event choice, or draw effect is unresolved.
 
-If a draw or reveal effect finds an event card, resolve that event immediately and continue revealing until the effect has the expected number of non-event cards or the deck is exhausted. Events are one-time effects when drawn and do not remain active after their immediate resolution. If an event requires a discard or market decision, finish that choice before the interrupted draw continues.
+An ordinary Draw that reveals an event resolves that event and stops. It consumes neither an action nor a free draw, and does not automatically draw a replacement; the player can choose Draw again.
+
+Card effects that promise a number of cards (Search, Supply Drop, Scavenge, and Painkillers) resolve encountered events and continue until they find the required number of non-event cards or no cards remain. Finish interactive event choices before the interrupted effect continues. Black Market is the exception: events revealed for its inventory are discarded without resolving and replaced.
+
+When the main deck runs out, the main discard pile is shuffled to refill it. Discarded events are kept separate and do not return through this refill. Events have no ongoing round effect.
 
 ## Round Structure
 
@@ -51,7 +59,7 @@ Each living player acts once per round. After all living players have acted:
 
 1. Collapse damage is applied.
 2. Temporary round effects clear.
-3. The first player marker advances clockwise to the next living player.
+3. In Standard order, the first player marker advances clockwise to the next living player. Round robin retains its first player marker, moving it only if that player was eliminated.
 
 ## Collapse
 
@@ -62,7 +70,7 @@ Each living player acts once per round. After all living players have acted:
 ## Combat
 
 1. Attacker plays a weapon from hand and chooses a valid target.
-2. The defender may play 1 reaction defense card if eligible.
+2. For a single-target attack, the defender may play 1 eligible reaction card without spending an action, or take the hit. Minigun uses the secondary-defense setting instead.
 3. Damage resolves.
 4. The weapon and reaction card are discarded unless the specific card effect says otherwise.
 5. Eliminations and loot resolve.
@@ -73,11 +81,11 @@ Each living player acts once per round. After all living players have acted:
 - Shotgun: deal 6 damage, then discard.
 - Sniper Rifle: deal 8 damage.
 - Knife: deal 2 damage.
-- Grenade: deal 4 damage to the target and 2 splash damage to the living players before and after the target in seating order. The attacker is immune.
+- Grenade: deal 4 damage to the target and 2 splash damage to the living players before and after the target in seating order. Find the nearest living player in each direction, skipping the attacker and the target; hit each distinct player at most once. The attacker and their teammates take no splash damage.
 - Assault Rifle: deal 5 damage.
 - Crossbow: deal 4 damage and penetrates Armor Vest.
-- SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window.
-- Minigun: allocate 6 damage among any opponents, max 3 per opponent. Attack bonuses add to the total damage pool, not to each target.
+- SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, or if the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
+- Minigun: allocate up to 6 damage among living opponents, max 3 allocated per opponent. Attack bonuses add to the total pool; Mark Target adds damage to each marked target after allocation. Targets may defend once against their allocation only when defense on secondary attacks is enabled; otherwise the damage resolves without reactions.
 
 ## Defense
 
@@ -85,24 +93,24 @@ Defense cards are played from hand as reactions. There is no equipment system in
 
 - Armor Vest: reduce incoming attack damage by 2 unless the weapon penetrates armor.
 - Shield Plate: block 4 damage.
-- Dodge: cancel damage to yourself from one attack.
+- Dodge: cancel damage to yourself from one attack. Grenade splash against other players still resolves.
 - Counterattack: after taking damage, deal 3 damage back to the attacker.
-- Smoke Bomb: cancel damage and become untargetable until your next turn. Attacks and targeted abilities cannot choose you. Splash and event damage still affect you.
-- Ricochet: redirect the attack to another valid player other than the attacker.
+- Smoke Bomb: cancel damage and become protected until your next turn. Ordinary attack targeting and targeted abilities cannot choose you. Splash and event damage still affect you. The current prototype also permits Ricochet to redirect an attack onto a smoke-protected player.
+- Ricochet: redirect the current hit to another living player other than yourself, the attacker, or one of your teammates. The new target gets a defense window only if secondary defense is enabled. Ricochet cannot be chained against secondary damage.
 - Backfire: cancel incoming attack damage and deal that much damage to the attacker.
-- Brace: reduce damage by half, rounded down.
-- Revive: when an attack would eliminate you, survive at 1 health. Apply all available healing cards, then discard the rest.
+- Brace: take half the incoming damage, rounded down (for example, 3 becomes 1).
+- Revive: when an attack would eliminate you, survive at 1 health plus the healing values of all healing cards in your hand, capped at maximum health. Discard your entire hand, including Revive and those healing cards. This costs no actions and does not trigger extra draws from Painkillers.
 
 ## Abilities
 
 - Ambush: your next attack this turn deals +3 damage.
 - Disarm: target discards their highest-damage weapon from hand.
-- Steal: choose 1 card from another player's hand and take it.
+- Steal: choose 1 face-down card from an opponent's hand and take it without seeing its identity first.
 - Search: draw 3, keep 1, discard the rest.
 - Reload: your next weapon attack this turn stays in your hand instead of being discarded after it resolves.
 - Sabotage: target discards up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.
-- Mark Target: any attack against the target deals +1 damage this round.
-- Intimidate: target must discard 1 card to attack you before your next turn.
+- Mark Target: add +1 damage against the target this round. Repeated marks stack. This applies to the first SMG hit and to an assigned Minigun hit, but not Grenade splash.
+- Intimidate: the target must discard 1 other card before a single-target weapon attack against you until your next turn. The cost is paid once for an SMG attack. Minigun currently bypasses this cost.
 - Adrenaline: gain 1 net action this turn and lose 2 health. This loss can eliminate you; at 1 or 2 health you are eliminated immediately.
 
 ## Healing
@@ -112,7 +120,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Painkillers: heal 2 and draw 1 card.
 - Field Dressing: heal 4.
 
-Healing cannot exceed maximum health.
+Healing cannot exceed maximum health. If team healing is enabled (on by default), you may heal a living teammate; you pay the card's action cost. Painkillers gives its extra draw to the player using it, even when healing a teammate.
 
 ## Events
 
@@ -120,8 +128,8 @@ Healing cannot exceed maximum health.
 - Supply Drop: draw 3 cards. You may exceed max hand size during play, but must discard down before ending your turn.
 - Bounty: the highest-health living player takes 2 damage. If tied, each tied highest-health player takes 2 damage.
 - Scavenge: each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.
-- Low Ammo: each player chooses one weapon from hand to discard or takes 3 damage if they have no weapon.
-- No Cover: each player chooses one defense card from hand to discard or takes 2 damage if they have no defense.
+- Low Ammo: each living player chooses one weapon from hand to discard or takes 3 damage if they have no weapon.
+- No Cover: each living player chooses one defense card from hand to discard or takes 2 damage if they have no defense.
 - Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
 - Black Market: the drawing player may make the configured market exchange once. Event cards revealed for market inventory are discarded and replaced. Unkept revealed cards are discarded.
 - Black Market Standard: risk discard 2 cards; reward reveal 3 and keep 1.
@@ -129,6 +137,8 @@ Healing cannot exceed maximum health.
 - Black Market Bigger Market: risk discard 2 cards; reward reveal 5 and keep 2.
 - Black Market Health-Pay Market: risk 2 health; reward reveal 3 and keep 1.
 - Black Market Custom: host-defined discard cost, health cost, reveal count, and keep count.
+
+Black Market exchanges do not spend actions. A health payment must leave you with at least 1 health; you can always decline the exchange.
 
 ## Elimination And Loot
 
@@ -157,30 +167,30 @@ Known tie scenarios:
 1. Collapse tie:
    - Two or more remaining players have the same pre-collapse health.
    - Collapse damage eliminates all of them at the same time.
-   - They also have the same hand size.
+   - Elimination counts and pre-effect hand sizes are also tied.
 
 2. Pressure Zone tie:
    - Pressure Zone deals immediate damage to all living players.
    - Its damage eliminates all remaining players.
-   - Pre-effect health and hand size are still tied.
+   - Elimination counts, pre-effect health, and pre-effect hand size are all tied.
 
 3. Critical Condition tie:
    - Critical Condition is revealed when all remaining players are low enough to be damaged.
    - Its immediate damage eliminates all remaining players.
-   - Pre-effect health and hand size are tied.
+   - Elimination counts, pre-effect health, and pre-effect hand size are all tied.
 
 4. Low Ammo tie:
    - All remaining players lack weapon cards.
    - Low Ammo deals 3 damage to each of them.
    - The damage eliminates all remaining players.
-   - Pre-effect health and hand size are tied.
+   - Elimination counts, pre-effect health, and pre-effect hand size are all tied.
 
 5. Splash or counterattack double elimination:
    - Combat can eliminate multiple players through Grenade splash or Counterattack.
    - If the full combat sequence leaves nobody alive, no winner is declared.
    - A living attacker or another surviving player can still win after all pending damage resolves.
 
-Current tiebreaker, considering only players alive immediately before the final effect (a selected player wins for their team in team mode):
+Current tiebreaker for final non-attack eliminations, considering only players alive immediately before the final effect (a selected player wins for their team in team mode):
 
 1. Most player eliminations wins.
 2. If tied, highest pre-effect health wins.
