@@ -13,7 +13,8 @@
     "test:browser": "npm run build && node scripts/browser-smoke.mjs",
     "predev": "node scripts/optimize-artwork.mjs",
     "prebuild": "node scripts/optimize-artwork.mjs",
-    "test:mobile": "npm run build && node scripts/mobile-smoke.mjs"
+    "test:mobile": "npm run build && node scripts/mobile-smoke.mjs",
+    "test:lobby": "npm run build && node scripts/lobby-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

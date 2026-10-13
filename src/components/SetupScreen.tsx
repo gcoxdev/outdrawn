@@ -1,4 +1,4 @@
-import { RotateCcw } from "lucide-react";
+import { ArrowRight, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Layers, Minus, Plus, RotateCcw, Settings2, Shield, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   blackMarketPresets,
@@ -23,6 +23,7 @@ import {
 } from "../game/setupOptions";
 import type { PlayerSetup, StrategyLevel, TeamId } from "../game/types";
 import { GameMenu } from "./GameMenu";
+import "./SetupScreen.css";
 
 type SetupScreenProps = {
   settings: GameSettings;
@@ -61,6 +62,9 @@ const visibleSetupRows = 20;
 
 export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
   const [playerCount, setPlayerCount] = useState(4);
+  const [playerCountDraft, setPlayerCountDraft] = useState("4");
+  const [rosterPage, setRosterPage] = useState(0);
+  const [bulkSkill, setBulkSkill] = useState<StrategyLevel>("competent");
   const [lobbyMode, setLobbyMode] = useState<LobbyMode>("ffa");
   const [slots, setSlots] = useState<SetupSlot[]>(() => createSlots(4, "ffa"));
   const activeSlots = useMemo(() => slots.slice(0, playerCount), [playerCount, slots]);
@@ -76,7 +80,12 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
   const activeTeams = useMemo(() => activeSlots.map((slot) => slot.teamId ?? ""), [activeSlots]);
   const teamOptions = useMemo(() => getTeamOptionsForMode(lobbyMode, playerCount), [lobbyMode, playerCount]);
   const teamModeValidation = getTeamModeValidation(lobbyMode, activeTeams, playerCount);
-  const displayedSlots = activeSlots.slice(0, visibleSetupRows);
+  const currentPage = Math.min(rosterPage, Math.ceil(playerCount / visibleSetupRows) - 1);
+  const pageStart = currentPage * visibleSetupRows;
+  const displayedSlots = activeSlots.slice(pageStart, pageStart + visibleSetupRows);
+  const humanCount = activePlayers.filter(player => player.controller.type === "human").length;
+  const computerCount = playerCount - humanCount;
+  const teamCount = new Set(activeTeams.filter(Boolean)).size;
   const blackMarketConfig = settings.blackMarketPreset === "custom" ? settings.blackMarketCustom : blackMarketPresets[settings.blackMarketPreset];
 
   function updateSetting(key: NumericSettingKey, value: number) {
@@ -128,8 +137,11 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
 
   function updatePlayerCount(value: number) {
     const nextPlayerCount = clampPlayerCount(value);
+    setPlayerCountDraft(String(nextPlayerCount));
+    if (nextPlayerCount === playerCount) return;
     setPlayerCount(nextPlayerCount);
-    setSlots((current) => applyTeamsToSlots(ensureSlotCount(current, nextPlayerCount), lobbyMode, nextPlayerCount));
+    setRosterPage(0);
+    setSlots((current) => applyTeamsToSlots(ensureSlotCount(current, nextPlayerCount, bulkSkill), lobbyMode, nextPlayerCount));
   }
 
   function updateSlot(index: number, patch: Partial<SetupSlot>) {
@@ -138,9 +150,9 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
 
   function setComputerSkillForAll(strategy: StrategyLevel) {
     setSlots((current) =>
-      current.map((slot, index) => ({
+      current.map((slot) => ({
         ...slot,
-        control: index === 0 && slot.control === "human" ? slot.control : `computer:${strategy}`
+        control: slot.control === "human" ? slot.control : `computer:${strategy}`
       }))
     );
   }
@@ -149,229 +161,163 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
     setSlots((current) =>
       current.map((slot, index) => ({
         ...slot,
-        control: index === 0 ? "human" : "computer:competent"
+        control: index === 0 ? "human" : `computer:${bulkSkill}`
       }))
     );
   }
 
+  function numberSetting(key: NumericSettingKey) {
+    const field = settingFields.find(field => field.key === key)!;
+    return <label className="lobby-rule" key={key}>
+      <span>{field.label}</span>
+      <input type="number" min={field.min} max={field.max} value={settings[key]}
+        onChange={event => updateSetting(key, Number(event.target.value))} />
+    </label>;
+  }
+
   return (
     <main className="setup-screen">
-      <GameMenu settings={settings} dispatch={dispatch} phase="setup" />
-      <section className="setup-screen__panel">
-        <h1 className="setup-screen__logo-title">
-          <img src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" />
-        </h1>
+      <div className="lobby-shell">
+        <header className="lobby-masthead">
+          <img className="lobby-logo" src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" width="260" height="84" />
+          <div className="lobby-masthead__actions">
+            <GameMenu settings={settings} dispatch={dispatch} phase="setup" />
+          </div>
+        </header>
 
-        <div className="lobby-grid">
-          <section className="lobby-section lobby-section--players">
-            <div className="lobby-section__header">
-              <p className="eyebrow">Player Configuration</p>
-              <div className="lobby-player-controls">
-                <label className="field">
-                  <span>Mode</span>
-                  <select value={lobbyMode} onChange={(event) => updateLobbyMode(event.target.value as LobbyMode)}>
-                    {lobbyModes.map((mode) => (
-                      <option key={mode} value={mode}>
-                        {labelLobbyMode(mode)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field lobby-player-count">
-                  <span>Players</span>
-                  <input
-                    type="number"
-                    min={MIN_PLAYERS}
-                    max={MAX_PLAYERS}
-                    value={playerCount}
-                    onChange={(event) => updatePlayerCount(Number(event.target.value))}
-                  />
-                </label>
+        <section className="lobby-intro" aria-labelledby="lobby-title">
+          <div>
+            <h1 id="lobby-title">Last one standing.</h1>
+            <p>Gather your opponents. Make every card count.</p>
+          </div>
+          <div className="lobby-card-fan" aria-hidden="true">
+            <img src="/optimized/cards/fronts/defense/ai-review/final/defense-dodge-dark-01.webp" alt="" />
+            <img src="/optimized/cards/fronts/weapons/ai-review/final/weapon-pistol-dark-01.webp" alt="" />
+            <img src="/optimized/cards/backs/outdrawn-back-dark-logo-01.webp" alt="" />
+          </div>
+        </section>
+
+        <div className="lobby-layout">
+          <section className="lobby-table lobby-panel" aria-labelledby="table-title">
+            <header className="lobby-panel__heading">
+              <div className="lobby-section-title"><Users size={18} /><h2 id="table-title">Set the table</h2></div>
+              <span className="lobby-meta">3–100 players</span>
+            </header>
+            <div className="lobby-table-options">
+              <label className="lobby-field">
+                <span id="game-mode-label">Game mode</span>
+                <select aria-labelledby="game-mode-label" value={lobbyMode} onChange={event => updateLobbyMode(event.target.value as LobbyMode)}>
+                  {lobbyModes.map(mode => <option key={mode} value={mode}>{labelLobbyMode(mode)}</option>)}
+                </select>
+              </label>
+              <div className="lobby-field">
+                <label htmlFor="player-count">Players</label>
+                <div className="lobby-stepper">
+                  <button type="button" aria-label="Remove a player" disabled={playerCount <= MIN_PLAYERS} onClick={() => updatePlayerCount(playerCount - 1)}><Minus size={15} /></button>
+                  <input id="player-count" type="number" min={MIN_PLAYERS} max={MAX_PLAYERS} value={playerCountDraft}
+                    onChange={event => {
+                      const draft = event.target.value;
+                      const count = Number(draft);
+                      setPlayerCountDraft(draft);
+                      if (Number.isInteger(count) && count >= MIN_PLAYERS && count <= MAX_PLAYERS) updatePlayerCount(count);
+                    }}
+                    onBlur={() => updatePlayerCount(Number(playerCountDraft))} />
+                  <button type="button" aria-label="Add a player" disabled={playerCount >= MAX_PLAYERS} onClick={() => updatePlayerCount(playerCount + 1)}><Plus size={15} /></button>
+                </div>
               </div>
             </div>
-            <div className="lobby-bulk-actions">
-              <button type="button" onClick={fillComputers}>Fill Computers</button>
-              <button type="button" onClick={() => setComputerSkillForAll("competent")}>All Competent</button>
-              <button type="button" onClick={() => setComputerSkillForAll("master")}>All Master</button>
+
+            <div className="lobby-roster-heading">
+              <div><h3>Players</h3><p>{humanCount} human{humanCount === 1 ? "" : "s"} <span>·</span> {computerCount} computer{computerCount === 1 ? "" : "s"}</p></div>
+              <button className="lobby-text-button" type="button" onClick={fillComputers}><Bot size={15} /> Fill with computers</button>
             </div>
-            {activeSlots.length > visibleSetupRows && (
-              <p className="setup-list-note">
-                Showing first {visibleSetupRows} players. Remaining slots use generated names, controls, and teams.
-              </p>
-            )}
-            <div className="setup-screen__names">
-              {displayedSlots.map((slot, index) => (
-                <div className={lobbyMode === "ffa" ? "setup-player" : "setup-player setup-player--team"} key={index}>
-                  <label className="field">
-                    <span>Player {index + 1}</span>
-                    <input
-                      value={slot.name}
-                      onChange={(event) => updateSlot(index, { name: event.target.value })}
-                    />
+            <div className="lobby-roster">
+              {displayedSlots.map((slot, offset) => {
+                const index = pageStart + offset;
+                return <div className={`lobby-player${lobbyMode !== "ffa" ? " lobby-player--team" : ""}`} key={index}>
+                  <span className={`lobby-seat${slot.control === "human" ? " lobby-seat--human" : ""}`} aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <label className="lobby-field lobby-player__name"><span className="lobby-sr-only">Player {index + 1} name</span>
+                    <input value={slot.name} maxLength={40} placeholder={`Player ${index + 1}`} onChange={event => updateSlot(index, { name: event.target.value })} />
                   </label>
-                  <label className="field">
-                    <span>Control</span>
-                    <select
-                      value={slot.control}
-                      onChange={(event) => updateSlot(index, { control: event.target.value as ControlChoice })}
-                    >
+                  <label className="lobby-field lobby-player__control"><span className="lobby-sr-only" id={`player-control-${index}-label`}>Player {index + 1} control</span>
+                    <select aria-labelledby={`player-control-${index}-label`} value={slot.control} onChange={event => updateSlot(index, { control: event.target.value as ControlChoice })}>
                       <option value="human">Human</option>
-                      {strategyLevels.map((level) => (
-                        <option key={level} value={`computer:${level}`}>
-                          Computer - {labelStrategy(level)}
-                        </option>
-                      ))}
+                      <optgroup label="Computer">
+                        {strategyLevels.map(level => <option key={level} value={`computer:${level}`}>{labelStrategy(level)}</option>)}
+                      </optgroup>
                     </select>
                   </label>
-                  {lobbyMode !== "ffa" && (
-                    <label className="field">
-                      <span>Team</span>
-                      <select
-                        value={slot.teamId}
-                        onChange={(event) => updateSlot(index, { teamId: event.target.value })}
-                      >
-                        {teamOptions.map((teamId) => (
-                          <option key={teamId} value={teamId}>
-                            {labelTeam(teamId)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-              ))}
+                  {lobbyMode !== "ffa" && <label className="lobby-field lobby-player__team"><span className="lobby-sr-only" id={`player-team-${index}-label`}>Player {index + 1} team</span>
+                    <select aria-labelledby={`player-team-${index}-label`} value={slot.teamId} onChange={event => updateSlot(index, { teamId: event.target.value })}>
+                      {teamOptions.map(teamId => <option key={teamId} value={teamId}>{labelTeam(teamId)}</option>)}
+                    </select>
+                  </label>}
+                </div>;
+              })}
+            </div>
+            {playerCount > visibleSetupRows && <nav className="lobby-pagination" aria-label="Player pages">
+              <span>{pageStart + 1}–{Math.min(playerCount, pageStart + visibleSetupRows)} of {playerCount}</span>
+              <div><button type="button" aria-label="Previous players" disabled={currentPage === 0} onClick={() => setRosterPage(currentPage - 1)}><ChevronLeft size={18} /></button>
+                <button type="button" aria-label="Next players" disabled={pageStart + visibleSetupRows >= playerCount} onClick={() => setRosterPage(currentPage + 1)}><ChevronRight size={18} /></button></div>
+            </nav>}
+            <div className="lobby-roster-footer">
+              <label htmlFor="computer-level"><Bot size={15} /> Computer difficulty</label>
+              <select id="computer-level" value={bulkSkill} onChange={event => {
+                const skill = event.target.value as StrategyLevel;
+                setBulkSkill(skill); setComputerSkillForAll(skill);
+              }}>{strategyLevels.map(level => <option key={level} value={level}>{labelStrategy(level)}</option>)}</select>
             </div>
           </section>
 
-          <div className="lobby-settings-column">
-            <section className="lobby-section">
-              <div className="lobby-section__header">
-                <p className="eyebrow">Game Settings</p>
-                <button className="secondary-command lobby-reset-command" type="button" onClick={() => dispatch({ type: "UPDATE_SETTINGS", settings: defaultGameSettings })}>
-                  <RotateCcw size={16} />
-                  Reset Settings
-                </button>
+          <aside className="lobby-rules lobby-panel" aria-labelledby="rules-title">
+            <header className="lobby-panel__heading">
+              <div className="lobby-section-title"><Settings2 size={18} /><h2 id="rules-title">Match rules</h2></div>
+              <button className="lobby-reset" type="button" aria-label="Reset match rules" title="Reset match rules" onClick={() => dispatch({ type: "UPDATE_SETTINGS", settings: defaultGameSettings })}><RotateCcw size={15} /></button>
+            </header>
+            <div className="lobby-core-rules">
+              {numberSetting("startingHealth")}
+              {numberSetting("actionsPerTurn")}
+              {numberSetting("startingHandSize")}
+              {numberSetting("maxHandSize")}
+            </div>
+            <details className="lobby-disclosure">
+              <summary><span><Settings2 size={15} /> Advanced rules</span><ChevronDown size={16} /></summary>
+              <div className="lobby-disclosure__body">
+                {numberSetting("maxHealth")}{numberSetting("freeDrawsPerTurn")}{numberSetting("eliminationHealthReward")}
+                <label className="lobby-rule"><span id="turn-order-label">Turn order</span><select aria-labelledby="turn-order-label" value={settings.turnOrder} onChange={event => updateTurnOrder(event.target.value as TurnOrderMode)}><option value="standard">Standard</option><option value="roundRobin">Round robin</option></select></label>
+                <label className="lobby-toggle"><span>Defense on secondary attacks</span><input type="checkbox" checked={settings.allowSecondaryDefense} onChange={event => updateBooleanSetting("allowSecondaryDefense", event.target.checked)} /><span className="lobby-switch" aria-hidden="true" /></label>
               </div>
-              <div className="settings-grid lobby-settings-grid">
-                {settingFields.map((field) => (
-                  <label className="setting-control" key={field.key}>
-                    <span>{field.label}</span>
-                    <input
-                      type="number"
-                      min={field.min}
-                      max={field.max}
-                      value={settings[field.key]}
-                      onChange={(event) => updateSetting(field.key, Number(event.target.value))}
-                    />
-                  </label>
-                ))}
-                <label className="setting-control">
-                  <span>Turn order</span>
-                  <select value={settings.turnOrder} onChange={(event) => updateTurnOrder(event.target.value as TurnOrderMode)}>
-                    <option value="standard">Standard</option>
-                    <option value="roundRobin">Round robin</option>
-                  </select>
-                </label>
-                <label className="setting-control setting-toggle">
-                  <span>Defense on secondary attacks</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.allowSecondaryDefense}
-                    onChange={(event) => updateBooleanSetting("allowSecondaryDefense", event.target.checked)}
-                  />
-                </label>
-                {lobbyMode !== "ffa" && (
-                  <>
-                    <label className="setting-control setting-toggle">
-                      <span>Teammate healing</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.allowTeamHealing}
-                        onChange={(event) => updateBooleanSetting("allowTeamHealing", event.target.checked)}
-                      />
-                    </label>
-                    <label className="setting-control setting-toggle">
-                      <span>Card transfer</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.allowTeamCardTransfer}
-                        onChange={(event) => updateBooleanSetting("allowTeamCardTransfer", event.target.checked)}
-                      />
-                    </label>
-                  </>
-                )}
-                <div className="setting-control setting-control--wide market-control">
-                  <label>
-                    <span>Black Market</span>
-                    <select value={settings.blackMarketPreset} onChange={(event) => updateBlackMarketPreset(event.target.value as BlackMarketPreset)}>
-                      {Object.keys(blackMarketPresets).map((preset) => (
-                        <option key={preset} value={preset}>
-                          {labelBlackMarketPreset(preset as BlackMarketPreset)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="market-summary">
-                    <p>{summarizeBlackMarket(blackMarketConfig)}</p>
-                  </div>
-                </div>
-                {settings.blackMarketPreset === "custom" && (
-                  <div className="setting-control setting-control--wide">
-                    <span>Custom Black Market</span>
-                    <div className="market-custom-grid">
-                      <label>
-                        <span>Discard</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={6}
-                          value={settings.blackMarketCustom.discardCost}
-                          onChange={(event) => updateBlackMarketCustom("discardCost", Number(event.target.value))}
-                        />
-                      </label>
-                      <label>
-                        <span>Health</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={20}
-                          value={settings.blackMarketCustom.healthCost}
-                          onChange={(event) => updateBlackMarketCustom("healthCost", Number(event.target.value))}
-                        />
-                      </label>
-                      <label>
-                        <span>Reveal</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={10}
-                          value={settings.blackMarketCustom.revealCount}
-                          onChange={(event) => updateBlackMarketCustom("revealCount", Number(event.target.value))}
-                        />
-                      </label>
-                      <label>
-                        <span>Keep</span>
-                        <input
-                          type="number"
-                          min={1}
-                          max={10}
-                          value={settings.blackMarketCustom.keepCount}
-                          onChange={(event) => updateBlackMarketCustom("keepCount", Number(event.target.value))}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                )}
+            </details>
+            {lobbyMode !== "ffa" && <div className="lobby-team-rules">
+              <label className="lobby-toggle"><span>Teammate healing</span><input type="checkbox" checked={settings.allowTeamHealing} onChange={event => updateBooleanSetting("allowTeamHealing", event.target.checked)} /><span className="lobby-switch" aria-hidden="true" /></label>
+              <label className="lobby-toggle"><span>Card transfer</span><input type="checkbox" checked={settings.allowTeamCardTransfer} onChange={event => updateBooleanSetting("allowTeamCardTransfer", event.target.checked)} /><span className="lobby-switch" aria-hidden="true" /></label>
+            </div>}
+            <details className="lobby-disclosure lobby-disclosure--market">
+              <summary><span><Layers size={15} /> Black Market <small>{labelBlackMarketPreset(settings.blackMarketPreset)}</small></span><ChevronDown size={16} /></summary>
+              <div className="lobby-disclosure__body">
+                <label className="lobby-field"><span id="market-preset-label">Market preset</span><select aria-labelledby="market-preset-label" value={settings.blackMarketPreset} onChange={event => updateBlackMarketPreset(event.target.value as BlackMarketPreset)}>
+                  {Object.keys(blackMarketPresets).map(preset => <option key={preset} value={preset}>{labelBlackMarketPreset(preset as BlackMarketPreset)}</option>)}
+                </select></label>
+                <p className="lobby-market-note">{summarizeBlackMarket(blackMarketConfig)}</p>
+                {settings.blackMarketPreset === "custom" && <div className="lobby-market-custom">
+                  {([{ key: "discardCost", label: "Discard", min: 0, max: 6 }, { key: "healthCost", label: "Health", min: 0, max: 20 }, { key: "revealCount", label: "Reveal", min: 1, max: 10 }, { key: "keepCount", label: "Keep", min: 1, max: blackMarketConfig.revealCount }] as const).map(field =>
+                    <label className="lobby-field" key={field.key}><span>{field.label}</span><input type="number" min={field.min} max={field.max} value={settings.blackMarketCustom[field.key]} onChange={event => updateBlackMarketCustom(field.key, Number(event.target.value))} /></label>
+                  )}
+                </div>}
               </div>
-            </section>
-          </div>
+            </details>
+            <div className="lobby-rule-note"><Shield size={16} /><p>{humanCount > 1 ? "Pass-device privacy turns on when your match starts." : "Play against the computer, or add humans to share this device."}</p></div>
+          </aside>
         </div>
 
-        {!teamModeValidation.isValid && <p className="setup-validation-message">{teamModeValidation.message}</p>}
-        <button className="primary-command" type="button" disabled={!teamModeValidation.isValid} onClick={() => onStart(activePlayers)}>
-          Start Game
-        </button>
-      </section>
+        <footer className="lobby-launch">
+          <div className="lobby-launch__summary">
+            {teamModeValidation.isValid ? <><span className="lobby-ready"><Check size={14} /> Ready to play</span><p>{playerCount} players <span>·</span> {labelLobbyMode(lobbyMode)}{lobbyMode !== "ffa" ? ` · ${teamCount} teams` : ""}</p></>
+              : <p className="lobby-validation" role="alert">{teamModeValidation.message}</p>}
+          </div>
+          <button className="lobby-start" type="button" disabled={!teamModeValidation.isValid} onClick={() => onStart(activePlayers)}>Start Game <ArrowRight size={19} /></button>
+        </footer>
+      </div>
     </main>
   );
 }
@@ -444,7 +390,7 @@ function createSlots(count: number, lobbyMode: LobbyMode): SetupSlot[] {
   );
 }
 
-function ensureSlotCount(slots: SetupSlot[], count: number): SetupSlot[] {
+function ensureSlotCount(slots: SetupSlot[], count: number, strategy: StrategyLevel = "competent"): SetupSlot[] {
   if (slots.length >= count) {
     return slots;
   }
@@ -455,7 +401,7 @@ function ensureSlotCount(slots: SetupSlot[], count: number): SetupSlot[] {
       const index = slots.length + offset;
       return {
         name: getDefaultPlayerName(index),
-        control: "computer:competent" as const
+        control: `computer:${strategy}` as const
       };
     })
   ];
