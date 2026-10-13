@@ -5,6 +5,7 @@ import { readFile, writeFile, mkdtemp, mkdir, cp, rm, access } from "node:fs/pro
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildOffline } from "../scripts/build-offline.mjs";
+import { iconFiles } from "../scripts/generate-icons.mjs";
 import vm from "node:vm";
 
 async function worker() {
@@ -57,6 +58,7 @@ test("release generation is deterministic and versions replaced artwork", async 
     assert.equal(first.version, again.version);
     assert(first.urls.includes("/assets/app-abcdefgh.js"));
     assert(first.urls.some(url => url.includes("/final/")));
+    for (const icon of iconFiles) assert(first.urls.includes(`/${icon}`), `Icon missing from offline cache: ${icon}`);
     assert(!first.urls.includes("/cards/backs/outdrawn-back-light-01.png"));
     await assert.rejects(access(join(root, "cards/backs/outdrawn-back-light-01.png")));
     const image = join(root, "optimized/branding/logos/outdrawn-logo-dark-01.webp");
@@ -66,5 +68,8 @@ test("release generation is deterministic and versions replaced artwork", async 
     const manifest = JSON.parse(await readFile(join(root, "offline-assets.json"), "utf8"));
     assert.deepEqual(manifest, changed.urls);
     assert(!(await readFile(join(root, "sw.js"), "utf8")).includes("__BUILD_ID__"));
+    const icon = join(root, "icons/outdrawn-maskable-512.png");
+    await writeFile(icon, Buffer.concat([await readFile(icon), Buffer.from("updated-icon")]));
+    assert.notEqual((await buildOffline(root)).version, changed.version, "Icon changes must produce a new offline release");
   } finally { await rm(root, { recursive: true, force: true }); }
 });

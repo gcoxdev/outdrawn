@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { pathToFileURL } from "node:url";
+import { iconFiles } from "./generate-icons.mjs";
 
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -10,7 +11,7 @@ async function files(directory) {
 
 export async function buildOffline(directory = "dist") {
   const root = resolve(directory);
-  const kept = new Set(["index.html", "manifest.webmanifest", "icons/outdrawn-icon-192.png", "icons/outdrawn-icon-512.png",
+  const kept = new Set(["index.html", "manifest.webmanifest", ...iconFiles,
     "optimized/branding/logos/outdrawn-logo-dark-01.webp", "optimized/cards/backs/outdrawn-back-dark-logo-01.webp"]);
   for (const name of kept) await readFile(resolve(root, name));
   const paths = [];

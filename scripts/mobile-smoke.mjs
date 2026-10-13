@@ -9,6 +9,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { build } from "esbuild";
 import { createStaticHandler } from "./static-host.mjs";
 import { buildOffline } from "./build-offline.mjs";
+import { iconFiles } from "./generate-icons.mjs";
 
 const directory = await mkdtemp(join(tmpdir(), "outdrawn-mobile-"));
 let browser, server;
@@ -125,8 +126,25 @@ try {
     const bytes = await page.evaluate(async url => (await (await fetch(url)).arrayBuffer()).byteLength, `/${logo}`);
     assert.equal(bytes, oldLogo.length + Buffer.byteLength("mobile-release-b"));
     assert(await page.locator('img[alt="Outdrawn"]').evaluate(image => image.complete && image.naturalWidth > 0));
+    const missingIcons = await page.evaluate(async paths => {
+      const failures = [];
+      for (const path of paths) {
+        let url;
+        try {
+          const response = await fetch(`/${path}`);
+          if (!response.ok) throw new Error("Icon unavailable offline");
+          url = URL.createObjectURL(await response.blob());
+          const image = new Image(); image.src = url;
+          await image.decode();
+          if (!image.naturalWidth) throw new Error("Icon did not decode");
+        } catch { failures.push(path); }
+        finally { if (url) URL.revokeObjectURL(url); }
+      }
+      return failures;
+    }, iconFiles);
+    assert.deepEqual(missingIcons, [], "All browser and installed-app icons must decode offline");
     assert.deepEqual(errors, []);
-    console.log(`PASS ${engine}: explicit code/art update and offline relaunch with origin stopped`);
+    console.log(`PASS ${engine}: explicit code/art update, offline relaunch, and all favicon/PWA images with origin stopped`);
     await browser.close(); browser = undefined;
   }
 } finally {
