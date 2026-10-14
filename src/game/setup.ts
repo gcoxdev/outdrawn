@@ -32,6 +32,7 @@ export function createNewGame(
       hand: draw.drawn,
       eliminated: false,
       eliminations: 0,
+      damageDealt: 0,
       attackedThisRound: false,
       actedThisRound: false,
       actionsRemaining: settings.actionsPerTurn,

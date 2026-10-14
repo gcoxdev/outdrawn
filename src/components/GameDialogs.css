@@ -99,6 +99,8 @@ body:has(.match-dialog[open]) { overflow: hidden; }
   .event-dialog-rules { text-align: left; margin-top: 16px; padding-top: 16px; }
   .event-dialog-panel .match-dialog__footer button { width: 100%; }
   .winner-modal__body { padding: 26px 20px; }
+  .winner-modal__stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 18px; }
+  .winner-modal__stats > div:nth-child(odd) { border-left: 0; }
 }
 @media (max-height: 500px) {
   .match-dialog__header { min-height: 52px; padding-block: 6px; }

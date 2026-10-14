@@ -1,4 +1,4 @@
-import { recordEffects, recordHealthChanges } from "./effects";
+import { accumulateDamageDealt, recordEffects, recordHealthChanges } from "./effects";
 import { acceptsDecisionAction, getPlayerDecision } from "./decisions";
 import { allCards, type CardType } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
@@ -612,6 +612,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     const kind = !winner && !next.winnerTeamId ? "tie" : winner?.eliminated ? "tiebreak" : next.winnerTeamId ? "team" : "survivor";
     next = { ...next, outcome: { kind, description: kind === "tie" ? "The match ended with nobody alive and no winner declared." : kind === "tiebreak" ? "Everyone fell in the final effect. Most eliminations, then pre-effect health, then pre-effect hand size determined the winner." : kind === "team" ? "Only the winning team remains." : "The last survivor takes the match." } };
   }
+  next = accumulateDamageDealt(next);
   const oldLogIds = new Set(state.log.map(entry => entry.id));
   const participantIds = new Set<string>();
   const addReferences = (value: object) => Object.entries(value).forEach(([key, id]) => {

@@ -150,6 +150,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
           winnerTeamMembers={state.winnerTeamId ? getTeamMembers(state, state.winnerTeamId) : []}
           round={state.round}
           playerCount={state.players.length}
+          partialDamageHistory={state.damageTrackingStartedMidMatch}
           dispatch={dispatch}
         />
       ) : null}

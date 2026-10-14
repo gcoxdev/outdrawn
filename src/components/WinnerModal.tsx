@@ -12,13 +12,15 @@ type WinnerModalProps = {
   winnerTeamMembers: PlayerState[];
   round: number;
   playerCount: number;
+  partialDamageHistory?: boolean;
   dispatch: (action: GameAction) => void;
 };
 
-export function WinnerModal({ onClose, outcome, winner, winnerTeamId, winnerTeamMembers, round, playerCount, dispatch }: WinnerModalProps) {
+export function WinnerModal({ onClose, outcome, winner, winnerTeamId, winnerTeamMembers, round, playerCount, partialDamageHistory = false, dispatch }: WinnerModalProps) {
   const isTie = !winnerTeamId && !winner;
   const winnerTitle = winnerTeamId ? `${labelTeam(winnerTeamId)} wins` : winner ? `${winner.name} wins` : "It's a tie";
   const eliminations = winnerTeamId ? winnerTeamMembers.reduce((total, player) => total + player.eliminations, 0) : winner?.eliminations;
+  const damageDealt = winnerTeamId ? winnerTeamMembers.reduce((total, player) => total + (player.damageDealt ?? 0), 0) : winner ? winner.damageDealt ?? 0 : undefined;
 
   return (
     <Dialog className="match-dialog winner-modal" label="Game winner" onClose={onClose}>
@@ -30,7 +32,12 @@ export function WinnerModal({ onClose, outcome, winner, winnerTeamId, winnerTeam
           <h2>{winnerTitle}</h2>
           <p className="winner-modal__description">{outcome?.description ?? (isTie ? "The match ended without a winner." : winner?.eliminated ? "Everyone fell in the final effect. Most eliminations, then pre-effect health, then pre-effect hand size determined the winner." : winnerTeamId ? "Your team outlasted the opposition." : "The last survivor takes the match.")}</p>
           {winnerTeamId && <ul className="winner-modal__team" aria-label="Winning team">{winnerTeamMembers.map(player => <li key={player.id}>{player.name}</li>)}</ul>}
-          <dl className="winner-modal__stats"><div><dt>Round</dt><dd>{round}</dd></div><div><dt>Players</dt><dd>{playerCount}</dd></div>{eliminations !== undefined && <div><dt>Eliminations</dt><dd>{eliminations}</dd></div>}</dl>
+          <dl className="winner-modal__stats">
+            <div><dt>Round</dt><dd>{round}</dd></div>
+            <div><dt>Players</dt><dd>{playerCount}</dd></div>
+            {eliminations !== undefined && <div><dt>Eliminations</dt><dd>{eliminations}</dd></div>}
+            {damageDealt !== undefined && <div><dt>{partialDamageHistory ? "Damage since update" : "Damage dealt"}</dt><dd>{damageDealt}</dd></div>}
+          </dl>
         </div>
         <footer className="match-dialog__footer winner-modal__actions">
           <button type="button" onClick={onClose}>Review table</button>

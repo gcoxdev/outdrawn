@@ -35,6 +35,10 @@ export function readSavedMatch(fallback: GameState, storage: Pick<Storage, "getI
     const state = JSON.parse(saved.payload);
     state.selectedCardId = null;
     validateSavedGame(state);
+    if (state.players.some((player: GameState["players"][number]) => player.damageDealt === undefined)) {
+      state.damageTrackingStartedMidMatch = true;
+      state.players = state.players.map((player: GameState["players"][number]) => ({ ...player, damageDealt: player.damageDealt ?? 0 }));
+    }
     const deckRandomState = state.deckRandomState ?? (Math.floor(Math.random() * 0x100000000) >>> 0);
     return { state: { ...state, deckRandomState } };
   } catch (error) {

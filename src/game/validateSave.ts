@@ -31,6 +31,7 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
     number(player.health, 0, value.settings.maxHealth); cards(player.hand);
     for (const key of ["eliminated", "attackedThisRound", "actedThisRound"]) boolean(player[key]);
     for (const key of ["eliminations", "actionsRemaining", "freeDrawsRemaining"]) number(player[key]);
+    if (player.damageDealt !== undefined) number(player.damageDealt);
     requireValue(player.eliminated === (player.health === 0));
     requireValue(!player.eliminated || player.hand.length === 0);
   }, 100);
@@ -59,6 +60,7 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
   pending("activeEvent", p => { card(p.card); requireValue(["thisRound", "ongoing"].includes(p.timing)); if (p.sourcePlayerId !== undefined) playerId(p.sourcePlayerId); if (p.exemptPlayerIds !== undefined) playerIds(p.exemptPlayerIds); });
   pending("pendingEventDialog", event); optional("eventDialogQueue", v => array(v, event));
   optional("resolvedEventCount", v => number(v));
+  optional("damageTrackingStartedMidMatch", boolean);
   pending("pendingReaction", attack);
   pending("pendingRedirect", p => { attack(p); card(p.decoy); });
   pending("pendingSecondaryDamage", p => { secondary(p); array(p.remaining, secondary); });

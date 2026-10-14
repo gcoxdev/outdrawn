@@ -1,5 +1,5 @@
 import "./PlayerRoster.css";
-import { Activity, Bot, Copy, Heart, User } from "lucide-react";
+import { Activity, Bot, Copy, Heart, Skull, Swords, User } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { labelTeam } from "../game/rules";
@@ -49,6 +49,7 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
             isSmokeProtected={smokeProtectedPlayerIds.has(player.id)}
             markedBonus={state.markedTargets[player.id] ?? 0}
             attackBonus={state.attackBonuses[player.id] ?? 0}
+            partialDamageHistory={state.damageTrackingStartedMidMatch ?? false}
           />
         ))}
       </div>
@@ -66,6 +67,7 @@ type PlayerRosterCardProps = {
   isSmokeProtected: boolean;
   markedBonus: number;
   attackBonus: number;
+  partialDamageHistory: boolean;
 };
 
 const PlayerRosterCard = memo(function PlayerRosterCard({
@@ -77,7 +79,8 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
   isDisplay,
   isSmokeProtected,
   markedBonus,
-  attackBonus
+  attackBonus,
+  partialDamageHistory
 }: PlayerRosterCardProps) {
   return (
     <article
@@ -123,6 +126,14 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
               {player.freeDrawsRemaining}
             </span>
           )}
+          <div className="player-roster-card__combat-stats">
+            <span className="stat-kills" title="Kills" aria-label={`${player.eliminations} kills`}>
+              <Skull size={14} aria-hidden="true" />{player.eliminations}
+            </span>
+            <span className="stat-damage" title={partialDamageHistory ? "Damage dealt since this match was updated" : "Damage dealt after defenses"} aria-label={`${player.damageDealt ?? 0} damage dealt${partialDamageHistory ? " since this match was updated" : ""}`}>
+              <Swords size={14} aria-hidden="true" />{player.damageDealt ?? 0}
+            </span>
+          </div>
         </div>
       </div>
       <div className="player-roster-card__chips">

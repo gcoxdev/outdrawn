@@ -35,6 +35,8 @@ export type PlayerState = {
   hand: CardInstance[];
   eliminated: boolean;
   eliminations: number;
+  /** Actual damage dealt to other players; absent in saves made before tracking. */
+  damageDealt?: number;
   attackedThisRound: boolean;
   actedThisRound: boolean;
   actionsRemaining: number;
@@ -178,6 +180,8 @@ export type ResolvedEffect = {
 };
 
 export type GameState = {
+  /** Older saves cannot reconstruct damage dealt before this update. */
+  damageTrackingStartedMidMatch?: boolean;
   /** Only the most recently accepted action; omitted from saves and bot observations. */
   resolvedEffects?: ResolvedEffect[];
   outcome?: MatchOutcome;

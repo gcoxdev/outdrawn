@@ -1,5 +1,19 @@
 import type { GameState, PlayerState, ResolvedEffect } from "./types";
 
+/** Apply once after an action and all of its immediate continuations resolve. */
+export function accumulateDamageDealt(state: GameState): GameState {
+  const totals = new Map<string, number>();
+  for (const effect of state.resolvedEffects ?? []) {
+    if (effect.kind !== "damage" || !effect.sourcePlayerId || effect.sourcePlayerId === effect.playerId || effect.source === "event" || effect.source === "collapse") continue;
+    totals.set(effect.sourcePlayerId, (totals.get(effect.sourcePlayerId) ?? 0) + effect.amount);
+  }
+  if (totals.size === 0) return state;
+  return { ...state, players: state.players.map(player => {
+    const damage = totals.get(player.id);
+    return damage ? { ...player, damageDealt: (player.damageDealt ?? 0) + damage } : player;
+  }) };
+}
+
 /** Per-action diagnostics, emitted where an effect resolves, before mixed effects can cancel out. */
 export function recordEffects(state: GameState, ...effects: ResolvedEffect[]): GameState {
   const applied = effects.filter(effect => effect.amount > 0);
