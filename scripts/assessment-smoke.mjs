@@ -97,6 +97,7 @@ try {
     await fits();
     await contrast(".roster-filters input, .roster-filters select, .roster-filters button");
 
+    await page.setViewportSize({ width: 1440, height: 900 });
     await load("bots");
     await button("Pause computers").click();
     const paused = await saved();

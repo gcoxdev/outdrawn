@@ -156,10 +156,6 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
       <header className="match-header">
         <img src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" width="260" height="84" />
         <div className="match-header__status"><span>Round <strong>{state.round}</strong></span><span>{state.players.filter(player => !player.eliminated).length} alive</span></div>
-        {state.phase === "action" && state.players.some(player => player.controller.type === "computer" && !player.eliminated) && <div className="computer-controls">
-          <button type="button" aria-pressed={paused} onClick={() => onPausedChange?.(!paused)}>{paused ? "Resume computers" : "Pause computers"}</button>
-          <select aria-label="Computer speed" value={computerDelay} onChange={event => onComputerDelayChange?.(Number(event.target.value))}><option value={1000}>Slow</option><option value={500}>Normal</option><option value={150}>Fast</option></select>
-        </div>}
         <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} onOpenChange={setMenuOpen} />
       </header>
 
@@ -184,6 +180,12 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
               decisionPlayerId={decisionPlayerId}
               displayPlayerId={displayPlayer.id}
             />
+            {state.phase === "action" && state.players.some(player => player.controller.type === "computer" && !player.eliminated) && (
+              <div className="computer-controls" role="group" aria-label="Computer controls">
+                <button type="button" aria-pressed={paused} onClick={() => onPausedChange?.(!paused)}>{paused ? "Resume computers" : "Pause computers"}</button>
+                <select aria-label="Computer speed" value={computerDelay} onChange={event => onComputerDelayChange?.(Number(event.target.value))}><option value={1000}>Slow</option><option value={500}>Normal</option><option value={150}>Fast</option></select>
+              </div>
+            )}
           </div>
           <div
             className="sidebar-resize-handle"
@@ -209,10 +211,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
 
         <section className="decision-workspace board-panel board-panel-play">
           <header className="decision-strip">
-            <div>
-              <p className="eyebrow">{decision ? "Decision" : "At the table"}</p>
-              <h1>{decisionText}</h1>
-            </div>
+            <h1>{decisionText}</h1>
             <div className="log-panel__meta">
               <span><Layers size={14} /> {state.mainDeck.length} in deck</span>
               <button type="button" onClick={() => setShowDiscards(true)}>Discards <span>{state.discardPile.length}</span></button>
