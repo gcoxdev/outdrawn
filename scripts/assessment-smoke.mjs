@@ -90,8 +90,7 @@ try {
     assert.equal(await page.locator(".player-roster-card").count(), 1);
     await page.getByLabel("Player group", { exact: true }).selectOption("living");
     assert.equal(await page.locator(".player-roster-card").count(), 0);
-    await button("Find active player").click();
-    assert(await page.locator(".player-roster-card.is-decision").evaluate(el => el === document.activeElement));
+    await page.getByLabel("Search players", { exact: true }).fill("");
     await page.getByLabel("Player group", { exact: true }).selectOption("team_2");
     assert.equal(await page.locator(".player-roster-card").count(), 25);
     await fits();

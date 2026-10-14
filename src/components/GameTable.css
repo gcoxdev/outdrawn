@@ -25,8 +25,10 @@
 .game-table .sidebar-pane--players { display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
 .game-table .player-roster { min-height: 0; overflow-y: auto; grid-template-rows: auto auto minmax(60px, 1fr); }
 .game-table .sidebar-pane--log { display: block; min-height: 0; overflow: auto; }
-.game-table .sidebar-resize-handle { background: transparent; border-color: transparent; }
-.game-table .sidebar-resize-handle::after { background: #55584b; }
+.game-table .sidebar-resize-handle { position: relative; background: transparent; border-color: transparent; }
+.game-table .sidebar-resize-handle::before { content: ""; position: absolute; inset: 50% 0 auto; height: 1px; background: var(--line); }
+.game-table .sidebar-resize-handle::after { content: ""; position: absolute; top: 50%; left: 50%; width: 40px; height: 6px; transform: translate(-50%, -50%); border-radius: 999px; background: #b8aa8b; }
+.game-table .sidebar-resize-handle:is(:hover, :focus-visible)::after { background: #dfbc81; }
 .game-table .sidebar-section__header { min-height: 34px; padding: 0 4px 8px; }
 .game-table .sidebar-section__header h2, .game-table .game-log__header h2 { font-size: 14px; font-weight: 650; }
 .game-table .sidebar-section__header > strong { color: #b2b7a3; font-size: 11px; font-weight: 500; }
