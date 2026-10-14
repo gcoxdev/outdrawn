@@ -1,4 +1,4 @@
-import { Trophy, X } from "lucide-react";
+import { Trophy, X, Equal, RotateCcw } from "lucide-react";
 import { Dialog } from "./Dialog";
 import { useState } from "react";
 import type { GameAction } from "../game/actions";
@@ -9,36 +9,37 @@ type WinnerModalProps = {
   winner: PlayerState | undefined;
   winnerTeamId: TeamId | null;
   winnerTeamMembers: PlayerState[];
+  round: number;
+  playerCount: number;
   dispatch: (action: GameAction) => void;
 };
 
-export function WinnerModal({ winner, winnerTeamId, winnerTeamMembers, dispatch }: WinnerModalProps) {
+export function WinnerModal({ winner, winnerTeamId, winnerTeamMembers, round, playerCount, dispatch }: WinnerModalProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const winnerTitle = winnerTeamId ? `${labelTeam(winnerTeamId)} wins` : winner ? `${winner.name} wins` : "No winner";
-  const winnerText = winnerTeamId
-    ? winnerTeamMembers.map((player) => player.name).join(", ")
-    : winner
-      ? `${winner.name} survived the final hand.`
-      : "The last players fell at the same time.";
+  const isTie = !winnerTeamId && !winner;
+  const winnerTitle = winnerTeamId ? `${labelTeam(winnerTeamId)} wins` : winner ? `${winner.name} wins` : "It's a tie";
+  const eliminations = winnerTeamId ? winnerTeamMembers.reduce((total, player) => total + player.eliminations, 0) : winner?.eliminations;
 
   if (!isVisible) {
     return null;
   }
 
   return (
-    <Dialog className="winner-modal" label="Game winner" onClose={() => setIsVisible(false)}>
-      <section className="winner-modal__panel">
-        <div className="winner-modal__burst" aria-hidden="true" />
-        <button className="winner-modal__close" type="button" onClick={() => setIsVisible(false)} aria-label="Close winner screen">
-          <X size={24} strokeWidth={2.4} />
-        </button>
-        <Trophy className="winner-modal__icon" size={46} />
-        <p className="eyebrow">Outdrawn</p>
-        <h2>{winnerTitle}</h2>
-        <p>{winnerText}</p>
-        <button className="primary-command" type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}>
-          New Game
-        </button>
+    <Dialog className="match-dialog winner-modal" label="Game winner" onClose={() => setIsVisible(false)}>
+      <section className={`match-dialog__panel winner-modal__panel${isTie ? " winner-modal__panel--tie" : ""}`}>
+        <header className="match-dialog__header"><div><span>Match complete</span></div><button className="match-dialog__close" type="button" onClick={() => setIsVisible(false)} aria-label="Close winner screen"><X size={19} /></button></header>
+        <div className="match-dialog__body winner-modal__body">
+          <div className="winner-modal__emblem" aria-hidden="true">{isTie ? <Equal size={30} /> : <Trophy size={30} />}</div>
+          <p className="match-dialog__kicker">{isTie ? "No winner declared" : winnerTeamId ? "Team victory" : "Last one standing"}</p>
+          <h2>{winnerTitle}</h2>
+          {isTie && <p className="winner-modal__description">The match ended without a winner.</p>}
+          {winnerTeamId && <ul className="winner-modal__team" aria-label="Winning team">{winnerTeamMembers.map(player => <li key={player.id}>{player.name}</li>)}</ul>}
+          <dl className="winner-modal__stats"><div><dt>Round</dt><dd>{round}</dd></div><div><dt>Players</dt><dd>{playerCount}</dd></div>{eliminations !== undefined && <div><dt>Eliminations</dt><dd>{eliminations}</dd></div>}</dl>
+        </div>
+        <footer className="match-dialog__footer winner-modal__actions">
+          <button type="button" onClick={() => setIsVisible(false)}>Review table</button>
+          <button className="match-dialog__primary" type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}><RotateCcw size={16} />New Game</button>
+        </footer>
       </section>
     </Dialog>
   );

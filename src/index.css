@@ -182,71 +182,6 @@ p {
   font-weight: 800;
 }
 
-.event-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 55;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(9, 8, 7, 0.72);
-  backdrop-filter: blur(4px);
-}
-
-.event-dialog-panel {
-  display: grid;
-  grid-template-columns: minmax(150px, 230px) minmax(240px, 360px);
-  gap: 22px;
-  align-items: center;
-  width: min(660px, 100%);
-  border: 1px solid rgba(217, 157, 69, 0.55);
-  border-radius: 10px;
-  padding: 22px;
-  background:
-    linear-gradient(135deg, rgba(52, 48, 40, 0.96), rgba(22, 20, 18, 0.98)),
-    var(--panel);
-  box-shadow: 0 26px 90px rgba(0, 0, 0, 0.65);
-}
-
-.event-dialog-card {
-  display: grid;
-  justify-items: center;
-}
-
-.event-dialog-copy {
-  display: grid;
-  gap: 12px;
-}
-
-.event-dialog-copy h2 {
-  margin: 0;
-  color: var(--paper);
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  line-height: 0.95;
-  text-transform: uppercase;
-}
-
-.event-dialog-copy p {
-  margin: 0;
-  color: #d6cbbb;
-  font-size: 0.98rem;
-  line-height: 1.45;
-}
-
-.event-dialog-copy button {
-  justify-self: start;
-  min-width: 150px;
-  margin-top: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 7px;
-  padding: 11px 16px;
-  background: var(--red);
-  color: #fff8ed;
-  font-weight: 900;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
 .operations-sidebar {
   display: grid;
   grid-template-rows: minmax(250px, 65fr) 8px minmax(170px, 35fr);
@@ -1154,85 +1089,6 @@ p {
   line-height: 1.35;
 }
 
-.winner-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.58);
-  animation: winner-fade 240ms ease-out both;
-}
-
-.winner-modal__panel {
-  position: relative;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  width: min(440px, 100%);
-  overflow: hidden;
-  border: 1px solid rgba(217, 157, 69, 0.42);
-  border-radius: 8px;
-  padding: 34px;
-  background: linear-gradient(145deg, #2c281f, #15130f);
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58);
-  text-align: center;
-  animation: winner-pop 420ms cubic-bezier(0.2, 1.12, 0.24, 1) both;
-}
-
-.winner-modal__burst {
-  position: absolute;
-  inset: -42%;
-  background: conic-gradient(from 0deg, transparent, rgba(217, 157, 69, 0.18), transparent 22%);
-  animation: winner-spin 5s linear infinite;
-}
-
-.winner-modal__icon,
-.winner-modal__close,
-.winner-modal__panel h2,
-.winner-modal__panel p,
-.winner-modal__panel button {
-  position: relative;
-  z-index: 1;
-}
-
-.winner-modal__panel .winner-modal__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: grid;
-  width: 46px;
-  min-height: 46px;
-  place-items: center;
-  border-color: rgba(244, 238, 226, 0.18);
-  border-radius: 6px;
-  padding: 0;
-  background: rgba(0, 0, 0, 0.28);
-  color: var(--text);
-}
-
-.winner-modal__panel .winner-modal__close:hover {
-  background: rgba(217, 157, 69, 0.2);
-}
-
-.winner-modal__icon {
-  margin-bottom: 12px;
-  color: var(--amber);
-  filter: drop-shadow(0 8px 18px rgba(217, 157, 69, 0.32));
-}
-
-.winner-modal__panel h2 {
-  margin-bottom: 8px;
-  font-size: clamp(2rem, 8vw, 4rem);
-  line-height: 0.9;
-  text-transform: uppercase;
-}
-
-.winner-modal__panel p:not(.eyebrow) {
-  color: var(--muted);
-}
-
 .pass-device-gate {
   position: fixed;
   inset: 0;
@@ -1276,25 +1132,6 @@ p {
   color: #15120d;
   font-weight: 900;
   text-transform: uppercase;
-}
-
-@keyframes winner-fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes winner-pop {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.92);
-  }
-}
-
-@keyframes winner-spin {
-  to {
-    transform: rotate(1turn);
-  }
 }
 
 @media (max-width: 1080px) {
@@ -1401,24 +1238,6 @@ p {
     grid-column: span 1;
   }
 
-  .event-dialog-panel {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 16px;
-    max-height: calc(100vh - 28px);
-    overflow: auto;
-    padding: 16px;
-  }
-
-  .event-dialog-copy {
-    justify-items: center;
-    text-align: center;
-  }
-
-  .event-dialog-copy button {
-    justify-self: center;
-  }
-
   .action-panel__decision-grid {
     grid-template-columns: 1fr;
   }
@@ -1440,5 +1259,3 @@ p {
 .app-dialog.menu-overlay { padding: 0; background: transparent; }
 .save-warning { padding: 12px; margin: 0; background: #532e13; color: white; }
 .sidebar-resize-handle:focus-visible { outline: 2px solid #e2b467; }
-
-.discard-piles-panel { width: min(600px, 100%); max-height: 85vh; overflow: auto; padding: 24px; background: var(--panel); border-radius: 10px; }

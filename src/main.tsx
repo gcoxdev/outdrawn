@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./components/GameTable.css";
+import "./components/GameDialogs.css";
 import { clearDevelopmentOfflineCache, initializeInstallPromptListener, registerOfflineServiceWorker } from "./pwa";
 
 async function startApp() {

@@ -7,7 +7,7 @@ import { getCardImplementationNote, getCardImplementationStatus } from "../game/
 import type { GamePhase } from "../game/types";
 import { PwaControls } from "./PwaControls";
 import { Dialog } from "./Dialog";
-import { CardView } from "./CardView";
+import { CardPreview } from "./CardPreview";
 import rulesText from "../../docs/current-rules.md?raw";
 import "./GameMenu.css";
 
@@ -193,13 +193,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
         </Dialog>
       )}
       {isOpen && previewCard && (
-        <Dialog className="card-preview-overlay" label={`${previewCard.name} card preview`} onClose={() => setPreviewCard(null)}>
-          <button className="menu-backdrop" type="button" tabIndex={-1} aria-hidden="true" onClick={() => setPreviewCard(null)} />
-          <section className="card-preview-panel">
-            <header><h2>{previewCard.name}</h2><button className="menu-close" type="button" aria-label="Close card preview" onClick={() => setPreviewCard(null)}><X size={19} /></button></header>
-            <CardView card={previewCard} mode="detail" />
-          </section>
-        </Dialog>
+        <CardPreview card={previewCard} onClose={() => setPreviewCard(null)} />
       )}
     </>
   );

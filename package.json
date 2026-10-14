@@ -18,7 +18,8 @@
     "test:lobby": "npm run build && node scripts/lobby-smoke.mjs",
     "test:menu": "npm run build && node scripts/menu-smoke.mjs",
     "test:table": "npm run build && node scripts/table-smoke.mjs",
-    "test:dev": "node scripts/dev-smoke.mjs"
+    "test:dev": "node scripts/dev-smoke.mjs",
+    "test:dialogs": "npm run build && node scripts/dialog-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

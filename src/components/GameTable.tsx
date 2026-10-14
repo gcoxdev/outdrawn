@@ -1,5 +1,5 @@
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
-import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords } from "lucide-react";
+import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, Zap, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
@@ -16,6 +16,7 @@ import { GameMenu } from "./GameMenu";
 import { PlayerRoster } from "./PlayerRoster";
 import { Dialog } from "./Dialog";
 import { WinnerModal } from "./WinnerModal";
+import { DiscardPiles } from "./DiscardPiles";
 
 const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
   reaction: "Defender Hand", redirect: "Redirecting Hand", secondary: "Secondary Defense",
@@ -130,6 +131,8 @@ export function GameTable({ state, dispatch }: GameTableProps) {
           winner={winner}
           winnerTeamId={state.winnerTeamId}
           winnerTeamMembers={state.winnerTeamId ? getTeamMembers(state, state.winnerTeamId) : []}
+          round={state.round}
+          playerCount={state.players.length}
           dispatch={dispatch}
         />
       ) : null}
@@ -326,18 +329,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
       </section>
 
       {showDiscards && !privacyGateActive && !state.pendingEventDialog && (
-        <Dialog className="event-dialog-backdrop" label="Discard piles" onClose={() => setShowDiscards(false)}>
-          <section className="discard-piles-panel">
-            <button type="button" onClick={() => setShowDiscards(false)}>Close discard piles</button>
-            <h2>Discard piles</h2>
-            {([ ["Main deck", state.discardPile], ["Events", state.eventDiscardPile] ] as const).map(([label, cards]) => (
-              <section key={label}><h3>{label} ({cards.length})</h3>
-                <ol>{[...cards].reverse().map(card => <li key={card.instanceId}>{definitionFor(card)?.name ?? "Unknown card"}</li>)}</ol>
-                {!cards.length && <p>No discarded cards.</p>}
-              </section>
-            ))}
-          </section>
-        </Dialog>
+        <DiscardPiles main={state.discardPile} events={state.eventDiscardPile} onClose={() => setShowDiscards(false)} />
       )}
       {privacyGateActive && !state.pendingEventDialog && (
         <Dialog className="pass-device-gate" label={`Pass device to ${passDeviceContext!.playerName}`}>
@@ -498,7 +490,7 @@ export function getPlayableReactionCardIds(state: GameState, handDisplayPlayer: 
 function getDecisionText(state: GameState, currentPlayerName: string, displayPlayerName: string, winnerName?: string): string {
   const decision = getPlayerDecision(state);
   if (state.phase === "gameOver") {
-    return `${winnerName ?? "Nobody"} wins`;
+    return state.winnerTeamId ? `${labelTeam(state.winnerTeamId)} wins` : winnerName ? `${winnerName} wins` : "It's a tie";
   }
 
   if (decision?.kind === "reaction") {
@@ -557,21 +549,20 @@ function EventDialog({ state, dispatch }: GameTableProps) {
   }
 
   return (
-    <Dialog className="event-dialog-backdrop" label={`${definition.name} event`}>
-      <div className="event-dialog-panel">
-        <div className="event-dialog-card">
-          <CardView card={definition} mode="detail" />
+    <Dialog className="match-dialog event-dialog-backdrop" label={`${definition.name} event`}>
+      <section className="match-dialog__panel event-dialog-panel">
+        <header className="match-dialog__header"><div><Zap size={18} /><span>Event drawn</span></div><span className="match-dialog__meta">Round {state.round}</span></header>
+        <div className="match-dialog__body event-dialog-body">
+          <div className="event-dialog-card"><CardView card={definition} mode="detail" /></div>
+          <div className="event-dialog-copy">
+            <p className="match-dialog__kicker">{definition.timing === "thisRound" ? "This round" : definition.timing === "ongoing" ? "Ongoing" : "Immediate"}</p>
+            <h2>{definition.name}</h2>
+            {player && <p className="event-dialog-player">Drawn by {player.name}</p>}
+            <p className="event-dialog-rules">{definition.rulesText}</p>
+          </div>
         </div>
-        <div className="event-dialog-copy">
-          <p className="eyebrow">Event Drawn</p>
-          <h2>{definition.name}</h2>
-          <p>{player ? `${player.name} drew ${definition.name}.` : `${definition.name} was drawn.`}</p>
-          <p>{definition.rulesText}</p>
-          <button type="button" onClick={() => dispatch({ type: "ACKNOWLEDGE_EVENT_DIALOG" })}>
-            Acknowledge
-          </button>
-        </div>
-      </div>
+        <footer className="match-dialog__footer"><button className="match-dialog__primary" type="button" onClick={() => dispatch({ type: "ACKNOWLEDGE_EVENT_DIALOG" })}>Acknowledge <ArrowRight size={16} /></button></footer>
+      </section>
     </Dialog>
   );
 }
