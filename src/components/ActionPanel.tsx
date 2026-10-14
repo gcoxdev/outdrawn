@@ -38,6 +38,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
   const livingTargets = state.players.filter(
     (player) => !player.eliminated && isHostileTarget(currentPlayer, player) && !state.smokeProtectedPlayerIds.includes(player.id)
   );
+  const smokeProtectedTargets = state.players.filter(
+    (player) => !player.eliminated && isHostileTarget(currentPlayer, player) && state.smokeProtectedPlayerIds.includes(player.id)
+  );
   const teammateTargets = state.players.filter(
     (player) => !player.eliminated && player.id !== currentPlayer.id && currentPlayer.teamId && player.teamId === currentPlayer.teamId
   );
@@ -491,6 +494,12 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         )}
 
         <div className="action-panel__event-actions">
+          {(selectedIsWeapon || selectedIsTargetedAbility) && smokeProtectedTargets.length > 0 && (
+            <GameNotice className="target-protection-notice">
+              {smokeProtectedTargets.length === 1 ? `${smokeProtectedTargets[0].name} is` : `${smokeProtectedTargets.length} opponents are`} protected by Smoke Bomb until their next turn.
+              {livingTargets.length === 0 ? " No opponents can be targeted right now. Use remaining actions to draw or play cards that don’t target an opponent." : " Choose an unprotected opponent."}
+            </GameNotice>
+          )}
           {selectedIsWeapon && (
             <div className="attack-box">
               <h2>Attack</h2>

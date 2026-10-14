@@ -400,7 +400,9 @@ function resolveReactionDamage(
   }
 
   if (reactionDefinition.id === "defense_dodge" || reactionDefinition.id === "defense_smoke_bomb") {
-    return { ...baseResult, damage: 0, message: "{defender} avoided the attack." };
+    return { ...baseResult, damage: 0, message: reactionDefinition.id === "defense_smoke_bomb"
+      ? "{defender} avoided the attack and is protected by Smoke Bomb until their next turn."
+      : "{defender} avoided the attack." };
   }
 
   if (reactionDefinition.id === "defense_brace") {
