@@ -61,7 +61,8 @@ describe("Search ability", () => {
 
     state = gameReducer(state, { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: search.instanceId });
 
-    expect(state.pendingSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, knife.instanceId, shotgun.instanceId]);
+    expect(state.pendingSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shotgun.instanceId, knife.instanceId]);
+    expect(state.deckRandomState).not.toBe(0);
     expect(state.mainDeck).toHaveLength(0);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual([search.instanceId]);
   });

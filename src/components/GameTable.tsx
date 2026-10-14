@@ -17,6 +17,7 @@ import { PlayerRoster } from "./PlayerRoster";
 import { Dialog } from "./Dialog";
 import { WinnerModal } from "./WinnerModal";
 import { DiscardPiles } from "./DiscardPiles";
+import { CardPreview } from "./CardPreview";
 import { GameNotice } from "./GameNotice";
 
 const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
@@ -33,11 +34,20 @@ type GameTableProps = {
   state: GameState;
   dispatch: (action: GameAction) => void;
   saveFailed?: boolean;
+  paused?: boolean;
+  onPausedChange?: (paused: boolean) => void;
+  computerDelay?: number;
+  onComputerDelayChange?: (delay: number) => void;
+  onReferenceOpenChange?: (open: boolean) => void;
 };
 
 type MobileTab = "play" | "players" | "log";
 
-export function GameTable({ state, dispatch, saveFailed = false }: GameTableProps) {
+export function GameTable({ state, dispatch, saveFailed = false, paused = false, onPausedChange, computerDelay = 500, onComputerDelayChange, onReferenceOpenChange }: GameTableProps) {
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [resultDismissed, setResultDismissed] = useState(false);
+  useEffect(() => { if (state.phase !== "gameOver") setResultDismissed(false); }, [state.phase]);
   const [showDiscards, setShowDiscards] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("play");
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
@@ -66,6 +76,8 @@ export function GameTable({ state, dispatch, saveFailed = false }: GameTableProp
   const canUseTeamHandControls = teamHandViewers.length > 1 && shouldRevealDisplayHand;
   const isHandManuallyHidden = hiddenHandPlayerIds.has(handDisplayPlayer.id);
   const shouldShowDisplayHand = shouldRevealDisplayHand && !isHandManuallyHidden;
+  const previewCard = shouldShowDisplayHand ? handDisplayPlayer.hand.find(card => card.instanceId === previewId) : undefined;
+  useEffect(() => { onReferenceOpenChange?.(menuOpen || showDiscards || !!previewCard || activeMobileTab === "log"); return () => onReferenceOpenChange?.(false); }, [menuOpen, showDiscards, previewCard, activeMobileTab, onReferenceOpenChange]);
   const canSelectDisplayHand =
     shouldShowDisplayHand &&
     handDisplayPlayer.id === displayPlayer.id &&
@@ -129,8 +141,10 @@ export function GameTable({ state, dispatch, saveFailed = false }: GameTableProp
       {saveFailed && <GameNotice className="save-warning">This browser could not save the match. Keep this tab open to continue playing.</GameNotice>}
       {state.pendingEventDialog ? (
         <EventDialog state={state} dispatch={dispatch} />
-      ) : state.phase === "gameOver" ? (
+      ) : state.phase === "gameOver" && !resultDismissed ? (
         <WinnerModal
+          onClose={() => setResultDismissed(true)}
+          outcome={state.outcome}
           winner={winner}
           winnerTeamId={state.winnerTeamId}
           winnerTeamMembers={state.winnerTeamId ? getTeamMembers(state, state.winnerTeamId) : []}
@@ -142,7 +156,11 @@ export function GameTable({ state, dispatch, saveFailed = false }: GameTableProp
       <header className="match-header">
         <img src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" width="260" height="84" />
         <div className="match-header__status"><span>Round <strong>{state.round}</strong></span><span>{state.players.filter(player => !player.eliminated).length} alive</span></div>
-        <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} />
+        {state.phase === "action" && state.players.some(player => player.controller.type === "computer" && !player.eliminated) && <div className="computer-controls">
+          <button type="button" aria-pressed={paused} onClick={() => onPausedChange?.(!paused)}>{paused ? "Resume computers" : "Pause computers"}</button>
+          <select aria-label="Computer speed" value={computerDelay} onChange={event => onComputerDelayChange?.(Number(event.target.value))}><option value={1000}>Slow</option><option value={500}>Normal</option><option value={150}>Fast</option></select>
+        </div>}
+        <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} onOpenChange={setMenuOpen} />
       </header>
 
       <nav className="mobile-board-tabs" aria-label="Board sections">
@@ -306,6 +324,7 @@ export function GameTable({ state, dispatch, saveFailed = false }: GameTableProp
                             : undefined
                         }
                       />
+                      <button className="hand-inspect" type="button" aria-label={`View ${definition.name} card`} aria-haspopup="dialog" onClick={event => { event.currentTarget.focus(); setPreviewId(card.instanceId); }}>View card</button>
                     </div>
                   ) : null;
                 })
@@ -319,18 +338,24 @@ export function GameTable({ state, dispatch, saveFailed = false }: GameTableProp
             </div>
           </section>
 
-          <ActionPanel
+          {state.phase === "gameOver" ? <section className="action-panel finished-match">
+            <h2>Match complete</h2><p>{state.outcome?.description ?? "Review the result or start a new match."}</p>
+            <div className="action-row"><button type="button" onClick={() => setResultDismissed(false)}>View result</button><button type="button" onClick={() => { setActiveMobileTab("log"); document.querySelector(".game-log")?.scrollIntoView({ block: "nearest" }); }}>Review log</button><button type="button" onClick={() => setShowDiscards(true)}>Discards</button><button type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}>New Game</button></div>
+          </section> : <ActionPanel
             state={state}
             currentPlayer={currentPlayer}
             selectedCard={selectedDefinition ? selectedCard : null}
             selectedDiscardCards={selectedDiscardCards}
             discardRequirement={handDiscardRequirement}
             isComputerDecision={isComputerDecision || privacyGateActive}
+            isComputerPaused={paused}
             dispatch={dispatch}
-          />
+          />}
         </section>
       </section>
 
+      <span className="sr-only" role="status" aria-live="polite">{state.phase === "gameOver" ? "Match complete" : `${displayPlayer.name}: ${decision ? handLabels[decision.kind] : "turn"}`}</span>
+      {previewId && shouldShowDisplayHand && handDisplayPlayer.hand.some(card => card.instanceId === previewId) && <CardPreview card={definitionFor(handDisplayPlayer.hand.find(card => card.instanceId === previewId)!)!} onClose={() => setPreviewId(null)} />}
       {showDiscards && !privacyGateActive && !state.pendingEventDialog && (
         <DiscardPiles main={state.discardPile} events={state.eventDiscardPile} onClose={() => setShowDiscards(false)} />
       )}

@@ -57,11 +57,11 @@ try {
       await page.setViewportSize({ width, height });
       await load("search");
       const before = await saved();
-      await button("View Pistol card").click();
+      await page.getByRole("list", { name: "Available cards" }).getByRole("button", { name: "View Pistol card", exact: true }).click();
       await page.getByRole("dialog", { name: "Pistol card preview" }).waitFor();
       assert.deepEqual(await saved(), before, "Preview must not choose a card");
       await page.keyboard.press("Escape");
-      assert(await button("View Pistol card").evaluate(element => element === document.activeElement));
+      assert(await page.getByRole("list", { name: "Available cards" }).getByRole("button", { name: "View Pistol card", exact: true }).evaluate(element => element === document.activeElement));
       await fits();
       await screenshot("search", width);
       await button("Keep Pistol").click();

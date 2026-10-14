@@ -196,7 +196,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 3,
     icons: ["damage", "spray"],
     shortText: "Allocate 6 damage among opponents.",
-    rulesText: "Allocate 6 damage among any opponents, max 3 per opponent. Each chosen opponent may defend once against their assigned damage.",
+    rulesText: "Allocate 6 damage among any opponents, max 3 per opponent. Each chosen opponent may defend once only when secondary defense is enabled.",
     flavorText: "Nobody gets to ignore that sound.",
     tags: ["weapon", "area", "all-opponents"]
   },
@@ -280,8 +280,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "cancel", "stealth"],
-    shortText: "Cancel damage and become untargetable.",
-    rulesText: "Cancel damage to yourself from one attack. Until your next turn, attacks and targeted abilities cannot choose you. Splash and event damage still affect you.",
+    shortText: "Cancel this hit; prevent direct targeting until your next turn.",
+    rulesText: "Cancel damage to yourself from one attack. Until your next turn, attacks and targeted abilities cannot choose you. Splash, event damage, and Ricochet redirects still affect you.",
     flavorText: "A cloud of smoke can be a wall.",
     tags: ["defense", "reaction", "cancel", "stealth"]
   },
@@ -297,7 +297,7 @@ export const mainDeckCards: Card[] = [
     isReaction: true,
     icons: ["reaction", "redirect"],
     shortText: "Redirect an attack to another player.",
-    rulesText: "Redirect an attack targeting you to another valid player other than the attacker.",
+    rulesText: "Redirect this hit to another living opponent other than the attacker, including a smoke-protected opponent. They may defend only when secondary defense is enabled; Ricochet cannot be chained.",
     flavorText: "Wrong angle. Worse outcome.",
     tags: ["defense", "reaction", "redirect"]
   },
@@ -472,7 +472,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["control", "discard"],
     shortText: "Target must discard 1 to attack you before your next turn.",
-    rulesText: "Choose one player. Until your next turn, that player cannot attack you unless they discard 1 card first.",
+    rulesText: "Choose one player. Until your next turn, that player must discard 1 other card before a single-target weapon attack against you. Pay once for SMG; Minigun bypasses this cost.",
     flavorText: "Fear is a resource too.",
     tags: ["ability", "control", "deterrent"]
   },

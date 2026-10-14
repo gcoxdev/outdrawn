@@ -53,7 +53,7 @@ function summarizeScenario(scenario: Scenario, strategyLabel: string, strategies
     settings: scenario.settings,
     playerCount: scenario.playerCount
   });
-  const totalPressure = summary.observed.attackDamage + summary.observed.eventDamage + summary.observed.selfDamage;
+  const totalPressure = summary.observed.attackDamage + summary.observed.eventDamage + summary.observed.collapseDamage + summary.observed.selfDamage;
   const totalSurvival = summary.observed.healing + summary.observed.preventedAttackDamage;
   const winnerStrategyWins = Object.fromEntries(
     Object.entries(summary.winnerStrategies).sort((left, right) => strategyRank(left[0]) - strategyRank(right[0]))
@@ -71,6 +71,7 @@ function summarizeScenario(scenario: Scenario, strategyLabel: string, strategies
     trueTies: summary.winners.none ?? 0,
     pressureToSurvival: round(totalSurvival > 0 ? totalPressure / totalSurvival : totalPressure),
     attackDamagePerGame: round(summary.observed.attackDamage / summary.gamesPlayed),
+    collapseDamagePerGame: round(summary.observed.collapseDamage / summary.gamesPlayed),
     eventDamagePerGame: round(summary.observed.eventDamage / summary.gamesPlayed),
     healingPreventedPerGame: round(totalSurvival / summary.gamesPlayed),
     attacksPerGame: round(summary.observed.attackCardsPlayed / summary.gamesPlayed),

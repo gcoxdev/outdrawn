@@ -1,5 +1,6 @@
+import "./PlayerRoster.css";
 import { Activity, Bot, Copy, Heart, User } from "lucide-react";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
 import { labelTeam } from "../game/rules";
 import { getTeamColor } from "../game/setupOptions";
@@ -13,6 +14,19 @@ type PlayerRosterProps = {
 };
 
 export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, displayPlayerId }: PlayerRosterProps) {
+  const [query, setQuery] = useState("");
+  const [group, setGroup] = useState("");
+  const [jumpPending, setJumpPending] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const teams = [...new Set(state.players.map(player => player.teamId).filter(Boolean))] as string[];
+  const visiblePlayers = state.players.filter(player => player.name.toLowerCase().includes(query.trim().toLowerCase()) && (!group || (group === "living" ? !player.eliminated : player.teamId === group)));
+  useEffect(() => {
+    if (!jumpPending) return;
+    const active = listRef.current?.querySelector<HTMLElement>(".is-decision");
+    active?.scrollIntoView({ block: "nearest" });
+    active?.focus({ preventScroll: true });
+    setJumpPending(false);
+  }, [jumpPending]);
   const aliveCount = useMemo(() => state.players.reduce((count, player) => count + (player.eliminated ? 0 : 1), 0), [state.players]);
   const smokeProtectedPlayerIds = useMemo(() => new Set(state.smokeProtectedPlayerIds), [state.smokeProtectedPlayerIds]);
   const compactRoster = state.players.length > 24;
@@ -26,8 +40,14 @@ export function PlayerRoster({ state, currentPlayerId, decisionPlayerId, display
         </div>
         <strong>{aliveCount} alive</strong>
       </div>
-      <div className="player-roster__list">
-        {state.players.map((player) => (
+      <div className="roster-filters">
+        <input aria-label="Search players" placeholder="Find a player…" value={query} onChange={event => setQuery(event.target.value)} />
+        <select aria-label="Player group" value={group} onChange={event => setGroup(event.target.value)}><option value="">All players</option><option value="living">Living players</option>{teams.map(team => <option key={team} value={team}>{labelTeam(team)}</option>)}</select>
+        <button type="button" onClick={() => { setQuery(""); setGroup(""); setJumpPending(true); }}>Find active player</button>
+      </div>
+      <div className="player-roster__list" ref={listRef}>
+        {visiblePlayers.length === 0 && <p className="log-empty">No players match.</p>}
+        {visiblePlayers.map((player) => (
           <PlayerRosterCard
             key={player.id}
             player={player}
@@ -81,6 +101,8 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
       ]
         .filter(Boolean)
         .join(" ")}
+      tabIndex={-1}
+      data-player-id={player.id}
       data-team-id={player.teamId}
       style={getTeamStyle(player)}
     >
@@ -114,7 +136,7 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
         </div>
       </div>
       <div className="player-roster-card__chips">
-        {player.teamId && !compactRoster && <span>{labelTeam(player.teamId)}</span>}
+        {player.teamId && <span>{labelTeam(player.teamId)}</span>}
         {isDecision && <span>Decision</span>}
         {isCurrent && <span>Turn</span>}
         {isSmokeProtected && !compactRoster && <span>Smoke</span>}

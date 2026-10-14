@@ -42,11 +42,13 @@ export function drawCards(deck: CardInstance[], count: number) {
 export function drawCardsWithRefill(
   mainDeck: CardInstance[],
   discardPile: CardInstance[],
-  count: number
+  count: number,
+  randomState = 0x6d2b79f5
 ): {
   drawn: CardInstance[];
   mainDeck: CardInstance[];
   discardPile: CardInstance[];
+  deckRandomState: number;
 } {
   const drawn: CardInstance[] = [];
   let deck = mainDeck;
@@ -54,7 +56,12 @@ export function drawCardsWithRefill(
 
   while (drawn.length < count && (deck.length > 0 || discard.length > 0)) {
     if (deck.length === 0) {
-      deck = discard;
+      // Advance only when shuffling. Keeping the generator state in the match
+      // makes repeated reducer calls and save/resume produce identical draws.
+      deck = shuffleDeck(discard, () => {
+        randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+        return randomState / 0x100000000;
+      });
       discard = [];
     }
 
@@ -66,6 +73,7 @@ export function drawCardsWithRefill(
   return {
     drawn,
     mainDeck: deck,
-    discardPile: discard
+    discardPile: discard,
+    deckRandomState: randomState
   };
 }

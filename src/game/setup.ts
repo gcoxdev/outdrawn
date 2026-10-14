@@ -18,7 +18,7 @@ export function createNewGame(
     throw new Error(`Outdrawn requires ${MIN_PLAYERS} to ${MAX_PLAYERS} players.`);
   }
 
-  let mainDeck = shuffleDeck(createScaledDeckForInitialHands(playerSetups.length, settings.startingHandSize), random);
+  let mainDeck = createScaledDeckForInitialHands(playerSetups.length, settings.startingHandSize, random);
   const players: PlayerState[] = playerSetups.map((setup, index) => {
     const draw = drawCards(mainDeck, settings.startingHandSize);
     mainDeck = draw.deck;
@@ -50,6 +50,7 @@ export function createNewGame(
     currentPlayerIndex: firstPlayerIndex,
     firstPlayerIndex,
     mainDeck,
+    deckRandomState: Math.floor(random() * 0x100000000) >>> 0,
     eventDeck: [],
     discardPile: [],
     eventDiscardPile: [],
@@ -75,6 +76,7 @@ export function createNewGame(
     log: [
       {
         id: "log_setup",
+        participantIds: [players[firstPlayerIndex].id],
         round: 1,
         message: `${playerSetups[firstPlayerIndex].name} takes the first turn.`,
         debugHandSnapshots,
@@ -86,14 +88,17 @@ export function createNewGame(
   };
 }
 
-function createScaledDeckForInitialHands(playerCount: number, startingHandSize: number) {
+// Keep the four-player opening draw mix at every table size. Only the
+// starting-hand supply grows; global event copies remain fixed.
+export const OPENING_DRAW_RESERVE = 65;
+function createScaledDeckForInitialHands(playerCount: number, startingHandSize: number, random: () => number) {
   const baseDeck = expandDeck(mainDeckCards, "main");
-  const requiredCards = playerCount * startingHandSize;
-  const copies = Math.max(1, Math.ceil(requiredCards / baseDeck.length));
-
-  return Array.from({ length: copies }).flatMap((_, copyIndex) =>
+  const requiredCards = playerCount * startingHandSize + OPENING_DRAW_RESERVE;
+  const copies = Math.ceil(requiredCards / baseDeck.length);
+  const pool = Array.from({ length: copies }).flatMap((_, copyIndex) =>
     expandDeck(mainDeckCards, copyIndex === 0 ? "main" : `main${copyIndex + 1}`)
   );
+  return shuffleDeck(pool, random).slice(0, requiredCards);
 }
 
 function normalizePlayerSetups(playerInputs: string[] | PlayerSetup[]): PlayerSetup[] {

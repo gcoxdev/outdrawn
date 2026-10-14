@@ -1,3 +1,4 @@
+import { recordEffects, recordCombatEffects } from "./effects";
 import { allCards } from "../data/cards";
 import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState, SecondaryDamageSource } from "./types";
 import { areTeammates, getCardDefinitionById, getWinner, getWinningTeamId, labelTeam } from "./rules";
@@ -66,6 +67,8 @@ export function resolveAttack(
   const attackerHealthAfterCounter = Math.max(0, attacker.health - appliedCounterDamage);
   const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, attackerEliminations, state);
   const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
+  state = recordCombatEffects(state, attacker, target, weapon.definitionId, baseDamage, damage, reviveResult?.health, appliedCounterDamage, attackerRewardedHealth - attackerHealthAfterCounter, defenderRewardedHealth - nextHealth, "attack", reaction?.definitionId);
+  state = recordEffects(state, ...splashTargets.map(player => ({ kind: "damage" as const, source: "splash" as const, cardDefinitionId: weapon.definitionId, sourcePlayerId: attacker.id, playerId: player.id, amount: Math.min(player.health, weaponDefinition.splashDamage ?? 0) })));
   const revivedDiscardedCards = reviveResult?.discardedCards ?? [];
   const targetHandAfterReaction = reviveResult
     ? []
@@ -156,10 +159,11 @@ export function resolveAttack(
   }
 
   if (shouldRewardBounty(state, target, damage)) {
-    const bountyDraw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
+    const bountyDraw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1, nextState.deckRandomState);
     nextState = {
       ...nextState,
       mainDeck: bountyDraw.mainDeck,
+      deckRandomState: bountyDraw.deckRandomState,
       discardPile: bountyDraw.discardPile,
       players: nextState.players.map((player) =>
         player.id === attacker.id
@@ -236,6 +240,7 @@ export function resolveSecondaryDamage(
   const attackerHealthAfterCounter = Math.max(0, attacker.health - appliedCounterDamage);
   const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, eliminated ? 1 : 0, state);
   const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
+  state = recordCombatEffects(state, attacker, defender, source === "counterattack" ? "defense_counterattack" : source === "backfire" ? "defense_backfire" : weapon.definitionId, baseDamage, damage, reviveResult?.health, appliedCounterDamage, attackerRewardedHealth - attackerHealthAfterCounter, defenderRewardedHealth - nextHealth, source, reaction?.definitionId);
   const discardedByReaction = reviveResult?.discardedCards ?? [];
   const defenderHandAfterReaction = reviveResult
     ? []
@@ -535,8 +540,9 @@ export function resolveHealing(
   const draw = definition.draw ?? 0;
   const actionsCost = definition.actionsCost ?? 1;
   const nextHealth = Math.min(state.settings.maxHealth, target.health + heal);
-  const deckDraw = drawCardsWithRefill(state.mainDeck, state.discardPile, draw);
+  const deckDraw = drawCardsWithRefill(state.mainDeck, state.discardPile, draw, state.deckRandomState);
   const healedAmount = nextHealth - target.health;
+  state = recordEffects(state, { kind: "healing", source: "healing", cardDefinitionId: card.definitionId, sourcePlayerId: player.id, playerId: target.id, amount: healedAmount });
   const messages = [
     player.id === target.id
       ? `${player.name} played ${definition.name} and healed ${healedAmount}.`
@@ -547,6 +553,7 @@ export function resolveHealing(
     state: {
       ...state,
       mainDeck: deckDraw.mainDeck,
+      deckRandomState: deckDraw.deckRandomState,
       discardPile: [...deckDraw.discardPile, card],
       players: state.players.map((candidate) =>
         candidate.id === player.id

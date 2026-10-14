@@ -44,10 +44,10 @@ function estimatedSurvivalValue() {
 }
 
 function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number; maxTargets?: number }) {
-  return (card.damage ?? 0) + (card.splashDamage ?? 0);
+  return (card.damage ?? 0) * (card.id === "weapon_smg" ? 2 : 1) + (card.splashDamage ?? 0);
 }
 
-describe("starter deck balance", () => {
+describe("coarse starter deck composition", () => {
   it("leans toward damage without making survival cards irrelevant", () => {
     const pressure = totalWeaponDamage() + totalDamageSupport();
     const survival = estimatedSurvivalValue();

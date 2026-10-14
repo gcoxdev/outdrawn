@@ -99,7 +99,7 @@ try {
     assert(await button("Close discard piles").evaluate(element => element.getBoundingClientRect().top >= 0));
     await fits();
     await load("winner");
-    await button("New Game").click();
+    await page.getByRole("dialog", { name: "Game winner" }).getByRole("button", { name: "New Game", exact: true }).click();
     assert.equal((await saved()).phase, "action");
     assert.equal((await saved()).round, 1);
     assert.deepEqual(errors, []);

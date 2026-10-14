@@ -18,10 +18,11 @@ type ActionPanelProps = {
   selectedDiscardCards: CardInstance[];
   discardRequirement: HandDiscardRequirement | null;
   isComputerDecision: boolean;
+  isComputerPaused?: boolean;
   dispatch: (action: GameAction) => void;
 };
 
-export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscardCards, discardRequirement, isComputerDecision, dispatch }: ActionPanelProps) {
+export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscardCards, discardRequirement, isComputerDecision, isComputerPaused = false, dispatch }: ActionPanelProps) {
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
   const selectedIsWeapon = selectedDefinition?.type === "weapon";
@@ -43,6 +44,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
   const canAct = canPlayerAct(state, currentPlayer.id);
   const canDraw = canPlayerDraw(state, currentPlayer.id);
   const canEndTurn = canPlayerEndTurn(state, currentPlayer.id);
+  const drawUnavailableReason = state.mainDeck.length === 0 && state.discardPile.length === 0 ? "No cards remain to draw." : !canDraw ? "No actions or free draws remain." : "";
   const activeReaction = state.pendingReaction ?? state.pendingSecondaryDamage;
   const pendingDefender = activeReaction ? getPlayer(state, activeReaction.defenderId) : undefined;
   const pendingAttacker = activeReaction ? getPlayer(state, activeReaction.attackerId) : undefined;
@@ -93,8 +95,8 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
     return (
       <section className="action-panel ai-thinking-panel">
         <p className="eyebrow">Computer</p>
-        <h2>{decisionPlayer.name} is choosing</h2>
-        <p>The computer is resolving this decision. Hidden cards stay face down.</p>
+        <h2>{isComputerPaused ? "Computers paused" : `${decisionPlayer.name} is choosing`}</h2>
+        <p>{isComputerPaused ? "Resume computers when you’re ready to continue." : "The computer is resolving this decision. Hidden cards stay face down."}</p>
       </section>
     );
   }
@@ -122,6 +124,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           </p>
           <p>Select a defense card from your hand above, or take the hit.</p>
         </div>
+        {selectedReactionDefinition && <div className="reaction-rules"><h3>{selectedReactionDefinition.name}</h3><p>{selectedReactionDefinition.rulesText}</p></div>}
         <div className="action-row">
           <button
             disabled={!selectedReactionCard}
@@ -385,9 +388,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           <button
             className="turn-draw"
             disabled={!canDraw || (state.mainDeck.length === 0 && state.discardPile.length === 0)}
-            onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
+            title={drawUnavailableReason || (currentPlayer.freeDrawsRemaining > 0 ? "Uses one free draw" : "Costs one action")}
+            aria-label="Draw" onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
           >
-            <CopyPlus size={16} /> Draw
+            <CopyPlus size={16} /> Draw<span className="command-cost">{currentPlayer.freeDrawsRemaining > 0 ? "Free" : "1 action"}</span>
           </button>
           <button disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
             <SkipForward size={16} /> Pass
@@ -434,6 +438,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
             <div>
               <h2>{selectedDefinition.name}</h2>
               <p>{selectedDefinition.rulesText}</p>
+              <p className="action-cost">{currentPlayer.actionsRemaining < (selectedDefinition.actionsCost ?? 1) && selectedDefinition.type !== "defense" ? "Not enough actions. " : ""}{selectedDefinition.type === "defense" || selectedDefinition.isLethalDefense ? "Play in an eligible defense window." : `${selectedDefinition.actionsCost ?? 1} action${(selectedDefinition.actionsCost ?? 1) === 1 ? "" : "s"} to play`}{selectedDefinition.type === "healing" && !selectedDefinition.draw && currentPlayer.health >= state.settings.maxHealth ? " · You are at full health; choose an injured teammate if team healing is enabled." : ""}</p>
             </div>
             <div className="selected-action-box__commands">
               {selectedDefinition.type === "healing" && (

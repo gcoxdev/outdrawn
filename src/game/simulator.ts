@@ -21,6 +21,7 @@ export type SimulationSummary = {
   observed: {
     attackDamage: number;
     eventDamage: number;
+    collapseDamage: number;
     selfDamage: number;
     healing: number;
     preventedAttackDamage: number;
@@ -41,10 +42,16 @@ export type SimulationSummary = {
   issues: Record<string, number>;
 };
 
+type CardMetrics = { exposures: number; decisionExposures: number; plays: number; damage: number; healing: number; prevention: number; winningPlayerExposures: number; actionsSpent: number; targetsDamaged: number };
 type SimulationMetrics = {
+  decisions: number;
+  cards: Record<string, CardMetrics>;
+  eliminatedAtDecision: Record<string, number>;
+  waitingDecisions: Record<string, number>;
   turns: number;
   attackDamage: number;
   eventDamage: number;
+  collapseDamage: number;
   selfDamage: number;
   healing: number;
   preventedAttackDamage: number;
@@ -70,6 +77,7 @@ export type SimulationOptions = {
   playerCount?: number;
   playerNames?: string[];
   strict?: boolean;
+  teams?: string[];
 };
 
 export function simulateGames(
@@ -88,6 +96,7 @@ export function simulateGames(
     (total, metrics) => ({
       attackDamage: total.attackDamage + metrics.attackDamage,
       eventDamage: total.eventDamage + metrics.eventDamage,
+      collapseDamage: total.collapseDamage + metrics.collapseDamage,
       selfDamage: total.selfDamage + metrics.selfDamage,
       healing: total.healing + metrics.healing,
       preventedAttackDamage: total.preventedAttackDamage + metrics.preventedAttackDamage,
@@ -100,6 +109,7 @@ export function simulateGames(
     {
       attackDamage: 0,
       eventDamage: 0,
+      collapseDamage: 0,
       selfDamage: 0,
       healing: 0,
       preventedAttackDamage: 0,
@@ -145,6 +155,7 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
   let state = createNewGame(
     simulationPlayerNames.map((name, index) => ({
       name,
+      teamId: options.teams?.[index],
       controller: {
         type: "computer",
         strategy: normalizedStrategies[index]
@@ -154,9 +165,11 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     options.settings ? { ...defaultGameSettings, ...options.settings } : undefined
   );
   const metrics: SimulationMetrics = {
+    decisions: 0, cards: {}, eliminatedAtDecision: {}, waitingDecisions: {},
     turns: 0,
     attackDamage: 0,
     eventDamage: 0,
+    collapseDamage: 0,
     selfDamage: 0,
     healing: 0,
     preventedAttackDamage: 0,
@@ -167,6 +180,12 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     eventCardsResolved: 0,
     issues: {}
   };
+  const exposures = new Map<string, { definitionId: string; playerId: string }>();
+  const observeHands = () => state.players.forEach(player => player.hand.forEach(card => {
+    const key = `${player.id}:${card.instanceId}`;
+    if (!exposures.has(key)) { exposures.set(key, { definitionId: card.definitionId, playerId: player.id }); cardMetric(metrics, card.definitionId).exposures++; }
+  }));
+  observeHands();
   const initialCards = ownedCards(state).map(card => card.instanceId).sort();
   let safety = 0;
   const maxSteps = Math.max(1200, simulationPlayerNames.length * 75);
@@ -175,9 +194,13 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     const before = state;
     const decisionPlayerId = getDecisionPlayerId(state);
     const decisionPlayerIndex = state.players.findIndex((player) => player.id === decisionPlayerId);
+    getPlayer(state, decisionPlayerId)!.hand.forEach(card => { cardMetric(metrics, card.definitionId).decisionExposures++; });
     const action = chooseAutomatedAction(state, normalizedStrategies[Math.max(0, decisionPlayerIndex)], random);
     state = dispatchWithMetrics(state, action, metrics);
     safety += 1;
+    metrics.decisions++;
+    observeHands();
+    state.players.forEach((player, index) => { if (player.eliminated && !before.players[index].eliminated) metrics.eliminatedAtDecision[player.id] = metrics.decisions; });
 
     if (action.type === "END_TURN") {
       metrics.turns += 1;
@@ -186,9 +209,13 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     collectStateIssues(state, metrics);
     if (options.strict) {
       const issues = getStateIssues(state);
+      for (const player of state.players) {
+        const delta = (state.resolvedEffects ?? []).filter(effect => effect.playerId === player.id).reduce((total, effect) => total + (effect.kind === "damage" ? -effect.amount : effect.kind === "healing" ? effect.amount : 0), 0);
+        if (player.health - getPlayer(before, player.id)!.health !== delta) issues.push(`unaccounted health effect for ${player.id}`);
+      }
       const ids = ownedCards(state).map(card => card.instanceId).sort();
       if (ids.length !== initialCards.length || ids.some((id, index) => id !== initialCards[index])) issues.push("card ownership changed");
-      if (Object.keys(state).filter(key => key !== "log").every(key => state[key as keyof GameState] === before[key as keyof GameState])) issues.push(`rejected action ${action.type}`);
+      if (Object.keys(state).filter(key => key !== "log" && key !== "resolvedEffects").every(key => state[key as keyof GameState] === before[key as keyof GameState])) issues.push(`rejected action ${action.type}`);
       if (issues.length) throw new Error(`Seed ${seed}, step ${safety}, ${action.type}: ${issues.join(", ")}`);
     }
 
@@ -203,6 +230,11 @@ export function simulateGame(seed: number, strategies: StrategyLevel[] = default
     addIssue(metrics, "game exceeded simulation step cap");
   }
 
+  for (const [id, decision] of Object.entries(metrics.eliminatedAtDecision)) metrics.waitingDecisions[id] = metrics.decisions - decision;
+  for (const exposure of exposures.values()) {
+    const player = getPlayer(state, exposure.playerId)!;
+    if (player.id === state.winnerId || (state.winnerTeamId && player.teamId === state.winnerTeamId)) cardMetric(metrics, exposure.definitionId).winningPlayerExposures++;
+  }
   return { state, metrics, stalled };
 }
 
@@ -214,6 +246,8 @@ export function getBotObservation(state: GameState): GameState {
     ...state,
     players: state.players.map(player => player.id === actorId ? player : { ...player, hand: hidden(player.hand) }),
     mainDeck: hidden(state.mainDeck),
+    deckRandomState: undefined,
+    resolvedEffects: undefined,
     eventDeck: hidden(state.eventDeck),
     log: [],
     selectedCardId: null,
@@ -293,6 +327,19 @@ function chooseObservedAction(state: GameState, strategy: StrategyLevel, random:
     }
 
     return { type: "END_TURN", playerId: player.id };
+  }
+
+  // Cooperate using public health and hand counts only; never inspect an ally's cards.
+  const allies = state.players.filter(ally => !ally.eliminated && ally.id !== player.id && player.teamId && ally.teamId === player.teamId);
+  const woundedAlly = allies.filter(ally => ally.health < player.health && ally.health <= state.settings.maxHealth / 2).sort((a, b) => a.health - b.health)[0];
+  const allyHeal = player.hand.find(card => { const definition = getCardDefinitionById(card.definitionId); return definition?.type === "healing" && !definition.isLethalDefense && (definition.heal ?? 0) > 0 && player.actionsRemaining >= (definition.actionsCost ?? 1); });
+  if (state.settings.allowTeamHealing && woundedAlly && allyHeal) {
+    return { type: "PLAY_HEALING", playerId: player.id, targetPlayerId: woundedAlly.id, cardInstanceId: allyHeal.instanceId };
+  }
+  const emptyAlly = allies.find(ally => ally.hand.length === 0);
+  const weapons = player.hand.filter(card => getCardDefinitionById(card.definitionId)?.type === "weapon");
+  if (state.settings.allowTeamCardTransfer && emptyAlly && weapons.length > 1) {
+    return { type: "TRANSFER_CARD", playerId: player.id, targetPlayerId: emptyAlly.id, cardInstanceId: weapons[weapons.length - 1].instanceId };
   }
 
   if (strategy === "expert" || strategy === "master") {
@@ -636,20 +683,25 @@ function chooseMinigunAllocation(
 }
 
 function dispatchWithMetrics(state: GameState, action: GameAction, metrics: SimulationMetrics): GameState {
-  const beforeHealth = new Map(state.players.map((player) => [player.id, player.health]));
-  const reaction = state.pendingReaction ?? state.pendingSecondaryDamage;
-  const pendingBaseDamage = reaction?.baseDamage ?? 0;
-  const beforeRound = state.round;
   const beforeEventCount = state.resolvedEventCount ?? 0;
   const next = gameReducer(state, action);
-  const healthDelta = next.players.reduce(
-    (total, player) => total + Math.max(0, (beforeHealth.get(player.id) ?? player.health) - player.health),
-    0
-  );
-  const healingDelta = next.players.reduce(
-    (total, player) => total + Math.max(0, player.health - (beforeHealth.get(player.id) ?? player.health)),
-    0
-  );
+  if (next === state) return state;
+  const playedId = "weaponInstanceId" in action ? action.weaponInstanceId : "reactionCardInstanceId" in action ? action.reactionCardInstanceId : ["PLAY_HEALING", "PLAY_ABILITY"].includes(action.type) && "cardInstanceId" in action ? action.cardInstanceId : undefined;
+  const playedCard = state.players.flatMap(player => player.hand).find(card => card.instanceId === playedId);
+  if (playedCard) {
+    const card = cardMetric(metrics, playedCard.definitionId);
+    card.plays++;
+    card.actionsSpent += state.players.reduce((sum, player, index) => sum + Math.max(0, player.actionsRemaining - next.players[index].actionsRemaining), 0);
+  }
+  for (const effect of next.resolvedEffects ?? []) {
+    if (effect.cardDefinitionId) { const card = cardMetric(metrics, effect.cardDefinitionId); card[effect.kind] += effect.amount; if (effect.kind === "damage") card.targetsDamaged++; }
+    if (effect.kind === "healing") metrics.healing += effect.amount;
+    else if (effect.kind === "prevention") metrics.preventedAttackDamage += effect.amount;
+    else if (effect.source === "event") metrics.eventDamage += effect.amount;
+    else if (effect.source === "collapse") metrics.collapseDamage += effect.amount;
+    else if (effect.source === "market" || effect.source === "ability") metrics.selfDamage += effect.amount;
+    else metrics.attackDamage += effect.amount;
+  }
 
   if (action.type === "PLAY_REACTION" || action.type === "PLAY_SECONDARY_REACTION") {
     metrics.defenseCardsPlayed += next !== state ? 1 : 0;
@@ -657,7 +709,6 @@ function dispatchWithMetrics(state: GameState, action: GameAction, metrics: Simu
 
   if (action.type === "PLAY_HEALING") {
     metrics.healingCardsPlayed += next !== state ? 1 : 0;
-    metrics.healing += healingDelta;
   }
 
   if (action.type === "PLAY_ABILITY") {
@@ -666,17 +717,6 @@ function dispatchWithMetrics(state: GameState, action: GameAction, metrics: Simu
 
   if (action.type === "ATTACK") {
     metrics.attackCardsPlayed += next !== state ? 1 : 0;
-  }
-
-  if (["ATTACK", "SKIP_REACTION", "PLAY_REACTION", "RESOLVE_PENDING_REDIRECT", "SKIP_SECONDARY_REACTION", "PLAY_SECONDARY_REACTION"].includes(action.type)) {
-    metrics.attackDamage += healthDelta;
-    const defender = next.players.find(player => player.id === reaction?.defenderId);
-    const defenderDamage = defender ? Math.max(0, (beforeHealth.get(defender.id) ?? defender.health) - defender.health) : 0;
-    metrics.preventedAttackDamage += Math.max(0, pendingBaseDamage - defenderDamage);
-  } else if ((action.type === "END_TURN" && (next.round > beforeRound || next.phase === "gameOver")) || (next.resolvedEventCount ?? 0) > beforeEventCount) {
-    metrics.eventDamage += healthDelta;
-  } else if (action.type === "PLAY_ABILITY") {
-    metrics.selfDamage += healthDelta;
   }
 
   metrics.eventCardsResolved += Math.max(0, (next.resolvedEventCount ?? 0) - beforeEventCount);
@@ -1007,7 +1047,7 @@ function getDeckBalance() {
 }
 
 function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }): number {
-  return (card.damage ?? 0) + (card.splashDamage ?? 0);
+  return (card.damage ?? 0) * (card.id === "weapon_smg" ? 2 : 1) + (card.splashDamage ?? 0);
 }
 
 function addIssue(metrics: SimulationMetrics, issue: string) {
@@ -1031,4 +1071,8 @@ function createRng(seed: number): () => number {
     state = (state * 1664525 + 1013904223) >>> 0;
     return state / 0x100000000;
   };
+}
+
+function cardMetric(metrics: SimulationMetrics, id: string): CardMetrics {
+  return metrics.cards[id] ??= { exposures: 0, decisionExposures: 0, plays: 0, damage: 0, healing: 0, prevention: 0, winningPlayerExposures: 0, actionsSpent: 0, targetsDamaged: 0 };
 }

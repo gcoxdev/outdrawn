@@ -54,6 +54,8 @@ export type PendingEventDialog = {
 };
 
 export type LogEntry = {
+  /** Participants in the resolved action, independent of display names. */
+  participantIds?: PlayerId[];
   id: string;
   round: number;
   message: string;
@@ -164,7 +166,21 @@ export type DrawContinuation = {
   playedCard?: CardInstance;
 };
 
+export type MatchOutcome = { kind: "survivor" | "team" | "tiebreak" | "tie"; description: string };
+
+export type ResolvedEffect = {
+  kind: "damage" | "healing" | "prevention";
+  source: "attack" | "splash" | "ricochet" | "minigun" | "counterattack" | "backfire" | "event" | "collapse" | "ability" | "market" | "healing" | "revive" | "eliminationReward";
+  playerId: PlayerId;
+  sourcePlayerId?: PlayerId;
+  cardDefinitionId?: string;
+  amount: number;
+};
+
 export type GameState = {
+  /** Only the most recently accepted action; omitted from saves and bot observations. */
+  resolvedEffects?: ResolvedEffect[];
+  outcome?: MatchOutcome;
   phase: GamePhase;
   settings: GameSettings;
   round: number;
@@ -172,6 +188,8 @@ export type GameState = {
   currentPlayerIndex: number;
   firstPlayerIndex: number;
   mainDeck: CardInstance[];
+  /** Optional for legacy saves; persists the next discard-refill shuffle. */
+  deckRandomState?: number;
   eventDeck: CardInstance[];
   discardPile: CardInstance[];
   eventDiscardPile: CardInstance[];

@@ -1,0 +1,10 @@
+.roster-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; }
+.roster-filters input { width: 100%; min-width: 0; }
+.roster-filters select { flex: 1; min-width: 0; }
+.roster-filters :is(input,select,button) { min-height: 36px; border: 1px solid #414651; border-radius: 6px; background: #191d25; color: #dce0e6; padding: 6px 8px; font-size: 12px; }
+.player-roster-card:focus-visible { outline: 2px solid #e8b566; outline-offset: -2px; }
+
+@media (max-width: 760px) {
+  .roster-filters :is(input, select, button) { min-height: 44px; }
+  .roster-filters :is(input, select) { font-size: 16px; }
+}

@@ -14,6 +14,7 @@ function hiddenAlternative(state: GameState) {
   const actor = getDecisionPlayerId(state);
   return { ...state,
     players: state.players.map(p => p.id === actor ? p : { ...p, hand: p.hand.map(c => ({ ...c, definitionId: "defense_dodge" })) }),
+    deckRandomState: 987654321,
     mainDeck: state.mainDeck.map(c => ({ ...c, definitionId: "healing_bandage" })),
     log: state.log.map(entry => ({ ...entry, message: "Secret information changed" }))
   };
@@ -42,6 +43,7 @@ describe("bot information boundaries", () => {
     expect(view.players[0].hand.every(c => c.definitionId === "unknown")).toBe(true);
     expect(view.mainDeck.every(c => c.definitionId === "unknown" && /^hidden_\d+$/.test(c.instanceId))).toBe(true);
     expect(view.log).toEqual([]);
+    expect(view.deckRandomState).toBeUndefined();
     expect(state.players[0].hand.every(c => c.definitionId !== "unknown")).toBe(true);
   });
 });

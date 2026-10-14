@@ -40,4 +40,4 @@ Run the unit and game-rule tests with:
 npm test
 ```
 
-Additional host, desktop-browser, and mobile-browser checks are available in the `package.json` scripts; browser checks require their corresponding browser tools to be installed.
+`npm run verify` runs the full build, unit, hosting, and Chromium/WebKit browser checks. Install browsers with `npx playwright install --with-deps chromium webkit` and set `CHROMIUM` if its executable is not `/usr/bin/chromium`. GitHub pushes and pull requests run the same checks.

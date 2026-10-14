@@ -11,6 +11,7 @@ export function CardPreview({ card, onClose }: { card: Card; onClose: () => void
       <section className="card-preview-panel">
         <header><h2>{card.name}</h2><button className="menu-close" type="button" aria-label="Close card preview" onClick={onClose}><X size={19} /></button></header>
         <CardView card={card} mode="detail" />
+        <p className="card-preview-rules">{card.rulesText}</p>
       </section>
     </Dialog>
   );

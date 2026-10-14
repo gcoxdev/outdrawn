@@ -1,3 +1,4 @@
+import { validateSavedGame } from "./validateSave";
 import type { GameState } from "./types";
 
 export const SAVE_KEY = "outdrawn-match-v1";
@@ -14,22 +15,33 @@ export function saveGame(state: GameState, storage: Pick<Storage, "setItem" | "r
   try {
     if (state.phase === "setup") storage.removeItem(SAVE_KEY);
     else {
-      const payload = JSON.stringify({ ...state, log: state.log.slice(-250).map(entry => ({ ...entry, debugHandSnapshots: [], handSnapshots: [] })) });
+      const payload = JSON.stringify({ ...state, resolvedEffects: undefined, log: state.log.slice(-250).map(entry => ({ ...entry, debugHandSnapshots: [], handSnapshots: [] })) });
       storage.setItem(SAVE_KEY, JSON.stringify({ version: SAVE_VERSION, payload, checksum: checksum(payload) }));
     }
     return true;
   } catch { return false; }
 }
 
-export function loadGame(fallback: GameState, storage: Pick<Storage, "getItem">): GameState {
+export type LoadedMatch = { state: GameState; rejected?: string; reason?: string };
+export function readSavedMatch(fallback: GameState, storage: Pick<Storage, "getItem">): LoadedMatch {
+  let raw: string | null = null;
   try {
-    const raw = storage.getItem(SAVE_KEY);
-    if (!raw || raw.length > 2_000_000) return fallback;
+    raw = storage.getItem(SAVE_KEY);
+    if (!raw) return { state: fallback };
+    if (raw.length > 2_000_000) throw new Error("The saved match is too large to restore.");
     const saved = JSON.parse(raw);
-    if (saved.version !== SAVE_VERSION || typeof saved.payload !== "string" || checksum(saved.payload) !== saved.checksum) return fallback;
-    const state: GameState = JSON.parse(saved.payload);
-    if (!["action", "gameOver"].includes(state.phase) || state.players.length < 3 || state.players.length > 100 || !state.players[state.currentPlayerIndex]) return fallback;
-    // Always gate restored human hands again, even if a hand was visible before reload.
-    return { ...state, selectedCardId: null };
-  } catch { return fallback; }
+    if (saved.version !== SAVE_VERSION) throw new Error("This saved match uses an unsupported version.");
+    if (typeof saved.payload !== "string" || checksum(saved.payload) !== saved.checksum) throw new Error("The saved match is incomplete or damaged.");
+    const state = JSON.parse(saved.payload);
+    state.selectedCardId = null;
+    validateSavedGame(state);
+    const deckRandomState = state.deckRandomState ?? (Math.floor(Math.random() * 0x100000000) >>> 0);
+    return { state: { ...state, deckRandomState } };
+  } catch (error) {
+    return raw ? { state: fallback, rejected: raw, reason: error instanceof Error ? error.message : "Could not restore this match." } : { state: fallback };
+  }
+}
+
+export function loadGame(fallback: GameState, storage: Pick<Storage, "getItem">): GameState {
+  return readSavedMatch(fallback, storage).state;
 }

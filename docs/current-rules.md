@@ -19,7 +19,7 @@ The current web prototype is a local browser game for 3-100 players. Each player
 - Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
-- Event cards are shuffled into the main deck after starting hands are dealt. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
+- After starting hands are dealt, 65 regular cards and 16 event cards are shuffled into the opening draw pile at every table size. The regular-card supply is sampled from repeated copies of the standard deck as needed. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
 - The first player is randomly selected by the app.
 - Team modes validate the selected roster before a game can start: duos, trios, and squads use teams of two, three, and four; two teams splits the roster into equal teams; custom teams require at least two populated teams. Teammates can see each other's hands, area damage has no friendly fire, and teammate healing/card transfer can be enabled or disabled before the game starts.
 
@@ -28,7 +28,7 @@ The current web prototype is a local browser game for 3-100 players. Each player
 - Human hands are shown for the active decision. Between pending choices, team players can also switch the hand view to a living teammate.
 - Computer opponents' hands are hidden. Human players may view their computer teammates' hands; when no humans remain, computer hands become visible.
 - Played cards are revealed by the log and then discarded unless a card says otherwise.
-- Discard piles and event cards are public. Use View piles in the sidebar to inspect the current main and event discards.
+- Discard piles and event cards are public. Use Discards in the table header to inspect the current main and event discards.
 - With multiple living humans, optional pass-device mode hides hands until the receiving player chooses Reveal Hand. Reloading resets this privacy gate.
 - Debug hand snapshots are development-only and opt-in. They capture future log entries, retain at most the latest 50 entries, and are cleared when disabled.
 
@@ -84,7 +84,7 @@ Each living player acts once per round. After all living players have acted:
 - Grenade: deal 4 damage to the target and 2 splash damage to the living players before and after the target in seating order. Find the nearest living player in each direction, skipping the attacker and the target; hit each distinct player at most once. The attacker and their teammates take no splash damage.
 - Assault Rifle: deal 5 damage.
 - Crossbow: deal 4 damage and penetrates Armor Vest.
-- SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, or if the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
+- SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, if the shooter loses the SMG (for example, by using Revive), or if the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
 - Minigun: allocate up to 6 damage among living opponents, max 3 allocated per opponent. Attack bonuses add to the total pool; Mark Target adds damage to each marked target after allocation. Targets may defend once against their allocation only when defense on secondary attacks is enabled; otherwise the damage resolves without reactions.
 
 ## Defense

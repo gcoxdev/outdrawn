@@ -5,7 +5,7 @@
 - Player counts from 3–100 and generated/custom teams are implemented. Further expansion should focus on pacing and usability at large tables.
 - Design large-table battle royale pacing, deck scaling, event scaling, and UI behavior for high player counts such as 20, 50, or 100 players.
 - Evaluate additional team formats beyond the implemented duos, trios, squads, two teams, and custom teams.
-- Add roster grouping for larger team games with expand/collapse team sections.
+- Roster search, living/team filters, and a current-decision jump are implemented. Consider expandable team groups if human playtests still show navigation difficulty.
 - Simulate larger player counts and team modes before changing card counts or balance assumptions.
 - Add deck configuration support so a game can use predefined decks or a custom deck with selected card types/cards enabled.
 - Add custom card definition support so hosts can create card templates with type, count, timing, target rules, damage, defense/block, healing, draw, discard, steal, splash/area effects, action cost, hand-limit behavior, reaction eligibility, and conditions such as low health, attacker/defender role, seating adjacency, team membership, or prior eliminations.
@@ -17,8 +17,8 @@
 
 ## Rules To Clarify
 
-- Resolve the existing engine/card-text exceptions confirmed during the October 13 documentation audit: Minigun bypasses Intimidate's discard cost, and Ricochet can choose a smoke-protected player. Current rules now state this behavior; decide whether to change these interactions or retain them explicitly.
-- Reconcile Minigun's card-catalog/art wording with its setting-dependent defense window. The engine permits defense only when secondary defense is enabled, while the catalog text says each chosen opponent may defend without that qualification.
+- Retained rule exceptions: Minigun bypasses Intimidate, and Ricochet can target smoke-protected opponents. Current rules, catalog descriptions, and preview text explicitly describe these interactions.
+- Future artwork refresh: reflect Minigun’s setting-dependent defense and the Intimidate/Smoke/Ricochet exceptions on printed faces. The catalog and readable preview rules are already corrected; existing artwork is retained.
 
 - Decide the final true-tie rule for simultaneous non-attack eliminations: allow no winner or add a deterministic final tiebreaker such as seating order from the current turn marker.
 - Revisit any future area-damage cards for large player counts so their value does not scale without a cap or damage pool.

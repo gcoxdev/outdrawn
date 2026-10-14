@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createNewGame } from "./setup";
 import { loadGame, saveGame, SAVE_KEY } from "./persistence";
+import { gameReducer } from "./reducer";
 
 function storage() {
   const data = new Map<string, string>();
@@ -8,6 +9,40 @@ function storage() {
 }
 
 describe("local match saves", () => {
+  it("preserves the next shuffle across saves and repeated reducer calls", () => {
+    const store = storage(), state = createNewGame(["A", "B", "C"], () => 0);
+    state.mainDeck = [];
+    state.discardPile = state.players.flatMap(player => player.hand);
+    state.players.forEach(player => { player.hand = []; });
+    state.deckRandomState = 1234;
+    const action = { type: "DRAW_CARD", playerId: "player_1" } as const;
+    const next = gameReducer(state, action);
+    expect(next.deckRandomState).not.toBe(state.deckRandomState);
+    expect(gameReducer(state, action)).toEqual(next);
+    expect(saveGame(state, store)).toBe(true);
+    const loaded = loadGame({ ...state, phase: "setup" }, store);
+    expect(gameReducer(loaded, action)).toEqual(next);
+    // Also persist an already-advanced stream before a subsequent refill.
+    next.discardPile = [...next.mainDeck, ...next.players[0].hand];
+    next.mainDeck = [];
+    next.players[0].hand = [];
+    expect(saveGame(next, store)).toBe(true);
+    const resumed = loadGame({ ...state, phase: "setup" }, store);
+    expect(gameReducer(resumed, action)).toEqual(gameReducer(next, action));
+  });
+
+  it("adds shuffle state to older v1 saves without resetting the match", () => {
+    const store = storage(), state = createNewGame(["A", "B", "C"], () => 0);
+    delete state.deckRandomState;
+    saveGame(state, store);
+    const restored = loadGame({ ...state, phase: "setup" }, store);
+    expect(restored.phase).toBe("action");
+    expect(restored.players).toEqual(state.players);
+    expect(Number.isInteger(restored.deckRandomState)).toBe(true);
+    saveGame(restored, store);
+    expect(loadGame({ ...state, phase: "setup" }, store).deckRandomState).toBe(restored.deckRandomState);
+  });
+
   it("restores a suspended event and its draw continuation", () => {
     const store = storage(), state = createNewGame(["A", "B", "C"], () => 0);
     state.pendingEventDialog = { playerId: "player_1", card: { instanceId: "event", definitionId: "event_supply_drop" } };

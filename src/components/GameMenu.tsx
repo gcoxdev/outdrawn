@@ -1,5 +1,5 @@
 import { BookOpen, ChevronDown, Home, Layers, Maximize2, Menu, Plus, RotateCcw, Search, Settings2, Shield, X } from "lucide-react";
-import { useId, useMemo, useState, type KeyboardEvent } from "react";
+import { useId, useMemo, useState, useEffect, type KeyboardEvent } from "react";
 import { allCards, deckSummary, type Card, type CardType } from "../data/cards";
 import { blackMarketPresets, type GameSettings } from "../data/constants";
 import type { GameAction } from "../game/actions";
@@ -31,12 +31,14 @@ type GameMenuProps = {
   settings: GameSettings;
   dispatch: (action: GameAction) => void;
   phase?: GamePhase;
+  onOpenChange?: (open: boolean) => void;
   variant?: "floating" | "mobileIcon";
 };
 
-export function GameMenu({ settings, dispatch, phase = "setup", variant = "floating" }: GameMenuProps) {
+export function GameMenu({ settings, dispatch, phase = "setup", variant = "floating", onOpenChange }: GameMenuProps) {
   const menuId = useId();
   const [isOpen, setIsOpen] = useState(false);
+  useEffect(() => { onOpenChange?.(isOpen); return () => onOpenChange?.(false); }, [isOpen, onOpenChange]);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
   const [cardSearch, setCardSearch] = useState("");
   const [cardType, setCardType] = useState<CardType | "all">("all");
@@ -92,7 +94,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
           <button className="menu-backdrop" type="button" tabIndex={-1} aria-hidden="true" onClick={closeMenu} />
           <section className="menu-panel">
             <header className="menu-panel__header">
-              <div className="menu-panel__title"><img src="/icons/outdrawn-app-192.png" alt="" width="30" height="30" /><h2>Game menu</h2></div>
+              <div className="menu-panel__title"><img src="/icons/outdrawn-app-192.png" alt="" width="30" height="30" /><h2>Game menu</h2></div>{phase === "action" && <small className="menu-pause-note">Computers paused</small>}
               <button className="menu-close" type="button" onClick={closeMenu} aria-label="Close menu"><X size={19} /></button>
             </header>
 

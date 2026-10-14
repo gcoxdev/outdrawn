@@ -1,3 +1,4 @@
+import { recordEffects, recordHealthChanges } from "./effects";
 import { acceptsDecisionAction, getPlayerDecision } from "./decisions";
 import { allCards, type CardType } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
@@ -163,6 +164,12 @@ function completeGameIfOver(state: GameState, beforePlayers: PlayerState[], brea
   }
 
   const winner = getWinner(state) ?? (breakTie ? breakEliminationTie(beforePlayers.filter(player => !player.eliminated)) : null);
+  if (state.players.every(player => player.eliminated)) {
+    state = { ...state, outcome: { kind: winner ? "tiebreak" : "tie", description: winner
+      ? "Everyone fell in the final effect. The winner was selected by most eliminations, then pre-effect health, then pre-effect hand size."
+      : breakTie ? "Everyone fell in the final effect. The leading players were tied on eliminations, pre-effect health, and pre-effect hand size."
+      : "The final combat sequence left nobody alive. No winner is declared." } };
+  }
   return completeGame(state, winner, winnerTeamId ?? winner?.teamId ?? null);
 }
 
@@ -201,7 +208,8 @@ function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId
   );
 }
 
-function logPlayerHealthChanges(beforePlayers: PlayerState[], afterState: GameState, source: string): GameState {
+function logPlayerHealthChanges(beforePlayers: PlayerState[], afterState: GameState, source: string, cardDefinitionId?: string): GameState {
+  afterState = recordHealthChanges(beforePlayers, afterState, source === "collapse" ? "collapse" : "event", cardDefinitionId);
   return afterState.players.reduce((nextState, player) => {
     const before = beforePlayers.find((candidate) => candidate.id === player.id);
     if (!before) {
@@ -392,13 +400,13 @@ function resumeDraws(state: GameState): GameState {
       }
       continue;
     }
-    const draw = drawCardsWithRefill(next.mainDeck, next.discardPile, 1);
+    const draw = drawCardsWithRefill(next.mainDeck, next.discardPile, 1, next.deckRandomState);
     const card = draw.drawn[0];
     const isEvent = getCardDefinitionById(card.definitionId)?.type === "event";
     const updatedJob = { ...job,
       remaining: isEvent ? (job.replaceEvents ? job.remaining : 0) : job.remaining - 1,
       cards: isEvent ? job.cards : [...job.cards, card] };
-    next = { ...next, mainDeck: draw.mainDeck, discardPile: draw.discardPile, drawContinuations: [updatedJob, ...rest] };
+    next = { ...next, mainDeck: draw.mainDeck, discardPile: draw.discardPile, deckRandomState: draw.deckRandomState, drawContinuations: [updatedJob, ...rest] };
     if (isEvent) next = resolveDrawnEvent(next, card, job.playerId);
   }
   return next;
@@ -416,12 +424,13 @@ function drawMarketCardsSkippingEvents(state: GameState, count: number) {
   let nextState = state;
 
   while (drawn.length < count && (nextState.mainDeck.length > 0 || nextState.discardPile.length > 0)) {
-    const draw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1);
+    const draw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1, nextState.deckRandomState);
     const card = draw.drawn[0];
     const definition = getCardDefinitionById(card?.definitionId ?? "");
     nextState = {
       ...nextState,
       mainDeck: draw.mainDeck,
+      deckRandomState: draw.deckRandomState,
       discardPile: draw.discardPile
     };
 
@@ -469,7 +478,7 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
     const eventLoggedState = log(eventState, `${player.name} drew ${definition.name}.`);
     const applied = finalizeEliminations(applyImmediateEvent(eventLoggedState, definition.id, playerId, eventCard));
     const shouldLogDirectHealthChanges = eventDirectlyChangesHealth(definition.id);
-    let resolved = shouldLogDirectHealthChanges ? logPlayerHealthChanges(state.players, applied, definition.name) : applied;
+    let resolved = shouldLogDirectHealthChanges ? logPlayerHealthChanges(state.players, applied, definition.name, definition.id) : applied;
     if (definition.id === "event_critical_condition") {
       resolved = log(resolved, getCriticalConditionSummary(state.players, resolved.players));
     }
@@ -588,14 +597,32 @@ function getBlackMarketConfig(state: GameState) {
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
-  let next = reduceGameAction(state, action);
-  if (next === state || next.phase === "setup") return next;
+  const input = { ...state, resolvedEffects: [] };
+  let next = reduceGameAction(input, action);
+  if (next === input) return state;
+  if (next.phase === "setup") return next;
   next = finalizeEliminations(next);
   if (next.phase === "action") next = resumeMultiHit(resumeDraws(next));
   if (next.phase === "action" && !hasPendingDecision(next)) {
     next = completeGameIfOver(next, state.players, false) ?? next;
     if (next.phase === "action" && getCurrentPlayer(next).eliminated) next = advanceTurn(expireTurnEffects(next));
   }
+  if (next.phase === "gameOver" && !next.outcome) {
+    const winner = next.players.find(player => player.id === next.winnerId);
+    const kind = !winner && !next.winnerTeamId ? "tie" : winner?.eliminated ? "tiebreak" : next.winnerTeamId ? "team" : "survivor";
+    next = { ...next, outcome: { kind, description: kind === "tie" ? "The match ended with nobody alive and no winner declared." : kind === "tiebreak" ? "Everyone fell in the final effect. Most eliminations, then pre-effect health, then pre-effect hand size determined the winner." : kind === "team" ? "Only the winning team remains." : "The last survivor takes the match." } };
+  }
+  const oldLogIds = new Set(state.log.map(entry => entry.id));
+  const participantIds = new Set<string>();
+  const addReferences = (value: object) => Object.entries(value).forEach(([key, id]) => {
+    if (["playerId", "attackerId", "defenderId", "targetPlayerId", "sourcePlayerId"].includes(key) && typeof id === "string") participantIds.add(id);
+  });
+  addReferences(action);
+  const decision = getPlayerDecision(state);
+  if (decision) { participantIds.add(decision.playerId); addReferences(decision.pending); }
+  next.players.forEach((player, index) => { if (player !== state.players[index] && (player.health !== state.players[index]?.health || player.hand.length !== state.players[index]?.hand.length || player.hand.some((card, cardIndex) => card.instanceId !== state.players[index]?.hand[cardIndex]?.instanceId))) participantIds.add(player.id); });
+  if (next.currentPlayerIndex !== state.currentPlayerIndex || action.type === "END_TURN") participantIds.add(getCurrentPlayer(next).id);
+  next = { ...next, log: next.log.map(entry => oldLogIds.has(entry.id) ? entry : { ...entry, participantIds: [...participantIds] }) };
   return next;
 }
 
@@ -900,7 +927,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         )
       };
 
-      return log(nextState, `${player.name} used the Black Market and must choose ${marketConfig.keepCount} card${marketConfig.keepCount === 1 ? "" : "s"}.`);
+      return log(recordHealthChanges(state.players, nextState, "market", "event_black_market", player.id), `${player.name} used the Black Market and must choose ${marketConfig.keepCount} card${marketConfig.keepCount === 1 ? "" : "s"}.`);
     }
     case "RESOLVE_MARKET_SEARCH": {
       const pending = state.pendingMarketSearch;
@@ -1019,7 +1046,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
                 : candidate
           )
         };
-        const nextState = queueDraws(stateBeforeDraw, [{ playerId: player.id, remaining: definition.draw ?? 0,
+        const nextState = queueDraws(recordEffects(stateBeforeDraw, { kind: "healing", source: "healing", cardDefinitionId: card.definitionId, sourcePlayerId: player.id, playerId: target.id, amount: healedAmount }), [{ playerId: player.id, remaining: definition.draw ?? 0,
           cards: [], destination: "hand", replaceEvents: true, playedCard: card }]);
         const message =
           player.id === target.id
@@ -1464,7 +1491,9 @@ function resumeMultiHit(state: GameState): GameState {
   const multi = state.pendingMultiHitAttack;
   if (!multi || state.pendingReaction || state.pendingRedirect || state.pendingSecondaryDamage) return state;
   const attacker = getPlayer(state, multi.attackerId), defender = getPlayer(state, multi.defenderId);
-  if (!attacker || !defender || attacker.eliminated || defender.eliminated || multi.hitsRemaining <= 0 || state.smokeProtectedPlayerIds.includes(defender.id)) {
+  // Revive can discard the shooter's weapon between hits without eliminating them.
+  const stillHoldingWeapon = attacker?.hand.some(card => card.instanceId === multi.weapon.instanceId);
+  if (!attacker || !defender || !stillHoldingWeapon || attacker.eliminated || defender.eliminated || multi.hitsRemaining <= 0 || state.smokeProtectedPlayerIds.includes(defender.id)) {
     const cleaned = state.reloadPlayerIds.includes(multi.attackerId) ? state : discardInterruptedWeapon(state, multi.attackerId, multi.weapon);
     return { ...consumeReload(cleaned, multi.attackerId), pendingMultiHitAttack: null };
   }
@@ -1688,6 +1717,7 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
     reloadPlayerIds: reloadActive ? state.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : state.reloadPlayerIds,
     attackBonuses: omitKey(state.attackBonuses, attacker.id)
   };
+  nextState = recordEffects(nextState, ...damagedPlayerIds.map(playerId => ({ kind: "damage" as const, source: "minigun" as const, cardDefinitionId: weapon.definitionId, sourcePlayerId: attacker.id, playerId, amount: Math.min(getPlayer(state, playerId)!.health, damageByPlayerId[playerId]) })), { kind: "healing", source: "eliminationReward", playerId: attacker.id, sourcePlayerId: attacker.id, amount: getPlayer(nextState, attacker.id)!.health - attacker.health });
   const winner = getWinner(nextState);
   const winnerTeamId = getWinningTeamId(nextState);
   const messages = [`${attacker.name} allocated ${sumValues(damageByPlayerId)} Minigun damage across ${damagedPlayerIds.length} opponent${damagedPlayerIds.length === 1 ? "" : "s"}.`];
@@ -1860,6 +1890,7 @@ function resolveAbility(
       eliminated: currentPlayer.health <= 2,
       actionsRemaining: currentPlayer.actionsRemaining + 2
     }));
+    nextState = recordHealthChanges(state.players, nextState, "ability", definitionId, player.id);
     message = `${player.name} played Adrenaline, gained an action, and lost 2 health.`;
   }
 

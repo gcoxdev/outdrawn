@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createNewGame } from "./setup";
 import { gameReducer } from "./reducer";
-import { chooseAutomatedAction, simulateGame } from "./simulator";
+import { chooseAutomatedAction, simulateGame, getStateIssues, ownedCards } from "./simulator";
 import { normalizeSettings } from "./settings";
 import type { GameState } from "./types";
 
@@ -17,6 +17,38 @@ function acknowledge(state: GameState) {
 }
 
 describe("cleanup regressions", () => {
+  it.each([
+    ["defense_counterattack", false], ["defense_counterattack", true],
+    ["defense_backfire", false], ["defense_backfire", true]
+  ] as const)("stops SMG when Revive discards it after %s (Reload: %s)", (defenseId, reload) => {
+    let state = base();
+    state.settings.allowSecondaryDefense = true;
+    const weapon = card("weapon_smg"), revive = card("defense_fake_death"), bandage = card("healing_bandage"), counter = card(defenseId);
+    state.players[0] = { ...state.players[0], health: 2, hand: [weapon, revive, bandage] };
+    state.players[1].hand = [counter];
+    if (reload) state.reloadPlayerIds = ["player_1"];
+    const originalCards = ownedCards(state).map(card => card.instanceId).sort();
+    state = gameReducer(state, { type: "ATTACK", attackerId: "player_1", targetPlayerId: "player_2", weaponInstanceId: weapon.instanceId });
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: counter.instanceId });
+    expect(state.pendingSecondaryDamage?.defenderId).toBe("player_1");
+    state = gameReducer(state, { type: "PLAY_SECONDARY_REACTION", defenderId: "player_1", reactionCardInstanceId: revive.instanceId });
+    expect(state.players[0]).toMatchObject({ health: 4, eliminated: false, hand: [], actionsRemaining: 1 });
+    expect(state.players[1].health).toBe(defenseId === "defense_counterattack" ? 18 : 20);
+    expect(state.pendingReaction).toBeNull();
+    expect(state.pendingMultiHitAttack).toBeNull();
+    expect(state.reloadPlayerIds).toEqual([]);
+    expect(state.discardPile.filter(card => card.instanceId === weapon.instanceId)).toHaveLength(1);
+    expect(ownedCards(state).map(card => card.instanceId).sort()).toEqual(originalCards);
+    expect(getStateIssues(state)).toEqual([]);
+    expect(gameReducer(state, { type: "END_TURN", playerId: "player_1" }).currentPlayerIndex).toBe(1);
+  });
+
+  it("completes the assessment's failing secondary-defense seed with strict invariants", () => {
+    const result = simulateGame(21856693, ["competent"], { playerCount: 4, strict: true, settings: { allowSecondaryDefense: true } });
+    expect(result.stalled).toBe(false);
+    expect(result.state.phase).toBe("gameOver");
+  });
+
   it("executes a Master Minigun finishing attack without recovery", () => {
     const state = base();
     state.players[0].hand = [card("weapon_minigun")];

@@ -16,16 +16,15 @@ export function GameLog({ entries, players }: GameLogProps) {
   const hasFilter = Boolean(playerFilter || textFilter.trim());
   const filteredEntries = useMemo(() => {
     const normalizedText = textFilter.trim().toLowerCase();
-    const selectedPlayerName = players.find((player) => player.id === playerFilter)?.name.toLowerCase() ?? "";
     const sourceEntries = hasFilter ? entries : entries.slice(-maxRenderedLogEntries);
 
     return sourceEntries.filter((entry) => {
       const message = entry.message.toLowerCase();
-      const matchesPlayer = !selectedPlayerName || message.includes(selectedPlayerName);
+      const matchesPlayer = !playerFilter || entry.participantIds?.includes(playerFilter);
       const matchesText = !normalizedText || message.includes(normalizedText);
       return matchesPlayer && matchesText;
     });
-  }, [entries, hasFilter, playerFilter, players, textFilter]);
+  }, [entries, hasFilter, playerFilter, textFilter]);
   const visibleEntries = hasFilter ? filteredEntries.slice(-maxRenderedLogEntries).reverse() : [...filteredEntries].reverse();
 
   return (
@@ -66,6 +65,7 @@ export function GameLog({ entries, players }: GameLogProps) {
           </button>
         )}
       </div>
+      {playerFilter && entries.some(entry => !entry.participantIds) && <p className="log-empty">Older entries without player tags appear under All players.</p>}
       <ol>
         {visibleEntries.map((entry) => (
             <li key={entry.id}>

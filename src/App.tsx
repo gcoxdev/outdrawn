@@ -1,8 +1,9 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { GameTable } from "./components/GameTable";
+import { MatchRecovery, preserveRejectedMatch } from "./components/MatchRecovery";
 import { SetupScreen } from "./components/SetupScreen";
 import { defaultGameSettings } from "./data/constants";
-import { loadGame, saveGame } from "./game/persistence";
+import { readSavedMatch, saveGame } from "./game/persistence";
 import { gameReducer } from "./game/reducer";
 import { chooseAutomatedAction, getDecisionPlayerId } from "./game/simulator";
 import type { GameState, PlayerSetup } from "./game/types";
@@ -43,17 +44,21 @@ const initialState: GameState = {
 };
 
 export default function App() {
-  const [state, dispatch] = useReducer(gameReducer, initialState, fallback => {
-    try { return loadGame(fallback, window.localStorage); } catch { return fallback; }
-  });
+  const [boot] = useState(() => { try { return readSavedMatch(initialState, window.localStorage); } catch { return { state: initialState }; } });
+  const [rejected, setRejected] = useState(boot.rejected);
+  const [state, dispatch] = useReducer(gameReducer, boot.state);
   const [saveFailed, setSaveFailed] = useState(false);
   useEffect(() => {
+    if (rejected) return;
     try { setSaveFailed(!saveGame(state, window.localStorage)); } catch { setSaveFailed(true); }
-  }, [state]);
+  }, [state, rejected]);
+  const [paused, setPaused] = useState(false);
+  const [referenceOpen, setReferenceOpen] = useState(false);
+  const [computerDelay, setComputerDelay] = useState(500);
   const aiRandom = useRef(createRng(Date.now()));
 
   useEffect(() => {
-    if (state.phase !== "action" || state.pendingEventDialog) {
+    if (state.phase !== "action" || state.pendingEventDialog || paused || referenceOpen || rejected) {
       return;
     }
 
@@ -65,10 +70,12 @@ export default function App() {
     const strategy = decisionPlayer.controller.strategy;
     const timeoutId = window.setTimeout(() => {
       dispatch(chooseAutomatedAction(state, strategy, aiRandom.current));
-    }, 500);
+    }, computerDelay);
 
     return () => window.clearTimeout(timeoutId);
-  }, [state]);
+  }, [state, paused, referenceOpen, computerDelay, rejected]);
+
+  if (rejected) return <MatchRecovery raw={rejected} onReset={() => { preserveRejectedMatch(rejected); setRejected(undefined); }} />;
 
   if (state.phase === "setup") {
     return (
@@ -91,7 +98,7 @@ export default function App() {
     );
   }
 
-  return <GameTable state={state} dispatch={dispatch} saveFailed={saveFailed} />;
+  return <GameTable state={state} dispatch={dispatch} saveFailed={saveFailed} paused={paused} onPausedChange={setPaused} computerDelay={computerDelay} onComputerDelayChange={setComputerDelay} onReferenceOpenChange={setReferenceOpen} />;
 }
 
 function createRng(seed: number): () => number {

@@ -31,6 +31,7 @@ export function fixtures() {
   team.winnerTeamId = "team_1";
   team.players.forEach((player, index) => { player.teamId = index < 20 ? "team_1" : "team_2"; player.eliminated = index >= 20; });
   return Object.fromEntries(Object.entries({ empty: base, discards, crowded, event, winner, tie, team }).map(([name, state]) => {
+    state.players.filter(player => player.eliminated).forEach(player => { player.health = 0; state.discardPile.push(...player.hand); player.hand = []; });
     let serialized = "";
     saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });
     return [name, serialized];
