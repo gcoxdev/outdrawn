@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../data/cards";
 import type { PlayerState } from "../game/types";
-import { canPlayHealingCard, getHandLimitWarning } from "./ActionPanel";
+import { getHandLimitWarning } from "./ActionPanel";
+import { canPlayHealingCard } from "../game/cardTargets";
 
 function player(health: number, actionsRemaining = 2): PlayerState {
   return {

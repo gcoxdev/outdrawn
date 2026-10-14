@@ -22,7 +22,8 @@
     "test:dialogs": "npm run build && node scripts/dialog-smoke.mjs",
     "test:decisions": "npm run build && node scripts/decision-smoke.mjs",
     "verify": "node scripts/verify.mjs",
-    "balance:report": "node scripts/balance-report.mjs"
+    "balance:report": "node scripts/balance-report.mjs",
+    "test:actions": "npm run build && node scripts/action-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

@@ -56,18 +56,18 @@ try {
       await page.setViewportSize({ width, height });
       await load("reaction");
       const before = await saved();
-      await button("View Dodge card").click();
-      const preview = page.getByRole("dialog", { name: "Dodge card preview" });
+      await page.locator('.hand-rail button:has(img[alt^="Dodge:"])').click();
+      const preview = page.getByRole("dialog", { name: "Dodge card" });
       await preview.waitFor();
-      assert(await preview.locator(".card-preview-rules").isVisible());
-      await contrast(".card-preview-rules");
+      assert(await preview.locator(".reaction-rules p").first().isVisible());
+      await contrast(".reaction-rules p");
       await fits();
       await page.keyboard.press("Escape");
-      assert(await button("View Dodge card").evaluate(el => el === document.activeElement));
+      assert(await page.locator('.hand-rail button:has(img[alt^="Dodge:"])').evaluate(el => el === document.activeElement));
       assert.deepEqual(await saved(), before);
       await page.locator(".hand-rail .card-view").filter({ has: page.getByAltText(/^Dodge:/) }).click();
       await page.locator(".reaction-rules").waitFor();
-      await contrast(".reaction-rules p, .hand-inspect");
+      await contrast(".reaction-rules p");
       if (process.env.ASSESSMENT_SCREENSHOTS && engine === "chromium") await page.screenshot({ path: `internal/followup-reaction-${width}.png`, fullPage: true });
       await button("Play Dodge").click();
       assert.equal((await saved()).pendingReaction, null);
@@ -117,8 +117,8 @@ try {
     await page.setViewportSize({ width: 1280, height: 900 });
     await load("reaction");
     await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
-    await button("View Dodge card").click();
-    await page.getByRole("dialog", { name: "Dodge card preview" }).waitFor();
+    await page.locator('.hand-rail button:has(img[alt^="Dodge:"])').click();
+    await page.getByRole("dialog", { name: "Dodge card" }).waitFor();
     await fits();
     await page.keyboard.press("Tab");
     // A native dialog with one focusable control may tab to browser chrome (body).

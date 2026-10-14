@@ -5,6 +5,7 @@ import { MatchErrorBoundary } from "./components/MatchRecovery";
 import "./index.css";
 import "./components/GameTable.css";
 import "./components/GameDialogs.css";
+import "./components/CardActions.css";
 import { clearDevelopmentOfflineCache, initializeInstallPromptListener, registerOfflineServiceWorker } from "./pwa";
 
 async function startApp() {

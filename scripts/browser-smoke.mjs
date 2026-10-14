@@ -71,7 +71,7 @@ try {
   await loadFixture("nested");
   await button("Reveal Hand");
   await click('.hand-rail button:has(img[alt^="Search:"])');
-  await button("Play");
+  await button("Play Search");
   for (const type of ["Pistol", "Dodge"]) {
     await button("Acknowledge");
     for (let player = 0; player < 3; player++) {

@@ -459,8 +459,7 @@ p {
   color: #f0c783;
 }
 
-.empty-slot,
-.empty-selection {
+.empty-slot {
   display: grid;
   min-height: 154px;
   place-items: center;
@@ -842,16 +841,10 @@ p {
   text-transform: uppercase;
 }
 
-.action-panel__commands,
-.selected-action-box__commands,
-.target-list {
+.action-panel__commands {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-}
-
-.target-list--allocation {
-  grid-template-columns: 1fr;
 }
 
 .allocation-row {
@@ -889,19 +882,6 @@ p {
   text-align: center;
 }
 
-.action-panel__decision-grid {
-  display: grid;
-  grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.action-panel__event-actions {
-  display: grid;
-  gap: 12px;
-  min-width: 0;
-}
-
 .selected-action-box,
 .discard-action-box {
   display: grid;
@@ -922,15 +902,6 @@ p {
 
 .ai-thinking-panel p {
   color: var(--muted);
-}
-
-.empty-selection p,
-.attack-box p {
-  color: var(--muted);
-}
-
-.attack-box h2 {
-  margin-bottom: 8px;
 }
 
 .game-log {
@@ -1181,10 +1152,6 @@ p {
     width: 100%;
     margin-right: 0;
     grid-column: span 1;
-  }
-
-  .action-panel__decision-grid {
-    grid-template-columns: 1fr;
   }
 
 }

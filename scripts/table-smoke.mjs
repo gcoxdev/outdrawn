@@ -51,7 +51,9 @@ try {
       await fits();
       if (width === 1440) await screenshot("attack-desktop");
       if (width === 390) await screenshot("attack-mobile");
-      await button("Blake").tap();
+      await button("Choose target").tap();
+      await button("Select Blake, seat 2").tap();
+      await button("Attack Blake").tap();
       assert.equal((await saved()).pendingReaction.defenderId, "player_2");
       await card("Dodge").tap();
       await button("Play Dodge").tap();
@@ -79,11 +81,36 @@ try {
         await load(name);
         await fits();
         if (name === "team") {
+          const selector = await page.locator(".board-heading select").boundingBox();
+          const privacy = await button("Hide Ari's hand").boundingBox();
+          const toggle = await page.getByRole("group", { name: "Hand display" }).boundingBox();
+          assert(Math.abs(selector.y - privacy.y) <= 1 && Math.abs(toggle.y - privacy.y) <= 1, "Hand controls must align at the top");
+          assert(Math.abs(selector.height - privacy.height) <= 1 && Math.abs(toggle.height - privacy.height) <= 1, "Hand controls must have equal height");
+          await button("List view").click();
+          assert.equal(await page.locator(".hand-list-card").count(), 5);
+          await button("Open Pistol card").click();
+          assert(await page.getByRole("dialog", { name: "Pistol card", exact: true }).isVisible());
+          await button("Close card").click();
+          assert(await button("Open Pistol card").evaluate(element => element === document.activeElement));
+          await button("Hide Ari's hand").click();
+          assert.equal(await page.locator(".hand-list-card__copy").count(), 0, "Hidden list must not expose card details");
+          assert.equal(await page.locator(".hand-list-card--hidden").count(), 5);
+          await button("Show Ari's hand").click();
           await page.locator(".board-heading select").selectOption("player_2");
+          await button("Open Dodge card").click();
+          assert.equal(await button("Discard").count(), 0, "Teammate cards are inspection only");
+          await button("Close card").click();
+          await fits();
+          if (width === 1440 || width === 320) await screenshot(`team-list-${width}`);
+          await button("Tile view").click();
           assert.equal(await page.locator(".hand-rail .card-view").count(), 1);
           await fits();
         } else {
-          await card("Pistol").last().tap();
+          await button("List view").click();
+          await button("Select Pistol card").last().click();
+          assert.equal(await page.locator(".card-action-dialog").count(), 0, "Discard selection stays in the hand");
+          assert.equal(await button("Select Pistol card").last().getAttribute("aria-pressed"), "true");
+          await button("Tile view").click();
           const limit = (await saved()).settings.maxHandSize;
           for (let index = 0; index < 12 - limit - 1; index++) await card("Pistol").nth(index).tap();
           await button("Discard Selected").tap();

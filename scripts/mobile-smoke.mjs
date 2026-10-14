@@ -80,7 +80,7 @@ try {
       const rect = element.getBoundingClientRect();
       return parseFloat(getComputedStyle(element).fontSize) >= 14 && rect.left >= 0 && rect.right <= innerWidth && element.scrollWidth <= element.clientWidth;
     }), "Selected card rules must fit the mobile viewport at a readable font size");
-    await tap("Play");
+    await tap("Play Search");
     for (const type of ["Pistol", "Dodge"]) {
       await tap("Acknowledge");
       for (let player = 0; player < 3; player++) {

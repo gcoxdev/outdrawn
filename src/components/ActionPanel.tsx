@@ -1,20 +1,18 @@
 import { useState } from "react";
 import { ArrowRight, CopyPlus, SkipForward } from "lucide-react";
-import type { Card } from "../data/cards";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getDecisionPlayerId, getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
 import { CardBack } from "./CardView";
 import { CardChoices } from "./CardChoices";
-import { MinigunAllocation } from "./MinigunAllocation";
+import { RedirectAction } from "./RedirectAction";
 import { GameNotice } from "./GameNotice";
 import type { HandDiscardRequirement } from "./GameTable";
 
 type ActionPanelProps = {
   state: GameState;
   currentPlayer: PlayerState;
-  selectedCard: CardInstance | null;
   selectedDiscardCards: CardInstance[];
   discardRequirement: HandDiscardRequirement | null;
   isComputerDecision: boolean;
@@ -22,28 +20,12 @@ type ActionPanelProps = {
   dispatch: (action: GameAction) => void;
 };
 
-export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscardCards, discardRequirement, isComputerDecision, isComputerPaused = false, dispatch }: ActionPanelProps) {
+export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discardRequirement, isComputerDecision, isComputerPaused = false, dispatch }: ActionPanelProps) {
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
-  const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
-  const selectedIsWeapon = selectedDefinition?.type === "weapon";
-  const selectedIsTargetedAbility = selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer";
-  const selectedWeaponHitsEveryone = selectedDefinition?.type === "weapon" && selectedDefinition.target === "allPlayers";
-  const selectedIsMinigun = selectedDefinition?.id === "weapon_minigun";
-  const minigunDamagePool = selectedIsMinigun ? (selectedDefinition.damage ?? 0) + (state.attackBonuses[currentPlayer.id] ?? 0) : 0;
-  const minigunPerTargetCap = selectedDefinition?.maxDamagePerTarget ?? 3;
   const handLimitWarning = getHandLimitWarning(currentPlayer, state.settings.maxHandSize);
   const overHandLimit = discardRequirement?.type === "handLimit";
   const blackMarketConfig =
     state.settings.blackMarketPreset === "custom" ? state.settings.blackMarketCustom : blackMarketPresets[state.settings.blackMarketPreset];
-  const livingTargets = state.players.filter(
-    (player) => !player.eliminated && isHostileTarget(currentPlayer, player) && !state.smokeProtectedPlayerIds.includes(player.id)
-  );
-  const smokeProtectedTargets = state.players.filter(
-    (player) => !player.eliminated && isHostileTarget(currentPlayer, player) && state.smokeProtectedPlayerIds.includes(player.id)
-  );
-  const teammateTargets = state.players.filter(
-    (player) => !player.eliminated && player.id !== currentPlayer.id && currentPlayer.teamId && player.teamId === currentPlayer.teamId
-  );
   const canAct = canPlayerAct(state, currentPlayer.id);
   const canDraw = canPlayerDraw(state, currentPlayer.id);
   const canEndTurn = canPlayerEndTurn(state, currentPlayer.id);
@@ -63,34 +45,6 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
   const pendingBlackMarketPlayer = state.pendingBlackMarket ? getPlayer(state, state.pendingBlackMarket.playerId) : undefined;
   const pendingStealPlayer = state.pendingSteal ? getPlayer(state, state.pendingSteal.playerId) : undefined;
   const pendingStealTarget = state.pendingSteal ? getPlayer(state, state.pendingSteal.targetPlayerId) : undefined;
-  const reactionCards =
-    pendingDefender?.hand.filter((card) => {
-      const definition = getCardDefinitionById(card.definitionId);
-      if (definition?.type !== "defense" && !definition?.isLethalDefense) {
-        return false;
-      }
-
-      if (state.pendingSecondaryDamage && definition.id === "defense_decoy") {
-        return false;
-      }
-
-      if (definition.isLethalDefense) {
-        return Boolean(activeReaction && activeReaction.baseDamage >= pendingDefender.health);
-      }
-
-      if (definition.id === "defense_decoy") {
-        return state.players.some(
-          (player) =>
-            activeReaction &&
-            !player.eliminated &&
-            player.id !== activeReaction.attackerId &&
-            player.id !== pendingDefender.id &&
-            isHostileTarget(pendingDefender, player)
-        );
-      }
-
-      return true;
-    }) ?? [];
 
   if (isComputerDecision) {
     const decisionPlayer = getPlayer(state, getDecisionPlayerId(state)) ?? currentPlayer;
@@ -111,8 +65,6 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         ? 3 - state.pendingMultiHitAttack.hitsRemaining
         : null;
     const isSecondary = Boolean(state.pendingSecondaryDamage);
-    const selectedReactionCard = selectedCard && reactionCards.some((card) => card.instanceId === selectedCard.instanceId) ? selectedCard : null;
-    const selectedReactionDefinition = selectedReactionCard ? getCardDefinitionById(selectedReactionCard.definitionId) : undefined;
 
     return (
       <section className="action-panel reaction-panel">
@@ -127,21 +79,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           </p>
           <p>Select a defense card from your hand above, or take the hit.</p>
         </div>
-        {selectedReactionDefinition && <div className="reaction-rules"><h3>{selectedReactionDefinition.name}</h3><p>{selectedReactionDefinition.rulesText}</p></div>}
         <div className="action-row">
-          <button
-            disabled={!selectedReactionCard}
-            onClick={() =>
-              selectedReactionCard &&
-              dispatch({
-                type: isSecondary ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION",
-                defenderId: pendingDefender.id,
-                reactionCardInstanceId: selectedReactionCard.instanceId
-              })
-            }
-          >
-            {selectedReactionDefinition ? `Play ${selectedReactionDefinition.name}` : "Play Defense"}
-          </button>
           <button onClick={() => dispatch({ type: isSecondary ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: pendingDefender.id })}>
             Take Hit
           </button>
@@ -165,22 +103,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
             Choose a new target for {pendingRedirectAttacker.name}'s {weaponDefinition?.name ?? "attack"}.
           </p>
         </div>
-        <div className="target-list">
-          {redirectTargets.map((target) => (
-            <button
-              key={target.id}
-              onClick={() =>
-                dispatch({
-                  type: "RESOLVE_PENDING_REDIRECT",
-                  defenderId: pendingRedirectDefender.id,
-                  targetPlayerId: target.id
-                })
-              }
-            >
-              {target.name}
-            </button>
-          ))}
-        </div>
+        <RedirectAction key={state.pendingRedirect.weapon.instanceId}
+          options={redirectTargets.map(player => ({ player, seat: state.players.indexOf(player) + 1 }))}
+          onRedirect={targetPlayerId => dispatch({ type: "RESOLVE_PENDING_REDIRECT", defenderId: pendingRedirectDefender.id, targetPlayerId })} />
       </section>
     );
   }
@@ -396,7 +321,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           >
             <CopyPlus size={16} /> Draw<span className="command-cost">{currentPlayer.freeDrawsRemaining > 0 ? "Free" : "1 action"}</span>
           </button>
-          <button disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
+          <button className="turn-pass" disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
             <SkipForward size={16} /> Pass
           </button>
           <button
@@ -411,7 +336,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         <GameNotice className="hand-limit-warning">{handLimitWarning}</GameNotice>
       )}
 
-      <div className="action-panel__decision-grid">
+      <div className="card-decision">
         {overHandLimit ? (
           <div className="discard-action-box">
             <div>
@@ -436,207 +361,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
               Discard Selected
             </button>
           </div>
-        ) : selectedDefinition && selectedCard ? (
-          <div className="selected-action-box">
-            <div>
-              <h2>{selectedDefinition.name}</h2>
-              <p>{selectedDefinition.rulesText}</p>
-              <p className="action-cost">{currentPlayer.actionsRemaining < (selectedDefinition.actionsCost ?? 1) && selectedDefinition.type !== "defense" ? "Not enough actions. " : ""}{selectedDefinition.type === "defense" || selectedDefinition.isLethalDefense ? "Play in an eligible defense window." : `${selectedDefinition.actionsCost ?? 1} action${(selectedDefinition.actionsCost ?? 1) === 1 ? "" : "s"} to play`}{selectedDefinition.type === "healing" && !selectedDefinition.draw && currentPlayer.health >= state.settings.maxHealth ? " · You are at full health; choose an injured teammate if team healing is enabled." : ""}</p>
-            </div>
-            <div className="selected-action-box__commands">
-              {selectedDefinition.type === "healing" && (
-                <button
-                  disabled={!canPlayHealingCard(currentPlayer, selectedDefinition, currentPlayer, state.settings.maxHealth, canAct)}
-                  onClick={() =>
-                    dispatch({
-                      type: "PLAY_HEALING",
-                      playerId: currentPlayer.id,
-                      cardInstanceId: selectedCard.instanceId
-                    })
-                  }
-                >
-                  Play
-                </button>
-              )}
-              {selectedDefinition.type === "ability" && selectedDefinition.target !== "onePlayer" && (
-                <button
-                  disabled={!canAct || !["ability_ambush", "ability_adrenaline", "ability_search", "ability_reload"].includes(selectedDefinition.id)}
-                  onClick={() =>
-                    dispatch({
-                      type: "PLAY_ABILITY",
-                      playerId: currentPlayer.id,
-                      cardInstanceId: selectedCard.instanceId
-                    })
-                  }
-                >
-                  Play
-                </button>
-              )}
-              <button
-                disabled={state.phase !== "action"}
-                onClick={() =>
-                  dispatch({
-                    type: "DISCARD_CARD",
-                    playerId: currentPlayer.id,
-                    cardInstanceId: selectedCard.instanceId
-                  })
-                }
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="empty-selection">
-            <h2>Select a card</h2>
-            <p>Choose from your hand to see your options.</p>
-          </div>
-        )}
-
-        <div className="action-panel__event-actions">
-          {(selectedIsWeapon || selectedIsTargetedAbility) && smokeProtectedTargets.length > 0 && (
-            <GameNotice className="target-protection-notice">
-              {smokeProtectedTargets.length === 1 ? `${smokeProtectedTargets[0].name} is` : `${smokeProtectedTargets.length} opponents are`} protected by Smoke Bomb until their next turn.
-              {livingTargets.length === 0 ? " No opponents can be targeted right now. Use remaining actions to draw or play cards that don’t target an opponent." : " Choose an unprotected opponent."}
-            </GameNotice>
-          )}
-          {selectedIsWeapon && (
-            <div className="attack-box">
-              <h2>Attack</h2>
-              <p>
-                {selectedIsMinigun
-                  ? `Allocate up to ${minigunDamagePool} total damage, max ${minigunPerTargetCap} per opponent.`
-                  : selectedWeaponHitsEveryone
-                    ? `${selectedDefinition.name} hits every other valid player.`
-                    : `Choose a target for ${selectedDefinition.name}.`}
-              </p>
-              {selectedIsMinigun ? (
-                <MinigunAllocation key={selectedCard?.instanceId} targets={livingTargets} pool={minigunDamagePool}
-                  perTargetCap={minigunPerTargetCap} disabled={!canAct || !selectedCard}
-                  onFire={damageByTarget => selectedCard && dispatch({ type: "ATTACK", attackerId: currentPlayer.id,
-                    weaponInstanceId: selectedCard.instanceId, damageByTarget })} />
-              ) : selectedWeaponHitsEveryone ? (
-                <button
-                  disabled={!canAct || !selectedCard}
-                  onClick={() =>
-                    selectedCard &&
-                    dispatch({
-                      type: "ATTACK",
-                      attackerId: currentPlayer.id,
-                      weaponInstanceId: selectedCard.instanceId
-                    })
-                  }
-                >
-                  Fire at Everyone
-                </button>
-              ) : (
-                <div className="target-list">
-                  {livingTargets.map((target) => (
-                    <button
-                      disabled={!canAct || !selectedCard}
-                      key={target.id}
-                      onClick={() =>
-                        selectedCard &&
-                        dispatch({
-                          type: "ATTACK",
-                          attackerId: currentPlayer.id,
-                          targetPlayerId: target.id,
-                          weaponInstanceId: selectedCard.instanceId
-                        })
-                      }
-                    >
-                      {target.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          {selectedIsTargetedAbility && (
-            <div className="attack-box">
-              <h2>Ability Target</h2>
-              <p>
-                {["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(selectedDefinition.id)
-                  ? `Choose a target for ${selectedDefinition.name}.`
-                  : "This ability is not implemented yet."}
-              </p>
-              <div className="target-list">
-                {livingTargets.map((target) => (
-                  <button
-                    disabled={
-                      !canAct ||
-                      !selectedCard ||
-                      !["ability_disarm", "ability_steal", "ability_sabotage", "ability_mark_target", "ability_intimidate"].includes(
-                        selectedDefinition.id
-                      )
-                    }
-                    key={target.id}
-                    onClick={() =>
-                      selectedCard &&
-                      dispatch({
-                        type: "PLAY_ABILITY",
-                        playerId: currentPlayer.id,
-                        cardInstanceId: selectedCard.instanceId,
-                        targetPlayerId: target.id
-                      })
-                    }
-                  >
-                    {target.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {selectedDefinition?.type === "healing" && teammateTargets.length > 0 && state.settings.allowTeamHealing && (
-            <div className="attack-box">
-              <h2>Heal Teammate</h2>
-              <p>Choose a teammate to receive {selectedDefinition.name}.</p>
-              <div className="target-list">
-                {teammateTargets.map((target) => (
-                  <button
-                    disabled={!selectedCard || !canPlayHealingCard(currentPlayer, selectedDefinition, target, state.settings.maxHealth, canAct)}
-                    key={target.id}
-                    onClick={() =>
-                      selectedCard &&
-                      dispatch({
-                        type: "PLAY_HEALING",
-                        playerId: currentPlayer.id,
-                        targetPlayerId: target.id,
-                        cardInstanceId: selectedCard.instanceId
-                      })
-                    }
-                  >
-                    {target.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {selectedCard && teammateTargets.length > 0 && state.settings.allowTeamCardTransfer && (
-            <div className="attack-box">
-              <h2>Transfer</h2>
-              <p>Give this card to a teammate as 1 action.</p>
-              <div className="target-list">
-                {teammateTargets.map((target) => (
-                  <button
-                    disabled={!canAct || currentPlayer.actionsRemaining < 1}
-                    key={target.id}
-                    onClick={() =>
-                      dispatch({
-                        type: "TRANSFER_CARD",
-                        playerId: currentPlayer.id,
-                        targetPlayerId: target.id,
-                        cardInstanceId: selectedCard.instanceId
-                      })
-                    }
-                  >
-                    {target.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        ) : null}
       </div>
     </section>
   );
@@ -656,20 +381,6 @@ function getSecondarySourceLabel(source: string | undefined): string {
   }
 
   return source === "backfire" ? "Backfire damage" : "Counterattack damage";
-}
-
-export function canPlayHealingCard(
-  player: PlayerState,
-  definition: Card,
-  target: PlayerState,
-  maxHealth: number,
-  canAct: boolean
-): boolean {
-  if (!canAct || definition.type !== "healing" || player.actionsRemaining < (definition.actionsCost ?? 1)) {
-    return false;
-  }
-
-  return !((definition.heal ?? 0) > 0 && target.health >= maxHealth && !definition.draw);
 }
 
 export function getHandLimitWarning(player: PlayerState, maxHandSize: number): string | null {

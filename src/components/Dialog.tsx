@@ -17,6 +17,7 @@ export function Dialog({ children, className, label, onClose }: {
   return createPortal(
     <dialog ref={ref} className={`app-dialog ${className}`} aria-label={label} onCancel={event => {
       event.preventDefault();
+      event.stopPropagation();
       onClose?.();
     }}>
       {children}

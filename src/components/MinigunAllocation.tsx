@@ -3,17 +3,18 @@ import { Minus, Plus, Search, X } from "lucide-react";
 import type { PlayerState } from "../game/types";
 import "./DecisionControls.css";
 
-export function MinigunAllocation({ targets, pool, perTargetCap, disabled, onFire }: {
+export function MinigunAllocation({ targets, pool, perTargetCap, disabled, disabledReasons = {}, onFire }: {
   targets: PlayerState[];
   pool: number;
   perTargetCap: number;
   disabled: boolean;
+  disabledReasons?: Record<string, string>;
   onFire: (allocation: Record<string, number>) => void;
 }) {
   const [allocation, setAllocation] = useState<Record<string, number>>({});
   const [query, setQuery] = useState("");
   const [selectedOnly, setSelectedOnly] = useState(false);
-  const chosen = targets.filter(target => (allocation[target.id] ?? 0) > 0);
+  const chosen = targets.filter(target => !disabledReasons[target.id] && (allocation[target.id] ?? 0) > 0);
   const allocated = chosen.reduce((total, target) => total + allocation[target.id], 0);
   const visible = targets.filter(target => (!selectedOnly || (allocation[target.id] ?? 0) > 0)
     && target.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -31,13 +32,14 @@ export function MinigunAllocation({ targets, pool, perTargetCap, disabled, onFir
     </div>
     <div className="minigun-picker__targets" role="group" aria-label="Allocate Minigun damage">
       {visible.map(target => {
-        const damage = allocation[target.id] ?? 0;
+        const reason = disabledReasons[target.id];
+        const damage = reason ? 0 : allocation[target.id] ?? 0;
         return <div className={`allocation-row${damage ? " is-selected" : ""}`} key={target.id}>
-          <span>{target.name}<small>{target.health} HP</small></span>
+          <span>{target.name}<small>{target.health} HP</small>{reason && <small className="allocation-reason">{reason}</small>}</span>
           <div>
-            <button type="button" disabled={disabled || damage <= 0} aria-label={`Remove damage from ${target.name}`} onClick={() => adjust(target.id, -1)}><Minus size={15} aria-hidden="true" /></button>
+            <button type="button" disabled={disabled || !!reason || damage <= 0} aria-label={`Remove damage from ${target.name}`} onClick={() => adjust(target.id, -1)}><Minus size={15} aria-hidden="true" /></button>
             <strong aria-label={`${damage} damage assigned to ${target.name}`}>{damage}</strong>
-            <button type="button" disabled={disabled || damage >= perTargetCap || allocated >= pool} aria-label={`Add damage to ${target.name}`} onClick={() => adjust(target.id, 1)}><Plus size={15} aria-hidden="true" /></button>
+            <button type="button" disabled={disabled || !!reason || damage >= perTargetCap || allocated >= pool} aria-label={`Add damage to ${target.name}`} onClick={() => adjust(target.id, 1)}><Plus size={15} aria-hidden="true" /></button>
           </div>
         </div>;
       })}

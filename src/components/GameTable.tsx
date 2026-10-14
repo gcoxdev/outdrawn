@@ -1,5 +1,5 @@
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
-import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, Zap, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, Zap, ArrowRight, LayoutGrid, List, ChevronRight, Check } from "lucide-react";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
@@ -17,7 +17,7 @@ import { PlayerRoster } from "./PlayerRoster";
 import { Dialog } from "./Dialog";
 import { WinnerModal } from "./WinnerModal";
 import { DiscardPiles } from "./DiscardPiles";
-import { CardPreview } from "./CardPreview";
+import { CardActionDialog } from "./CardActionDialog";
 import { GameNotice } from "./GameNotice";
 
 const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
@@ -44,6 +44,8 @@ type GameTableProps = {
 type MobileTab = "play" | "players" | "log";
 
 export function GameTable({ state, dispatch, saveFailed = false, paused = false, onPausedChange, computerDelay = 500, onComputerDelayChange, onReferenceOpenChange }: GameTableProps) {
+  const [handLayout, setHandLayout] = useState<"tiles" | "list">("tiles");
+  const handRef = useRef<HTMLDivElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resultDismissed, setResultDismissed] = useState(false);
@@ -61,7 +63,6 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
   const passDeviceContext = getPassDeviceContext(state, lastRevealedHumanId);
   const logPlayers = useMemo(() => state.players.map((player) => ({ id: player.id, name: player.name })), [state.players]);
   const displayPlayer = state.players.find(player => player.id === decisionPlayerId) ?? currentPlayer;
-  const selectedCard = displayPlayer.hand.find((card) => card.instanceId === state.selectedCardId) ?? null;
   const hasPendingDecision = hasDecision(state);
   const teamHandViewers =
     displayPlayer.teamId && !hasPendingDecision
@@ -76,7 +77,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
   const canUseTeamHandControls = teamHandViewers.length > 1 && shouldRevealDisplayHand;
   const isHandManuallyHidden = hiddenHandPlayerIds.has(handDisplayPlayer.id);
   const shouldShowDisplayHand = shouldRevealDisplayHand && !isHandManuallyHidden;
-  const previewCard = shouldShowDisplayHand ? handDisplayPlayer.hand.find(card => card.instanceId === previewId) : undefined;
+  const previewCard = shouldShowDisplayHand && !state.pendingEventDialog ? handDisplayPlayer.hand.find(card => card.instanceId === previewId) : undefined;
   useEffect(() => { onReferenceOpenChange?.(menuOpen || showDiscards || !!previewCard || activeMobileTab === "log"); return () => onReferenceOpenChange?.(false); }, [menuOpen, showDiscards, previewCard, activeMobileTab, onReferenceOpenChange]);
   const canSelectDisplayHand =
     shouldShowDisplayHand &&
@@ -90,7 +91,6 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
   const handDiscardRequirement = getHandDiscardRequirement(state, currentPlayer, handDisplayPlayer);
   const playableReactionCardIds = getPlayableReactionCardIds(state, handDisplayPlayer);
   const selectedDiscardCards = handDisplayPlayer.hand.filter((card) => selectedDiscardIds.includes(card.instanceId));
-  const selectedDefinition = canSelectDisplayHand && !handDiscardRequirement ? definitionFor(selectedCard) : undefined;
   const winner = state.players.find((player) => player.id === state.winnerId);
   const decisionText = getDecisionText(state, currentPlayer.name, displayPlayer.name, winner?.name);
 
@@ -235,7 +235,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
               <div className="board-heading__meta">
                 {canUseTeamHandControls && (
                   <label>
-                    <span>{displayPlayer.teamId ? labelTeam(displayPlayer.teamId) : "Team"}</span>
+                    <span className="sr-only">View team hand</span>
                     <select value={handDisplayPlayer.id} onChange={(event) => setHandViewerId(event.target.value)}>
                       {teamHandViewers.map((player) => (
                         <option key={player.id} value={player.id}>
@@ -245,6 +245,10 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
                     </select>
                   </label>
                 )}
+                <div className="hand-layout-toggle" role="group" aria-label="Hand display">
+                  <button type="button" aria-label="Tile view" title="Tile view" aria-pressed={handLayout === "tiles"} onClick={() => setHandLayout("tiles")}><LayoutGrid size={17} aria-hidden="true" /></button>
+                  <button type="button" aria-label="List view" title="List view" aria-pressed={handLayout === "list"} onClick={() => setHandLayout("list")}><List size={18} aria-hidden="true" /></button>
+                </div>
                 {canToggleDisplayHandPrivacy && (
                   <button
                     aria-label={isHandManuallyHidden ? `Show ${handDisplayPlayer.name}'s hand` : `Hide ${handDisplayPlayer.name}'s hand`}
@@ -272,7 +276,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
                 )}
               </div>
             </div>
-            <div className="hand-rail" role="region" aria-label={`${handDisplayPlayer.name}'s cards`} tabIndex={0}>
+            <div ref={handRef} className={`hand-rail${handLayout === "list" ? " hand-rail--list" : ""}`} role="region" aria-label={`${handDisplayPlayer.name}'s cards`} tabIndex={0}>
               {handDisplayPlayer.hand.length === 0 && <p className="hand-empty">No cards in hand.</p>}
               {shouldShowDisplayHand ? (
                 handDisplayPlayer.hand.map((card) => {
@@ -280,58 +284,35 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
                   const canSelectDiscard =
                     !handDiscardRequirement?.allowedCardInstanceIds ||
                     handDiscardRequirement.allowedCardInstanceIds.includes(card.instanceId);
-                  const canSelectReaction = !playableReactionCardIds || playableReactionCardIds.includes(card.instanceId);
+                  const selectingDiscard = !!(handDiscardRequirement && canSelectDisplayHand && canSelectDiscard);
+                  const isSelected = handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : previewId === card.instanceId;
+                  const openCard = () => {
+                    if (selectingDiscard) {
+                      setSelectedDiscardIds(current => current.includes(card.instanceId)
+                        ? current.filter(id => id !== card.instanceId)
+                        : current.length >= handDiscardRequirement!.count ? [...current.slice(1), card.instanceId] : [...current, card.instanceId]);
+                      return;
+                    }
+                    if (!handDiscardRequirement) setSelectedDiscardIds([]);
+                    setPreviewId(card.instanceId);
+                  };
                   return definition ? (
                     <div className="hand-card-slot" key={card.instanceId}>
-                      <CardView
-                        card={definition}
-                        isDisabled={Boolean((handDiscardRequirement && !canSelectDiscard) || (playableReactionCardIds && !canSelectReaction))}
-                        isSelected={handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : state.selectedCardId === card.instanceId}
-                        onClick={
-                          canSelectDisplayHand ||
-                          (shouldShowDisplayHand &&
-                            handDisplayPlayer.controller.type === "human" &&
-                            handDiscardRequirement?.playerId === handDisplayPlayer.id)
-                            ? () => {
-                                if (handDiscardRequirement) {
-                                  if (!canSelectDiscard) {
-                                    return;
-                                  }
-
-                                  dispatch({ type: "SELECT_CARD", cardInstanceId: null });
-                                  setSelectedDiscardIds((current) => {
-                                    if (current.includes(card.instanceId)) {
-                                      return current.filter((id) => id !== card.instanceId);
-                                    }
-
-                                    return current.length >= handDiscardRequirement.count
-                                      ? [...current.slice(1), card.instanceId]
-                                      : [...current, card.instanceId];
-                                  });
-                                  return;
-                                }
-
-                                if (playableReactionCardIds && !canSelectReaction) {
-                                  return;
-                                }
-
-                                setSelectedDiscardIds([]);
-                                dispatch({
-                                  type: "SELECT_CARD",
-                                  cardInstanceId: state.selectedCardId === card.instanceId ? null : card.instanceId
-                                });
-                              }
-                            : undefined
-                        }
-                      />
-                      <button className="hand-inspect" type="button" aria-label={`View ${definition.name} card`} aria-haspopup="dialog" onClick={event => { event.currentTarget.focus(); setPreviewId(card.instanceId); }}>View card</button>
+                      {handLayout === "tiles" ? <CardView card={definition} opensDialog={!selectingDiscard} isSelected={isSelected} onClick={openCard} /> :
+                        <button type="button" className={`hand-list-card${isSelected ? " is-selected" : ""}`}
+                          aria-label={`${selectingDiscard ? "Select" : "Open"} ${definition.name} card`} aria-haspopup={selectingDiscard ? undefined : "dialog"}
+                          aria-pressed={selectingDiscard ? isSelected : undefined} onClick={event => { event.currentTarget.focus(); openCard(); }}>
+                          <span className="hand-list-card__art" aria-hidden="true"><CardView card={definition} mode="board" /></span>
+                          <span className="hand-list-card__copy"><strong>{definition.name}</strong><small>{definition.type}</small><span>{definition.shortText}</span></span>
+                          {isSelected ? <Check size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
+                        </button>}
                     </div>
                   ) : null;
                 })
               ) : (
                 handDisplayPlayer.hand.map((card) => (
                   <div className="hand-card-slot" key={card.instanceId}>
-                    <CardBack />
+                    {handLayout === "list" ? <div className="hand-list-card hand-list-card--hidden"><span className="hand-list-card__art"><CardBack /></span><span>Hidden card</span></div> : <CardBack />}
                   </div>
                 ))
               )}
@@ -344,7 +325,6 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
           </section> : <ActionPanel
             state={state}
             currentPlayer={currentPlayer}
-            selectedCard={selectedDefinition ? selectedCard : null}
             selectedDiscardCards={selectedDiscardCards}
             discardRequirement={handDiscardRequirement}
             isComputerDecision={isComputerDecision || privacyGateActive}
@@ -355,7 +335,16 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
       </section>
 
       <span className="sr-only" role="status" aria-live="polite">{state.phase === "gameOver" ? "Match complete" : `${displayPlayer.name}: ${decision ? handLabels[decision.kind] : "turn"}`}</span>
-      {previewId && shouldShowDisplayHand && handDisplayPlayer.hand.some(card => card.instanceId === previewId) && <CardPreview card={definitionFor(handDisplayPlayer.hand.find(card => card.instanceId === previewId)!)!} onClose={() => setPreviewId(null)} />}
+      {previewCard && <CardActionDialog key={`${handDisplayPlayer.id}:${previewCard.instanceId}:${decision?.kind ?? "turn"}`}
+        state={state} player={handDisplayPlayer} card={previewCard}
+        canPlay={canSelectDisplayHand && !hasPendingDecision && !handDiscardRequirement}
+        canReact={canSelectDisplayHand && !!playableReactionCardIds?.includes(previewCard.instanceId)}
+        dispatch={action => {
+          setPreviewId(null);
+          dispatch(action);
+          requestAnimationFrame(() => { if (!document.querySelector("dialog[open]")) handRef.current?.focus({ preventScroll: true }); });
+        }} onClose={() => setPreviewId(null)} />}
+
       {showDiscards && !privacyGateActive && !state.pendingEventDialog && (
         <DiscardPiles main={state.discardPile} events={state.eventDiscardPile} onClose={() => setShowDiscards(false)} />
       )}

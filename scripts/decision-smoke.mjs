@@ -46,7 +46,7 @@ try {
     }
     async function fits() {
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${engine}: horizontal overflow`);
-      assert(await page.locator(".action-panel").evaluate(element => element.scrollWidth <= element.clientWidth + 1), `${engine}: action overflow`);
+      assert(await page.locator(".action-panel").evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth + 1)), `${engine}: action overflow`);
     }
     async function screenshot(name, width) {
       if (process.env.DECISION_SCREENSHOTS && engine === "chromium" && [1440, 390].includes(width)) {

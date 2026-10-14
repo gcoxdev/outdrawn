@@ -1,0 +1,43 @@
+import { createNewGame } from "../src/game/setup";
+import { validateSavedGame } from "../src/game/validateSave";
+import { saveGame } from "../src/game/persistence";
+
+export function fixtures() {
+  let sequence = 0;
+  const card = (definitionId: string) => ({ instanceId: `action_${++sequence}`, definitionId });
+  const base = createNewGame(["Ari", "Blake", "Casey"], () => 0);
+  base.settings.passDeviceMode = false;
+  base.players.forEach(player => { player.hand = [card("weapon_pistol"), card("defense_dodge")]; });
+  base.players[0].hand.push(card("ability_adrenaline"), card("ability_mark_target"));
+  const crowded = structuredClone(base);
+  crowded.players[0].hand = Array.from({ length: 30 }, () => card("weapon_pistol"));
+  const teams = structuredClone(base);
+  teams.players[0].teamId = teams.players[1].teamId = "team_1";
+  teams.players[2].teamId = "team_2";
+  teams.settings.allowTeamHealing = teams.settings.allowTeamCardTransfer = true;
+  teams.players[0].health = teams.settings.maxHealth;
+  teams.players[1].health = teams.settings.maxHealth - 4;
+  teams.players[0].hand.push(card("healing_bandage"));
+  const smoke = structuredClone(base);
+  smoke.smokeProtectedPlayerIds = ["player_2", "player_3"];
+  smoke.players[0].hand.push(card("weapon_minigun"));
+  const intimidate = structuredClone(base);
+  intimidate.intimidations = { player_1: ["player_2"] };
+  const noCost = structuredClone(intimidate);
+  noCost.players[0].hand = [noCost.players[0].hand[0]];
+  const exhausted = structuredClone(base);
+  exhausted.players[0].actionsRemaining = 0;
+  const redirect = structuredClone(smoke);
+  const decoy = card("defense_decoy");
+  redirect.players[1].hand.push(decoy);
+  redirect.pendingRedirect = { attackerId: "player_1", defenderId: "player_2", weapon: redirect.players[0].hand[0], baseDamage: 3, decoy };
+  const large = createNewGame(Array.from({ length: 100 }, (_, i) => `Player ${i + 1}`), () => 0);
+  large.settings.passDeviceMode = false;
+  large.players[0].hand = [card("weapon_pistol")];
+  return Object.fromEntries(Object.entries({ base, crowded, teams, smoke, intimidate, noCost, exhausted, redirect, large }).map(([name, state]) => {
+    validateSavedGame(state);
+    let serialized = "";
+    saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });
+    return [name, serialized];
+  }));
+}

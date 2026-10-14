@@ -27,6 +27,7 @@ type CardViewProps = {
   isSelected?: boolean;
   isDisabled?: boolean;
   onClick?: () => void;
+  opensDialog?: boolean;
 };
 
 type RulesAnchorRect = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
@@ -85,7 +86,7 @@ export function getRulesPopoverPosition(
   };
 }
 
-export function CardView({ card, mode = "hand", isSelected = false, isDisabled = false, onClick }: CardViewProps) {
+export function CardView({ card, mode = "hand", isSelected = false, isDisabled = false, onClick, opensDialog = false }: CardViewProps) {
   const [rulesPosition, setRulesPosition] = useState<ReturnType<typeof getRulesPopoverPosition> | null>(null);
   const TypeIcon = typeIcons[card.type];
   const cardFaceImage = getCardFaceImage(card);
@@ -167,7 +168,8 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
       <button
         className={className}
         disabled={isDisabled}
-        onClick={onClick}
+        aria-haspopup={opensDialog ? "dialog" : undefined}
+        onClick={onClick ? event => { event.currentTarget.focus(); onClick(); } : undefined}
         type="button"
       >
         {cardContent}

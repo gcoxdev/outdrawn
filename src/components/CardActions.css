@@ -1,0 +1,68 @@
+:is(.game-table, .card-action-dialog) .card-action-panel { gap: 12px; min-width: 0; padding: 18px; border: 1px solid #56503e; border-radius: 9px; background: linear-gradient(125deg, #b79d6110, #00000012); }
+.card-action-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+:is(.game-table, .card-action-dialog) .card-action-header h2 { margin: 0; font-size: 18px; }
+.card-action-cost { flex-shrink: 0; font-size: 11px; color: #d4bd95; border: 1px solid #bda57035; border-radius: 4px; padding: 4px 7px; }
+:is(.game-table, .card-action-dialog) .card-action-panel .card-action-rules { font-size: 14px; color: #d5d0bf; }
+:is(.game-table, .card-action-dialog) .action-panel button.card-action-link { display: inline-flex; align-items: center; justify-content: center; gap: 7px; justify-self: start; padding: 5px 7px; min-height: 32px; border-color: transparent; background: transparent; color: #c4bcaa; }
+:is(.game-table, .card-action-dialog) .action-panel button.card-action-link:hover:not(:disabled), :is(.game-table, .card-action-dialog) .action-panel button.card-action-link[aria-pressed="true"] { color: #efdfbf; background: #ffffff08; border-color: #bda57035; }
+.card-action-secondary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; padding-top: 10px; border-top: 1px solid #bda57024; }
+.card-action-play { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, auto); align-items: end; gap: 12px; }
+.card-action-play > button:only-child { grid-column: 1 / -1; justify-self: start; }
+:is(.game-table, .card-action-dialog) .action-panel button.decision-primary { color: #fff1e4; background: #b74639; border-color: #ca5b4c; min-height: 44px; }
+:is(.game-table, .card-action-dialog) .action-panel button.decision-primary:hover:not(:disabled) { background: #cb5242; border-color: #db7261; }
+:is(.game-table, .card-action-dialog) .action-panel button.turn-pass { background: transparent; border-color: transparent; color: #b8b5a6; }
+:is(.game-table, .card-action-dialog) .card-action-panel .card-action-note, :is(.game-table, .card-action-dialog) .action-panel .card-action-note { margin: 0; font-size: 12px; line-height: 1.5; color: #cfb996; }
+.target-picker { display: grid; gap: 6px; min-width: 0; }
+.target-picker__label { font-size: 11px; color: #bcb5a4; }
+:is(.game-table, .card-action-dialog) .action-panel button.target-picker__trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; text-align: left; background: #00000018; border-color: #67614c; }
+.target-picker__trigger > span, .target-option > span { display: grid; gap: 3px; min-width: 0; }
+.target-picker__trigger svg, .target-option svg { flex-shrink: 0; color: #d4b985; }
+.target-picker__trigger strong, .target-option strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.target-picker__trigger small, .target-option small { font-size: 11px; font-weight: 400; color: #bcb6a8; line-height: 1.5; }
+.target-dialog .target-dialog__panel { width: min(460px, 100%); max-height: min(620px, calc(100dvh - 32px)); }
+.target-dialog__search { display: flex; align-items: center; gap: 9px; flex-shrink: 0; margin: 12px 16px 4px; padding: 0 12px; border: 1px solid #67614c; border-radius: 6px; color: #c6b58f; }
+.target-dialog__search:focus-within { outline: 2px solid #dfbc81; outline-offset: 2px; }
+.target-dialog__search input { width: 100%; min-width: 0; min-height: 44px; padding: 8px 0; border: 0; background: transparent; font-size: 16px; outline: none; }
+.target-dialog .target-dialog__body { padding: 12px 16px; }
+.target-options { display: grid; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.target-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 60px; padding: 10px 12px; text-align: left; border: 1px solid #48463a; border-radius: 6px; background: #ffffff03; }
+.target-option:hover:not(:disabled) { background: #d1b27612; border-color: #9f8962; }
+.target-option[aria-pressed="true"] { border-color: #c5a56f; background: #b9985b18; }
+.target-option:disabled { opacity: 1; background: #00000012; color: #aaa699; cursor: not-allowed; }
+.target-option .target-option__reason { color: #d0b18d; }
+.target-dialog__count { flex-shrink: 0; padding: 10px 16px; border-top: 1px solid #48463a; font-size: 11px; color: #bcb6a8; }
+.target-dialog__empty { color: #c0b9a8; font-size: 14px; text-align: center; }
+.allocation-row .allocation-reason { color: #d0b18d; white-space: normal; }
+@media (max-width: 760px) {
+  :is(.game-table, .card-action-dialog) .card-action-panel { padding: 14px; }
+  .card-action-play { grid-template-columns: minmax(0, 1fr); }
+  .card-action-play > button:only-child { justify-self: stretch; }
+  :is(.game-table, .card-action-dialog) .action-panel button.card-action-link { min-height: 44px; }
+  .target-dialog.match-dialog { align-items: end; padding: 0; }
+  .target-dialog .target-dialog__panel { width: 100%; max-height: min(640px, 85dvh); border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+}
+
+.card-action-dialog { --line: #3b3b32; --muted: #c2bbaa; --text: #eee8db; }
+.card-action-dialog .card-action-dialog__panel { width: min(880px, 100%); }
+.card-action-dialog .card-action-dialog__body { display: grid; grid-template-areas: "art actions"; grid-template-columns: minmax(180px, 310px) minmax(0, 1fr); align-items: start; gap: 20px; padding: 24px; }
+.card-action-dialog__art { grid-area: art; min-width: 0; width: 100%; max-width: 310px; justify-self: center; }
+.card-action-dialog__art .card-view { display: block; width: 100%; min-height: 0; margin: 0; }
+.card-action-dialog__art .card-view__image { width: 100%; }
+.card-action-dialog .action-panel { grid-area: actions; margin: 0; padding: 0; border: 0; min-width: 0; background: transparent; }
+.card-action-dialog .card-action-panel { padding: 0; border: 0; background: transparent; }
+.card-action-dialog .card-action-header h2 { display: none; }
+.card-action-dialog .card-action-header { justify-content: flex-start; }
+.card-action-dialog .card-action-play { grid-template-columns: minmax(0, 1fr); }
+.card-action-dialog .card-action-play > button:only-child { justify-self: stretch; }
+.card-action-dialog .reaction-rules { display: grid; gap: 16px; padding: 0; border: 0; }
+.card-action-dialog .reaction-rules p { margin: 0; font-size: 14px; color: #d5d0bf; }
+.card-action-dialog :is(button, input):focus-visible { outline: 2px solid #dfbc81; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .card-action-dialog .card-action-dialog__body { grid-template-areas: "art" "actions"; grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .card-action-dialog__art { max-width: 180px; }
+  .card-action-dialog .card-action-panel { padding: 0; }
+}
+@media (max-height: 500px) and (min-width: 601px) {
+  .card-action-dialog__art { max-width: 180px; }
+  .card-action-dialog .card-action-dialog__body { grid-template-columns: 180px minmax(0, 1fr); padding: 16px; }
+}
