@@ -41,6 +41,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
   const [cardSearch, setCardSearch] = useState("");
   const [cardType, setCardType] = useState<CardType | "all">("all");
   const [previewCard, setPreviewCard] = useState<Card | null>(null);
+  const [confirmation, setConfirmation] = useState<"lobby" | "restart" | null>(null);
   const filteredCards = useMemo(() => {
     const query = cardSearch.trim().toLowerCase();
     return allCards.filter(card => (cardType === "all" || card.type === cardType)
@@ -53,19 +54,18 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
 
   function closeMenu() {
     setPreviewCard(null);
+    setConfirmation(null);
     setIsOpen(false);
   }
 
-  function returnToLobby() {
-    if (phase === "action" && !window.confirm("End this match and return to the lobby?")) return;
-    dispatch({ type: "RESET_GAME" });
+  function performMatchAction(action: "lobby" | "restart") {
+    dispatch({ type: action === "lobby" ? "RESET_GAME" : "RESTART_GAME" });
     closeMenu();
   }
 
-  function restartGame() {
-    if (phase === "action" && !window.confirm("End this match and start a new one?")) return;
-    dispatch({ type: "RESTART_GAME" });
-    closeMenu();
+  function requestMatchAction(action: "lobby" | "restart") {
+    if (phase === "action") setConfirmation(action);
+    else performMatchAction(action);
   }
 
   function navigateTabs(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -186,8 +186,8 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
             </div>
 
             {phase !== "setup" && <footer className="menu-match-actions">
-              <button type="button" onClick={returnToLobby}><Home size={16} />Return to Lobby</button>
-              <button type="button" onClick={restartGame}>{phase === "action" ? <RotateCcw size={16} /> : <Plus size={16} />}{phase === "action" ? "Restart Game" : "New Game"}</button>
+              <button type="button" onClick={event => { event.currentTarget.focus(); requestMatchAction("lobby"); }}><Home size={16} />Return to Lobby</button>
+              <button type="button" onClick={event => { event.currentTarget.focus(); requestMatchAction("restart"); }}>{phase === "action" ? <RotateCcw size={16} /> : <Plus size={16} />}{phase === "action" ? "Restart Game" : "New Game"}</button>
             </footer>}
           </section>
         </Dialog>
@@ -195,6 +195,22 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
       {isOpen && previewCard && (
         <CardPreview card={previewCard} onClose={() => setPreviewCard(null)} />
       )}
+      {isOpen && confirmation && <Dialog className="match-dialog" label={confirmation === "restart" ? "Restart match?" : "Return to lobby?"} onClose={() => setConfirmation(null)}>
+        <section className="match-dialog__panel match-confirmation">
+          <header className="match-dialog__header"><div>
+            {confirmation === "restart" ? <RotateCcw size={18} aria-hidden="true" /> : <Home size={18} aria-hidden="true" />}
+            <h2>{confirmation === "restart" ? "Restart match?" : "Return to lobby?"}</h2>
+          </div></header>
+          <div className="match-dialog__body match-confirmation__body">
+            <p>{confirmation === "restart" ? "End this match and deal a new game with the same players and rules." : "End this match and return to setup."}</p>
+            <p>Your current match progress will be lost.</p>
+          </div>
+          <footer className="match-dialog__footer">
+            <button type="button" onClick={() => setConfirmation(null)}>Keep playing</button>
+            <button className="match-dialog__primary" type="button" onClick={() => performMatchAction(confirmation)}>{confirmation === "restart" ? "Restart Game" : "Return to Lobby"}</button>
+          </footer>
+        </section>
+      </Dialog>}
     </>
   );
 }

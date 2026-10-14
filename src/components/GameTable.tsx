@@ -17,6 +17,7 @@ import { PlayerRoster } from "./PlayerRoster";
 import { Dialog } from "./Dialog";
 import { WinnerModal } from "./WinnerModal";
 import { DiscardPiles } from "./DiscardPiles";
+import { GameNotice } from "./GameNotice";
 
 const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
   reaction: "Defender Hand", redirect: "Redirecting Hand", secondary: "Secondary Defense",
@@ -31,11 +32,12 @@ function definitionFor(card: CardInstance | null) {
 type GameTableProps = {
   state: GameState;
   dispatch: (action: GameAction) => void;
+  saveFailed?: boolean;
 };
 
 type MobileTab = "play" | "players" | "log";
 
-export function GameTable({ state, dispatch }: GameTableProps) {
+export function GameTable({ state, dispatch, saveFailed = false }: GameTableProps) {
   const [showDiscards, setShowDiscards] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("play");
   const [lastRevealedHumanId, setLastRevealedHumanId] = useState<PlayerId | null>(null);
@@ -124,6 +126,7 @@ export function GameTable({ state, dispatch }: GameTableProps) {
 
   return (
     <main className={`game-table mobile-tab-${activeMobileTab}`}>
+      {saveFailed && <GameNotice className="save-warning">This browser could not save the match. Keep this tab open to continue playing.</GameNotice>}
       {state.pendingEventDialog ? (
         <EventDialog state={state} dispatch={dispatch} />
       ) : state.phase === "gameOver" ? (
@@ -332,16 +335,23 @@ export function GameTable({ state, dispatch }: GameTableProps) {
         <DiscardPiles main={state.discardPile} events={state.eventDiscardPile} onClose={() => setShowDiscards(false)} />
       )}
       {privacyGateActive && !state.pendingEventDialog && (
-        <Dialog className="pass-device-gate" label={`Pass device to ${passDeviceContext!.playerName}`}>
-          <div className="pass-device-gate__panel">
-            <p className="eyebrow">Private turn</p>
-            <h2>Pass to {passDeviceContext!.playerName}</h2>
-            <p>{passDeviceContext!.reason}</p>
-            <p>Cards and actions are hidden until this player is ready.</p>
-            <button type="button" onClick={() => setLastRevealedHumanId(passDeviceContext!.playerId)}>
-              <Eye size={18} />
-              Reveal Hand
-            </button>
+        <Dialog className="match-dialog pass-device-gate" label={`Pass device to ${passDeviceContext!.playerName}`}>
+          <div className="match-dialog__panel pass-device-gate__panel">
+            <header className="match-dialog__header">
+              <div><EyeOff size={18} aria-hidden="true" /><h2>Pass device</h2></div>
+            </header>
+            <div className="match-dialog__body pass-device-gate__body">
+              <p className="match-dialog__kicker">Pass to</p>
+              <h3>{passDeviceContext!.playerName}</h3>
+              <p className="pass-device-gate__reason">{passDeviceContext!.reason}</p>
+              <p className="pass-device-gate__privacy">Their hand stays hidden until they’re ready.</p>
+            </div>
+            <footer className="match-dialog__footer pass-device-gate__actions">
+              <button className="match-dialog__primary" type="button" onClick={() => setLastRevealedHumanId(passDeviceContext!.playerId)}>
+                <Eye size={16} aria-hidden="true" />
+                Reveal Hand
+              </button>
+            </footer>
           </div>
         </Dialog>
       )}

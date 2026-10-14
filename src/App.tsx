@@ -91,7 +91,7 @@ export default function App() {
     );
   }
 
-  return <>{saveFailed && <p className="save-warning" role="status">This browser could not save the match. Keep this tab open to continue playing.</p>}<GameTable state={state} dispatch={dispatch} /></>;
+  return <GameTable state={state} dispatch={dispatch} saveFailed={saveFailed} />;
 }
 
 function createRng(seed: number): () => number {

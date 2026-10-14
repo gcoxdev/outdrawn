@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowRight, CopyPlus, SkipForward } from "lucide-react";
 import type { Card } from "../data/cards";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getDecisionPlayerId, getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
-import { CardBack, CardView } from "./CardView";
+import { CardBack } from "./CardView";
+import { CardChoices } from "./CardChoices";
+import { MinigunAllocation } from "./MinigunAllocation";
+import { GameNotice } from "./GameNotice";
 import type { HandDiscardRequirement } from "./GameTable";
 
 type ActionPanelProps = {
@@ -20,7 +23,6 @@ type ActionPanelProps = {
 
 export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscardCards, discardRequirement, isComputerDecision, dispatch }: ActionPanelProps) {
   const [marketSelection, setMarketSelection] = useState<string[]>([]);
-  const [minigunAllocation, setMinigunAllocation] = useState<Record<string, number>>({});
   const selectedDefinition = selectedCard ? getCardDefinitionById(selectedCard.definitionId) : undefined;
   const selectedIsWeapon = selectedDefinition?.type === "weapon";
   const selectedIsTargetedAbility = selectedDefinition?.type === "ability" && selectedDefinition.target === "onePlayer";
@@ -28,7 +30,6 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
   const selectedIsMinigun = selectedDefinition?.id === "weapon_minigun";
   const minigunDamagePool = selectedIsMinigun ? (selectedDefinition.damage ?? 0) + (state.attackBonuses[currentPlayer.id] ?? 0) : 0;
   const minigunPerTargetCap = selectedDefinition?.maxDamagePerTarget ?? 3;
-  const allocatedMinigunDamage = Object.values(minigunAllocation).reduce((total, damage) => total + damage, 0);
   const handLimitWarning = getHandLimitWarning(currentPlayer, state.settings.maxHandSize);
   const overHandLimit = discardRequirement?.type === "handLimit";
   const blackMarketConfig =
@@ -85,10 +86,6 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
 
       return true;
     }) ?? [];
-
-  useEffect(() => {
-    setMinigunAllocation({});
-  }, [selectedCard?.instanceId]);
 
   if (isComputerDecision) {
     const decisionPlayer = getPlayer(state, getDecisionPlayerId(state)) ?? currentPlayer;
@@ -248,26 +245,9 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           <h2>{searchingPlayer?.name ?? "Player"}, keep 1 card</h2>
           <p>Choose one revealed card to add to your hand. The rest go to discard.</p>
         </div>
-        <div className="pending-discard-list">
-          {state.pendingSearch.cards.map((card) => {
-            const definition = getCardDefinitionById(card.definitionId);
-            return definition ? (
-              <button
-                className="reaction-card-button"
-                key={card.instanceId}
-                onClick={() =>
-                  dispatch({
-                    type: "RESOLVE_PENDING_SEARCH",
-                    playerId: state.pendingSearch!.playerId,
-                    keepCardInstanceId: card.instanceId
-                  })
-                }
-              >
-                <CardView card={definition} mode="board" />
-              </button>
-            ) : null;
-          })}
-        </div>
+        <CardChoices cards={state.pendingSearch.cards} onChoose={instanceId => dispatch({
+          type: "RESOLVE_PENDING_SEARCH", playerId: state.pendingSearch!.playerId, keepCardInstanceId: instanceId
+        })} />
       </section>
     );
   }
@@ -280,37 +260,12 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
           <h2>{pendingSupplyDropPlayer.name}, claim 1 card or pass</h2>
           <p>Choose one revealed card to add to your hand. Unclaimed cards are discarded after everyone has had a choice.</p>
         </div>
-        <div className="pending-discard-list">
-          {state.pendingSupplyDrop.revealedCards.map((card) => {
-            const definition = getCardDefinitionById(card.definitionId);
-            return definition ? (
-              <button
-                className="reaction-card-button"
-                key={card.instanceId}
-                onClick={() =>
-                  dispatch({
-                    type: "RESOLVE_SUPPLY_DROP_PICK",
-                    playerId: pendingSupplyDropPlayer.id,
-                    cardInstanceId: card.instanceId
-                  })
-                }
-              >
-                <CardView card={definition} mode="board" />
-              </button>
-            ) : null;
-          })}
-        </div>
-        <button
-          onClick={() =>
-            dispatch({
-              type: "RESOLVE_SUPPLY_DROP_PICK",
-              playerId: pendingSupplyDropPlayer.id,
-              cardInstanceId: null
-            })
-          }
-        >
-          Pass
-        </button>
+        <CardChoices cards={state.pendingSupplyDrop.revealedCards} onChoose={instanceId => dispatch({
+          type: "RESOLVE_SUPPLY_DROP_PICK", playerId: pendingSupplyDropPlayer.id, cardInstanceId: instanceId
+        })} />
+        <div className="decision-footer"><p>Prefer your current hand?</p><button type="button" onClick={() => dispatch({
+          type: "RESOLVE_SUPPLY_DROP_PICK", playerId: pendingSupplyDropPlayer.id, cardInstanceId: null
+        })}>Pass</button></div>
       </section>
     );
   }
@@ -325,49 +280,20 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
             Choose {state.pendingMarketSearch.keepCount} revealed card{state.pendingMarketSearch.keepCount === 1 ? "" : "s"} to add to your hand. The rest go to discard.
           </p>
         </div>
-        <div className="pending-discard-list">
-          {state.pendingMarketSearch.cards.map((card) => {
-            const definition = getCardDefinitionById(card.definitionId);
-            const isSelected = marketSelection.includes(card.instanceId);
-            return definition ? (
-              <button
-                className={`reaction-card-button${isSelected ? " is-selected" : ""}`}
-                key={card.instanceId}
-                onClick={() =>
-                  setMarketSelection((current) => {
-                    if (current.includes(card.instanceId)) {
-                      return current.filter((id) => id !== card.instanceId);
-                    }
-
-                    if (current.length >= state.pendingMarketSearch!.keepCount) {
-                      return [...current.slice(1), card.instanceId];
-                    }
-
-                    return [...current, card.instanceId];
-                  })
-                }
-              >
-                <CardView card={definition} mode="board" isSelected={isSelected} />
-              </button>
-            ) : null;
-          })}
+        <CardChoices cards={state.pendingMarketSearch.cards} selectedIds={marketSelection} onChoose={instanceId => {
+          setMarketSelection(current => current.includes(instanceId)
+            ? current.filter(id => id !== instanceId)
+            : current.length >= state.pendingMarketSearch!.keepCount
+              ? [...current.slice(1), instanceId] : [...current, instanceId]);
+        }} />
+        <div className="decision-footer">
+          <p role="status"><strong>{marketSelection.length}</strong> of {state.pendingMarketSearch.keepCount} selected</p>
+          <button className="decision-primary" type="button" disabled={marketSelection.length !== state.pendingMarketSearch.keepCount}
+            onClick={() => {
+              dispatch({ type: "RESOLVE_MARKET_SEARCH", playerId: pendingMarketPlayer.id, keepCardInstanceIds: marketSelection });
+              setMarketSelection([]);
+            }}>Confirm Market Pick</button>
         </div>
-        <p className="menu-note">
-          Selected {marketSelection.length} of {state.pendingMarketSearch.keepCount}.
-        </p>
-        <button
-          disabled={marketSelection.length !== state.pendingMarketSearch.keepCount}
-          onClick={() => {
-            dispatch({
-              type: "RESOLVE_MARKET_SEARCH",
-              playerId: pendingMarketPlayer.id,
-              keepCardInstanceIds: marketSelection
-            });
-            setMarketSelection([]);
-          }}
-        >
-          Confirm Market Pick
-        </button>
       </section>
     );
   }
@@ -386,11 +312,15 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         <div>
           <p className="eyebrow">Black Market</p>
           <h2>{pendingBlackMarketPlayer.name}, trade or pass</h2>
-          <p>{getBlackMarketSummary(blackMarketConfig)} Select discard payment from your hand above.</p>
+          <p>{blackMarketConfig.discardCost > 0 ? "Select the cards to trade from your hand above." : "Take the offer or keep your current hand."}</p>
         </div>
-        {blackMarketConfig.discardCost > 0 && <p className="menu-note">Selected {selectedCount} of {blackMarketConfig.discardCost}.</p>}
+        <dl className="market-terms">
+          <div><dt>You pay</dt><dd>{getBlackMarketCost(blackMarketConfig)}</dd></div>
+          <div><dt>You get</dt><dd>Reveal {blackMarketConfig.revealCount}<br />Keep {blackMarketConfig.keepCount}</dd></div>
+        </dl>
+        <p className="decision-progress" role="status">{blackMarketConfig.discardCost > 0 ? `${selectedCount} of ${blackMarketConfig.discardCost} payment cards selected.` : "No discard payment needed."}</p>
         <div className="action-row">
-          <button
+          <button className="decision-primary"
             disabled={!canUseMarket}
             onClick={() => {
               dispatch({
@@ -471,9 +401,7 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
         </div>
       </div>
       {handLimitWarning && (
-        <p className="hand-limit-warning" role="status">
-          {handLimitWarning}
-        </p>
+        <GameNotice className="hand-limit-warning">{handLimitWarning}</GameNotice>
       )}
 
       <div className="action-panel__decision-grid">
@@ -569,60 +497,10 @@ export function ActionPanel({ state, currentPlayer, selectedCard, selectedDiscar
                     : `Choose a target for ${selectedDefinition.name}.`}
               </p>
               {selectedIsMinigun ? (
-                <>
-                  <div className="target-list target-list--allocation">
-                    {livingTargets.map((target) => {
-                      const damage = minigunAllocation[target.id] ?? 0;
-                      return (
-                        <div className="allocation-row" key={target.id}>
-                          <span>{target.name}</span>
-                          <div>
-                            <button
-                              disabled={damage <= 0}
-                              onClick={() =>
-                                setMinigunAllocation((current) => ({
-                                  ...current,
-                                  [target.id]: Math.max(0, (current[target.id] ?? 0) - 1)
-                                }))
-                              }
-                            >
-                              -
-                            </button>
-                            <strong>{damage}</strong>
-                            <button
-                              disabled={damage >= minigunPerTargetCap || allocatedMinigunDamage >= minigunDamagePool}
-                              onClick={() =>
-                                setMinigunAllocation((current) => ({
-                                  ...current,
-                                  [target.id]: Math.min(minigunPerTargetCap, (current[target.id] ?? 0) + 1)
-                                }))
-                              }
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="menu-note">
-                    Allocated {allocatedMinigunDamage} of {minigunDamagePool}.
-                  </p>
-                  <button
-                    disabled={!canAct || !selectedCard || allocatedMinigunDamage <= 0 || allocatedMinigunDamage > minigunDamagePool}
-                    onClick={() =>
-                      selectedCard &&
-                      dispatch({
-                        type: "ATTACK",
-                        attackerId: currentPlayer.id,
-                        weaponInstanceId: selectedCard.instanceId,
-                        damageByTarget: Object.fromEntries(Object.entries(minigunAllocation).filter(([, damage]) => damage > 0))
-                      })
-                    }
-                  >
-                    Fire Minigun
-                  </button>
-                </>
+                <MinigunAllocation key={selectedCard?.instanceId} targets={livingTargets} pool={minigunDamagePool}
+                  perTargetCap={minigunPerTargetCap} disabled={!canAct || !selectedCard}
+                  onFire={damageByTarget => selectedCard && dispatch({ type: "ATTACK", attackerId: currentPlayer.id,
+                    weaponInstanceId: selectedCard.instanceId, damageByTarget })} />
               ) : selectedWeaponHitsEveryone ? (
                 <button
                   disabled={!canAct || !selectedCard}
@@ -788,11 +666,10 @@ export function getHandLimitWarning(player: PlayerState, maxHandSize: number): s
   return `${player.name} has ${player.hand.length} cards. Discard down to ${maxHandSize} before ending turn.`;
 }
 
-function getBlackMarketSummary(config: BlackMarketConfig) {
+function getBlackMarketCost(config: BlackMarketConfig) {
   const costs = [
-    config.discardCost > 0 ? `discard ${config.discardCost} card${config.discardCost === 1 ? "" : "s"}` : null,
-    config.healthCost > 0 ? `pay ${config.healthCost} health` : null
+    config.discardCost > 0 ? `${config.discardCost} card${config.discardCost === 1 ? "" : "s"}` : null,
+    config.healthCost > 0 ? `${config.healthCost} HP` : null
   ].filter(Boolean);
-  const costText = costs.length > 0 ? costs.join(", ") : "pay no extra cost";
-  return `${costText}; reveal ${config.revealCount}, keep ${config.keepCount}, discard the rest.`;
+  return costs.length > 0 ? costs.join(" + ") : "No extra cost";
 }

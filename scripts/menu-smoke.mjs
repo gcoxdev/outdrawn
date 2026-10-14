@@ -138,12 +138,16 @@ try {
     await open();
     const snapshot = () => page.evaluate(() => localStorage.getItem("outdrawn-match-v1"));
     const before = await snapshot();
-    page.once("dialog", dialog => dialog.dismiss());
     await page.getByRole("button", { name: "Restart Game", exact: true }).click();
+    const restartConfirmation = page.getByRole("dialog", { name: "Restart match?", exact: true });
+    await restartConfirmation.waitFor();
+    assert(await restartConfirmation.getByRole("button", { name: "Keep playing" }).evaluate(element => element === document.activeElement));
+    await page.keyboard.press("Escape");
     assert.equal(await snapshot(), before, "Canceling restart must preserve the match");
     assert(await page.getByRole("dialog", { name: "Game menu", exact: true }).isVisible());
-    page.once("dialog", dialog => dialog.accept());
+    assert(await page.getByRole("button", { name: "Restart Game", exact: true }).evaluate(element => element === document.activeElement));
     await page.getByRole("button", { name: "Restart Game", exact: true }).click();
+    await restartConfirmation.getByRole("button", { name: "Restart Game", exact: true }).click();
     await page.getByRole("dialog", { name: "Game menu", exact: true }).waitFor({ state: "detached" });
     // The same first player may remain revealed after restart; a different
     // first player receives the privacy gate.
@@ -153,11 +157,12 @@ try {
     assert.equal(restarted.phase, "action");
     assert.equal(restarted.players.length, 3);
     await open();
-    page.once("dialog", dialog => dialog.dismiss());
     await page.getByRole("button", { name: "Return to Lobby", exact: true }).click();
+    const lobbyConfirmation = page.getByRole("dialog", { name: "Return to lobby?", exact: true });
+    await lobbyConfirmation.getByRole("button", { name: "Keep playing" }).click();
     assert(await page.locator(".game-table").isVisible());
-    page.once("dialog", dialog => dialog.accept());
     await page.getByRole("button", { name: "Return to Lobby", exact: true }).click();
+    await lobbyConfirmation.getByRole("button", { name: "Return to Lobby", exact: true }).click();
     await page.locator(".setup-screen").waitFor();
     assert.deepEqual(errors, []);
     console.log(`PASS ${engine}: drawer layouts, card previews/artwork, keyboard focus, rules, search/filter, privacy, updates, and match actions`);

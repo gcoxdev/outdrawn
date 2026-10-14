@@ -26,6 +26,17 @@ body:has(.match-dialog[open]) { overflow: hidden; }
 .match-dialog button.match-dialog__primary:hover { background: #cb5242; }
 .match-dialog :is(button, [tabindex]):focus-visible { outline: 2px solid #dfbc81; outline-offset: 3px; }
 
+.pass-device-gate__panel { width: min(420px, 100%); }
+.pass-device-gate__body { padding: 28px 24px; text-align: center; }
+.pass-device-gate__body h3 { margin: 10px 0 12px; color: #eee8db; font-size: clamp(24px, 5vw, 30px); font-weight: 650; line-height: 1.2; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.pass-device-gate__reason { margin: 0; color: #d3cdbe; font-size: 14px; line-height: 1.65; }
+.pass-device-gate__privacy { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--dialog-line); color: var(--dialog-muted); font-size: 12px; line-height: 1.6; }
+.pass-device-gate__actions button { width: 100%; }
+.match-confirmation { width: min(440px, 100%); }
+.match-confirmation__body { padding: 22px; }
+.match-confirmation__body p { margin: 0; color: #e1dacb; font-size: 14px; line-height: 1.7; }
+.match-confirmation__body p + p { margin-top: 12px; color: var(--dialog-muted); font-size: 12px; }
+
 .discard-piles-panel { width: min(680px, 100%); }
 .discard-piles-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; flex-shrink: 0; padding: 12px 20px; border-bottom: 1px solid var(--dialog-line); }
 .discard-piles-tabs button { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 42px; background: transparent; border-color: transparent; color: var(--dialog-muted); font-size: 13px; }
@@ -96,6 +107,8 @@ body:has(.match-dialog[open]) { overflow: hidden; }
   .event-dialog-copy { text-align: left; }
   .winner-modal__body { padding: 18px 24px; }
   .winner-modal__emblem { width: 44px; height: 44px; margin-bottom: 14px; }
+  .pass-device-gate__body { padding: 18px 24px; }
+  .pass-device-gate__privacy { margin-top: 14px; padding-top: 12px; }
 }
 @media (pointer: coarse) {
   .match-dialog__close { width: 44px; min-height: 44px; }

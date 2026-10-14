@@ -788,16 +788,6 @@ p {
   background: transparent;
 }
 
-.hand-limit-warning {
-  margin: -4px 0 0;
-  border: 1px solid rgba(217, 157, 69, 0.42);
-  border-radius: 8px;
-  padding: 9px 11px;
-  background: rgba(217, 157, 69, 0.13);
-  color: #f0c783;
-  font-weight: 800;
-}
-
 .player-roster--compact .player-roster__list {
   gap: 3px;
 }
@@ -1089,51 +1079,6 @@ p {
   line-height: 1.35;
 }
 
-.pass-device-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 35;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.72);
-}
-
-.pass-device-gate__panel {
-  display: grid;
-  gap: 12px;
-  width: min(420px, 100%);
-  border: 1px solid rgba(217, 157, 69, 0.42);
-  border-radius: 8px;
-  padding: 28px;
-  background: #191713;
-  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.5);
-  text-align: center;
-}
-
-.pass-device-gate__panel h2 {
-  margin-bottom: 0;
-  font-size: clamp(1.6rem, 8vw, 2.6rem);
-}
-
-.pass-device-gate__panel p:not(.eyebrow) {
-  color: var(--muted);
-}
-
-.pass-device-gate__panel button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  justify-self: center;
-  min-width: 180px;
-  padding: 0 18px;
-  background: var(--amber);
-  color: #15120d;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
 @media (max-width: 1080px) {
   .game-shell {
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
@@ -1257,5 +1202,4 @@ p {
 .app-dialog:not([open]) { display: none; }
 .app-dialog::backdrop { background: transparent; }
 .app-dialog.menu-overlay { padding: 0; background: transparent; }
-.save-warning { padding: 12px; margin: 0; background: #532e13; color: white; }
 .sidebar-resize-handle:focus-visible { outline: 2px solid #e2b467; }
