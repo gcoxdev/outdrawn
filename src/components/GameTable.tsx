@@ -77,8 +77,6 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
   const canUseTeamHandControls = teamHandViewers.length > 1 && shouldRevealDisplayHand;
   const isHandManuallyHidden = hiddenHandPlayerIds.has(handDisplayPlayer.id);
   const shouldShowDisplayHand = shouldRevealDisplayHand && !isHandManuallyHidden;
-  const previewCard = shouldShowDisplayHand && !state.pendingEventDialog ? handDisplayPlayer.hand.find(card => card.instanceId === previewId) : undefined;
-  useEffect(() => { onReferenceOpenChange?.(menuOpen || showDiscards || !!previewCard || activeMobileTab === "log"); return () => onReferenceOpenChange?.(false); }, [menuOpen, showDiscards, previewCard, activeMobileTab, onReferenceOpenChange]);
   const canSelectDisplayHand =
     shouldShowDisplayHand &&
     handDisplayPlayer.id === displayPlayer.id &&
@@ -90,7 +88,12 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
     state.phase !== "gameOver";
   const handDiscardRequirement = getHandDiscardRequirement(state, currentPlayer, handDisplayPlayer);
   const playableReactionCardIds = getPlayableReactionCardIds(state, handDisplayPlayer);
-  const selectedDiscardCards = handDisplayPlayer.hand.filter((card) => selectedDiscardIds.includes(card.instanceId));
+  const allowedHandCardIds = handDiscardRequirement ? handDiscardRequirement.allowedCardInstanceIds : playableReactionCardIds;
+  const previewCard = shouldShowDisplayHand && !state.pendingEventDialog && !handDiscardRequirement
+    ? handDisplayPlayer.hand.find(card => card.instanceId === previewId && (!allowedHandCardIds || allowedHandCardIds.includes(card.instanceId)))
+    : undefined;
+  useEffect(() => { onReferenceOpenChange?.(menuOpen || showDiscards || !!previewCard || activeMobileTab === "log"); return () => onReferenceOpenChange?.(false); }, [menuOpen, showDiscards, previewCard, activeMobileTab, onReferenceOpenChange]);
+  const selectedDiscardCards = handDisplayPlayer.hand.filter((card) => selectedDiscardIds.includes(card.instanceId) && (!allowedHandCardIds || allowedHandCardIds.includes(card.instanceId)));
   const winner = state.players.find((player) => player.id === state.winnerId);
   const decisionText = getDecisionText(state, currentPlayer.name, displayPlayer.name, winner?.name);
 
@@ -156,18 +159,17 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
       ) : null}
       <header className="match-header">
         <img src="/optimized/branding/logos/outdrawn-logo-dark-01.webp" alt="Outdrawn" width="260" height="84" />
-        <div className="match-header__status"><span>Round <strong>{state.round}</strong></span><span>{state.players.filter(player => !player.eliminated).length} alive</span></div>
+        <nav className="mobile-board-tabs" aria-label="Board sections">
+          {(["play", "players", "log"] as MobileTab[]).map((tab) => (
+            <button className={activeMobileTab === tab ? "is-active" : ""} key={tab} type="button" aria-pressed={activeMobileTab === tab} onClick={() => setActiveMobileTab(tab)}>
+              {tab === "play" ? <Swords size={16} /> : tab === "players" ? <Users size={16} /> : <ScrollText size={16} />}
+              {tab === "play" ? "Table" : tab === "players" ? "Players" : "Log"}
+            </button>
+          ))}
+        </nav>
+        <div className="match-header__status"><span>Round <strong>{state.round}</strong></span><span>Alive <strong>{state.players.filter(player => !player.eliminated).length}</strong></span></div>
         <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} onOpenChange={setMenuOpen} />
       </header>
-
-      <nav className="mobile-board-tabs" aria-label="Board sections">
-        {(["play", "players", "log"] as MobileTab[]).map((tab) => (
-          <button className={activeMobileTab === tab ? "is-active" : ""} key={tab} type="button" aria-pressed={activeMobileTab === tab} onClick={() => setActiveMobileTab(tab)}>
-            {tab === "play" ? <Swords size={16} /> : tab === "players" ? <Users size={16} /> : <ScrollText size={16} />}
-            {tab === "play" ? "Table" : tab === "players" ? "Players" : "Log"}
-          </button>
-        ))}
-      </nav>
 
       <section className="game-shell">
         <aside
@@ -214,8 +216,8 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
           <header className="decision-strip">
             <h1>{decisionText}</h1>
             <div className="log-panel__meta">
-              <span><Layers size={14} /> {state.mainDeck.length} in deck</span>
-              <button type="button" onClick={() => setShowDiscards(true)}>Discards <span>{state.discardPile.length}</span></button>
+              <span><Layers size={14} aria-hidden="true" /> <strong className="pile-count">{state.mainDeck.length}</strong> in deck</span>
+              <button type="button" onClick={() => setShowDiscards(true)}>Discards <strong className="pile-count">{state.discardPile.length}</strong></button>
             </div>
           </header>
 
@@ -281,12 +283,11 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
               {shouldShowDisplayHand ? (
                 handDisplayPlayer.hand.map((card) => {
                   const definition = definitionFor(card);
-                  const canSelectDiscard =
-                    !handDiscardRequirement?.allowedCardInstanceIds ||
-                    handDiscardRequirement.allowedCardInstanceIds.includes(card.instanceId);
-                  const selectingDiscard = !!(handDiscardRequirement && canSelectDisplayHand && canSelectDiscard);
+                  const isDisabled = !!allowedHandCardIds && !allowedHandCardIds.includes(card.instanceId);
+                  const selectingDiscard = !!(handDiscardRequirement && canSelectDisplayHand);
                   const isSelected = handDiscardRequirement ? selectedDiscardIds.includes(card.instanceId) : previewId === card.instanceId;
                   const openCard = () => {
+                    if (isDisabled) return;
                     if (selectingDiscard) {
                       setSelectedDiscardIds(current => current.includes(card.instanceId)
                         ? current.filter(id => id !== card.instanceId)
@@ -298,8 +299,8 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
                   };
                   return definition ? (
                     <div className="hand-card-slot" key={card.instanceId}>
-                      {handLayout === "tiles" ? <CardView card={definition} opensDialog={!selectingDiscard} isSelected={isSelected} onClick={openCard} /> :
-                        <button type="button" className={`hand-list-card${isSelected ? " is-selected" : ""}`}
+                      {handLayout === "tiles" ? <CardView card={definition} opensDialog={!selectingDiscard} isSelected={isSelected} isDisabled={isDisabled} onClick={openCard} /> :
+                        <button type="button" disabled={isDisabled} className={`hand-list-card${isSelected ? " is-selected" : ""}`}
                           aria-label={`${selectingDiscard ? "Select" : "Open"} ${definition.name} card`} aria-haspopup={selectingDiscard ? undefined : "dialog"}
                           aria-pressed={selectingDiscard ? isSelected : undefined} onClick={event => { event.currentTarget.focus(); openCard(); }}>
                           <span className="hand-list-card__art" aria-hidden="true"><CardView card={definition} mode="board" /></span>
@@ -321,7 +322,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
 
           {state.phase === "gameOver" ? <section className="action-panel finished-match">
             <h2>Match complete</h2><p>{state.outcome?.description ?? "Review the result or start a new match."}</p>
-            <div className="action-row"><button type="button" onClick={() => setResultDismissed(false)}>View result</button><button type="button" onClick={() => { setActiveMobileTab("log"); document.querySelector(".game-log")?.scrollIntoView({ block: "nearest" }); }}>Review log</button><button type="button" onClick={() => setShowDiscards(true)}>Discards</button><button type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}>New Game</button></div>
+            <div className="action-row"><button type="button" onClick={() => setResultDismissed(false)}>View result</button><button className="review-log-button" type="button" onClick={() => { setActiveMobileTab("log"); document.querySelector(".game-log")?.scrollIntoView({ block: "nearest" }); }}>Review log</button><button type="button" onClick={() => setShowDiscards(true)}>Discards</button><button type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}>New Game</button></div>
           </section> : <ActionPanel
             state={state}
             currentPlayer={currentPlayer}

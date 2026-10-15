@@ -41,10 +41,23 @@ try {
     async function screenshot(name) {
       if (process.env.TABLE_SCREENSHOTS && engine === "chromium") await page.screenshot({ path: `internal/game-${name}.png`, fullPage: true });
     }
-    for (const [width, height] of [[1440, 900], [1920, 1080], [1024, 768], [768, 1024], [760, 800], [390, 844], [320, 740], [844, 390]]) {
+    for (const [width, height] of [[1440, 900], [1920, 1080], [1024, 768], [768, 1024], [760, 800], [390, 844], [320, 740], [844, 390], [568, 320], [932, 430]]) {
       await page.setViewportSize({ width, height });
       await load("table");
       await fits();
+      const landscapeLayout = width <= 1100 && height <= 500 && width > height;
+      if (landscapeLayout) {
+        const logo = await page.locator(".match-header > img").boundingBox();
+        const tabs = await page.locator(".mobile-board-tabs").boundingBox();
+        const status = await page.locator(".match-header__status").boundingBox();
+        const hand = await page.locator(".current-board").boundingBox();
+        const actions = await page.locator(".decision-workspace > .action-panel").boundingBox();
+        assert(tabs.x >= logo.x + logo.width && tabs.x + tabs.width <= status.x, "Landscape navigation must sit between logo and status");
+        assert(Math.abs(tabs.y + tabs.height / 2 - logo.y - logo.height / 2) <= 1, "Landscape navigation must share the header row");
+        assert(actions.x >= hand.x + hand.width - 1 && actions.y < hand.y + hand.height, "Landscape actions must sit beside the hand");
+        assert(actions.y + actions.height <= height && hand.height >= height * .6, "Landscape hand must use the available height");
+        await screenshot(`landscape-${width}`);
+      }
       if (width === 1440) await screenshot("desktop");
       if (width === 390) await screenshot("mobile");
       await card("Pistol").tap();
@@ -58,7 +71,7 @@ try {
       await card("Dodge").tap();
       await button("Play Dodge").tap();
       assert.equal((await saved()).pendingReaction, null);
-      if (width <= 760) {
+      if (width <= 760 || landscapeLayout) {
         await button("Players").tap();
         await page.locator(".player-roster").waitFor();
         assert.equal(await page.locator(".decision-workspace").isVisible(), false);
@@ -84,7 +97,14 @@ try {
           const selector = await page.locator(".board-heading select").boundingBox();
           const privacy = await button("Hide Ari's hand").boundingBox();
           const toggle = await page.getByRole("group", { name: "Hand display" }).boundingBox();
-          assert(Math.abs(selector.y - privacy.y) <= 1 && Math.abs(toggle.y - privacy.y) <= 1, "Hand controls must align at the top");
+          assert(Math.abs(toggle.y - privacy.y) <= 1, "Hand display and privacy controls must align");
+          if (width <= 760) {
+            const health = await page.locator(".board-heading__health").boundingBox();
+            assert(Math.abs(health.y + health.height / 2 - toggle.y - toggle.height / 2) <= 1, "Mobile hand controls must share the player heading row");
+            assert(selector.y >= toggle.y + toggle.height, "Mobile team selector must sit below the heading controls");
+          } else {
+            assert(Math.abs(selector.y - privacy.y) <= 1, "Desktop hand controls must align at the top");
+          }
           assert(Math.abs(selector.height - privacy.height) <= 1 && Math.abs(toggle.height - privacy.height) <= 1, "Hand controls must have equal height");
           await button("List view").click();
           assert.equal(await page.locator(".hand-list-card").count(), 5);
@@ -121,6 +141,17 @@ try {
         }
       }
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load("table");
+    await button("Log").click();
+    await page.setViewportSize({ width: 844, height: 390 });
+    assert(await page.locator(".game-log").isVisible(), "Rotation must preserve the active tab");
+    await button("Table").click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const portraitHand = await page.locator(".current-board").boundingBox();
+    const portraitActions = await page.locator(".decision-workspace > .action-panel").boundingBox();
+    assert(portraitActions.y >= portraitHand.y + portraitHand.height - 1, "Portrait actions must return below the hand");
+    await fits();
     assert.deepEqual(errors, []);
     console.log(`PASS ${engine}: responsive table, attack/defense, navigation, discards, 100 players, large hand, team viewing`);
     await browser.close(); browser = null;

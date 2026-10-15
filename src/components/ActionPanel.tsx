@@ -309,7 +309,7 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
     <section className="action-panel">
       <div className="turn-toolbar">
         <div className="turn-resource-strip" aria-label="Turn resources">
-          <span><strong>{currentPlayer.actionsRemaining}</strong> actions left</span>
+          <span className="turn-actions-remaining"><strong>{currentPlayer.actionsRemaining}</strong> actions left</span>
           {state.settings.freeDrawsPerTurn > 0 && <span><strong>{currentPlayer.freeDrawsRemaining}/{state.settings.freeDrawsPerTurn}</strong> free draws</span>}
         </div>
         <div className="action-panel__commands">

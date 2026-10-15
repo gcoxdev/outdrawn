@@ -17,6 +17,7 @@ export function getCardTargets(state: GameState, player: PlayerState, card: Card
       return [option];
     }
     if (!definition || !(definition.type === "weapon" || (definition.type === "ability" && definition.target === "onePlayer")) || !isHostileTarget(player, target)) return [];
+    if (definition.id === "ability_steal") option.note = `${target.hand.length} card${target.hand.length === 1 ? "" : "s"} in hand`;
     if (state.smokeProtectedPlayerIds.includes(target.id)) option.disabledReason = "Smoke Bomb · protected until their next turn";
     else if (definition.type === "weapon" && definition.id !== "weapon_minigun" && state.intimidations[player.id]?.includes(target.id)) {
       if (player.hand.every(held => held.instanceId === card.instanceId)) option.disabledReason = "Intimidate · another card is needed to pay the discard cost";

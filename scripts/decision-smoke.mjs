@@ -53,8 +53,57 @@ try {
         await page.screenshot({ path: `internal/decision-${name}-${width}.png`, fullPage: true });
       }
     }
-    for (const [width, height] of [[1440, 900], [390, 844], [320, 568], [844, 390]]) {
+    for (const [width, height] of [[1440, 900], [390, 844], [320, 568], [844, 390], [568, 320]]) {
       await page.setViewportSize({ width, height });
+      const handCard = name => page.locator(`.hand-rail button:has(img[alt^="${name}:"])`);
+      for (const layout of ["Tile view", "List view"]) {
+        for (const [fixture, allowed, blocked] of [
+          ["noCover", "Dodge", ["Pistol"]],
+          ["lowAmmo", "Pistol", ["Dodge"]],
+          ["intimidate", "Dodge", ["Pistol"]],
+          ["reaction", "Dodge", ["Pistol", "Revive"]],
+          ["secondary", "Dodge", ["Pistol", "Revive", "Ricochet"]]
+        ]) {
+          await load(fixture);
+          await button(layout).click();
+          for (const name of blocked) {
+            const card = handCard(name);
+            assert(await card.isDisabled(), `${fixture}: ${name} must be disabled in ${layout}`);
+            await card.evaluate(element => { element.focus(); element.click(); });
+            assert(!(await card.evaluate(element => element === document.activeElement)), "Disabled cards must not receive focus");
+            assert.equal(await page.locator(".card-action-dialog").count(), 0, "Disabled cards must not open a dialog");
+          }
+          assert(await handCard(allowed).isEnabled());
+          if (fixture === "reaction") assert(await handCard("Ricochet").isEnabled());
+          await handCard(allowed).click();
+          if (fixture === "reaction" || fixture === "secondary") {
+            await button("Play Dodge").click();
+            const resolved = await saved();
+            assert.equal(resolved.pendingReaction, null);
+            assert.equal(resolved.pendingSecondaryDamage, null);
+          } else {
+            assert.equal(await page.locator(".card-action-dialog").count(), 0, "Discard selection must stay in the hand");
+            await button("Confirm Discard").click();
+            if (fixture === "intimidate") {
+              assert.equal((await saved()).pendingAttackCost, null);
+              assert.equal((await saved()).pendingReaction.defenderId, "player_2");
+            } else {
+              // Resolve every player's discard, then ensure normal inspection returns.
+              for (let player = 1; player < 3; player++) {
+                assert(await handCard(blocked[0]).isDisabled());
+                await handCard(allowed).click();
+                await button("Confirm Discard").click();
+              }
+              assert.equal((await saved()).pendingDiscard, null);
+              assert(await handCard(blocked[0]).isEnabled());
+              await handCard(blocked[0]).click();
+              await page.locator(".card-action-dialog").waitFor();
+              await button("Close card").click();
+            }
+          }
+          await fits();
+        }
+      }
       await load("search");
       const before = await saved();
       await page.getByRole("list", { name: "Available cards" }).getByRole("button", { name: "View Pistol card", exact: true }).click();
@@ -147,7 +196,7 @@ try {
       assert.equal((await saved()).phase, "action");
     }
     assert.deepEqual(errors, []);
-    console.log(`PASS ${engine}: card preview/choice separation, supply handoff, market limits/payment, 100-player Minigun allocation, warnings, confirmation layouts`);
+    console.log(`PASS ${engine}: restricted hand choices in tile/list views, card preview/choice separation, supply handoff, market limits/payment, 100-player Minigun allocation, warnings, confirmation layouts`);
     await browser.close(); browser = null;
   }
 } finally {
