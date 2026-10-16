@@ -77,15 +77,22 @@ Each living player acts once per round. After all living players have acted:
 
 ## Weapons
 
-- Pistol: deal 3 damage.
-- Shotgun: deal 6 damage, then discard.
-- Sniper Rifle: deal 8 damage.
-- Knife: deal 2 damage.
-- Grenade: deal 4 damage to the target and 2 splash damage to the living players before and after the target in seating order. Find the nearest living player in each direction, skipping the attacker and the target; hit each distinct player at most once. The attacker and their teammates take no splash damage.
-- Assault Rifle: deal 5 damage.
-- Crossbow: deal 4 damage and penetrates Armor Vest.
-- SMG: deals 2 damage twice to the same target. Each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, if the shooter loses the SMG (for example, by using Revive), or if the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
-- Minigun: allocate up to 6 damage among living opponents, max 3 allocated per opponent. Attack bonuses add to the total pool; Mark Target adds damage to each marked target after allocation. Targets may defend once against their allocation only when defense on secondary attacks is enabled; otherwise the damage resolves without reactions.
+- Pistol: Deal 3 damage to one player.
+- Shotgun: Deal 6 damage to one player.
+- Sniper Rifle: Deal 8 damage to one player.
+- Knife: Deal 2 damage to one player.
+- Grenade: Deal 4 damage to one player and 2 splash damage to the next living player on each side in seating order. You are immune.
+- Assault Rifle: Deal 5 damage to one player.
+- Crossbow: Deal 4 damage to one player. Pierces Armor Vest.
+- SMG: Deal 2 damage twice to one player. Resolve each hit separately.
+- Minigun: Split up to 6 damage among opponents, max 3 each. Each may defend once only if secondary defense is agreed to.
+
+### Weapon clarifications
+
+- Played weapons are discarded under the general combat rules, including Shotgun.
+- Grenade: find the nearest living player in each direction, skipping the attacker and the target; hit each distinct player at most once. The attacker and their teammates take no splash damage.
+- SMG: each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, if the shooter loses the SMG (for example, by using Revive), or if the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
+- Minigun: choose living opponents. Attack bonuses add to the total pool; Mark Target adds damage to each marked target after allocation. In the app, agreeing to secondary defense means enabling the “Defense on secondary attacks” setting; otherwise these hits resolve without reactions.
 
 ## Defense
 

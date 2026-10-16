@@ -81,7 +81,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["damage", "target"],
     shortText: "Deal 6 damage to one player.",
-    rulesText: "Deal 6 damage to one player, then discard this card.",
+    rulesText: "Deal 6 damage to one player.",
     flavorText: "Close enough is good enough.",
     tags: ["weapon", "burst", "single-target"]
   },
@@ -114,7 +114,7 @@ export const mainDeckCards: Card[] = [
     icons: ["damage", "loot"],
     shortText: "Deal 2 damage to one player.",
     rulesText: "Deal 2 damage to one player.",
-    flavorText: "Quiet work pays extra.",
+    flavorText: "Some arguments need a sharp point.",
     tags: ["weapon", "loot", "single-target"]
   },
   {
@@ -130,8 +130,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["damage", "splash", "target"],
     shortText: "Deal 4 damage, plus 2 splash to players before and after target.",
-    rulesText: "Deal 4 damage to one target. Deal 2 splash damage to the living players before and after the target in seating order. Attacker is immune.",
-    flavorText: "Nobody is standing far enough away.",
+    rulesText: "Deal 4 damage to one player and 2 splash damage to the next living player on each side in seating order. You are immune.",
+    flavorText: "One little pin. One big boom.",
     tags: ["weapon", "splash", "area"]
   },
   {
@@ -162,8 +162,8 @@ export const mainDeckCards: Card[] = [
     ignoresArmor: true,
     supplyCost: 2,
     icons: ["damage", "pierce", "target"],
-    shortText: "Deal 4 damage. Penetrates Armor Vest.",
-    rulesText: "Deal 4 damage to one player. This weapon penetrates Armor Vest.",
+    shortText: "Deal 4 damage. Pierces Armor Vest.",
+    rulesText: "Deal 4 damage to one player. Pierces Armor Vest.",
     flavorText: "Old tech. New problem.",
     tags: ["weapon", "piercing", "single-target"]
   },
@@ -179,7 +179,7 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["damage", "repeat", "target"],
     shortText: "Deal 2 damage twice to one player.",
-    rulesText: "Deal 2 damage twice to the same player. Each hit resolves separately.",
+    rulesText: "Deal 2 damage twice to one player. Resolve each hit separately.",
     flavorText: "Accuracy by volume.",
     tags: ["weapon", "multi-hit", "single-target"]
   },
@@ -195,9 +195,9 @@ export const mainDeckCards: Card[] = [
     maxDamagePerTarget: 3,
     supplyCost: 3,
     icons: ["damage", "spray"],
-    shortText: "Allocate 6 damage among opponents.",
-    rulesText: "Allocate 6 damage among any opponents, max 3 per opponent. Each chosen opponent may defend once only when secondary defense is enabled.",
-    flavorText: "Nobody gets to ignore that sound.",
+    shortText: "Split up to 6 damage among opponents, max 3 each.",
+    rulesText: "Split up to 6 damage among opponents, max 3 each. Each may defend once only if secondary defense is agreed to.",
+    flavorText: "Nothing mini about the consequences.",
     tags: ["weapon", "area", "all-opponents"]
   },
 
