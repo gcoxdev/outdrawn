@@ -28,7 +28,7 @@ function storage() {
 
 describe("player damage totals", () => {
   it("counts health actually removed after defense and does not recount on selection or rejected actions", () => {
-    let state = attack(fixture("weapon_pistol", "defense_armor_vest"));
+    let state = attack(fixture("weapon_assault_rifle", "defense_armor_vest"));
     expect(state.players[0].damageDealt).toBe(0);
     state = defend(state);
     expect(state.players[0].damageDealt).toBe(1);

@@ -405,12 +405,12 @@ function resolveReactionDamage(
       : "{defender} avoided the attack." };
   }
 
-  if (reactionDefinition.id === "defense_brace") {
+  if (reactionDefinition.id === "defense_shield_plate") {
     const prevented = baseDamage - Math.floor(baseDamage / 2);
     return {
       ...baseResult,
       damage: applyNoCover(baseDamage, prevented, activeEventId),
-      message: "{defender} braced for impact."
+      message: "{defender} used Shield Plate to halve the hit."
     };
   }
 

@@ -194,7 +194,7 @@ describe("remaining main deck card implementations", () => {
     });
 
     expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
-    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(19);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, backfire.instanceId, shield.instanceId]));
   });
 
@@ -234,7 +234,7 @@ describe("remaining main deck card implementations", () => {
     });
 
     expect(state.players.find((player) => player.id === defender.id)!.health).toBe(17);
-    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(19);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, counterattack.instanceId, shield.instanceId]));
   });
 
@@ -272,7 +272,7 @@ describe("remaining main deck card implementations", () => {
       reactionCardInstanceId: shield.instanceId
     });
 
-    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(19);
     expect(state.pendingSecondaryDamage?.source).toBe("minigun");
   });
 
@@ -435,7 +435,7 @@ describe("remaining main deck card implementations", () => {
     });
 
     expect(state.players.find((player) => player.id === target.id)!.health).toBe(16);
-    expect(state.players.find((player) => player.id === splashTarget.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === splashTarget.id)!.health).toBe(19);
     expect(state.discardPile.map((card) => card.instanceId)).toContain(shield.instanceId);
   });
 
@@ -513,13 +513,13 @@ describe("remaining main deck card implementations", () => {
     expect(state.pendingMultiHitAttack?.hitsRemaining).toBe(2);
 
     state = gameReducer(state, { type: "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: shield.instanceId });
-    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(20);
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(19);
     expect(state.pendingReaction?.baseDamage).toBe(2);
     expect(state.pendingMultiHitAttack?.hitsRemaining).toBe(1);
 
     state = gameReducer(state, { type: "SKIP_REACTION", defenderId: defender.id });
 
-    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(18);
+    expect(state.players.find((player) => player.id === defender.id)!.health).toBe(17);
     expect(state.pendingReaction).toBeNull();
     expect(state.pendingMultiHitAttack).toBeNull();
     expect(state.players.find((player) => player.id === attacker.id)!.hand).toHaveLength(0);

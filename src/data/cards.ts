@@ -210,12 +210,12 @@ export const mainDeckCards: Card[] = [
     timing: "reaction",
     target: "self",
     rarity: "common",
-    block: 2,
+    block: 4,
     supplyCost: 2,
     isReaction: true,
     icons: ["armor", "block"],
-    shortText: "Reduce incoming damage by 2.",
-    rulesText: "Reduce incoming attack damage by 2 unless the weapon penetrates armor.",
+    shortText: "Reduce this hit’s damage by 4 unless armor is pierced.",
+    rulesText: "Reduce this hit’s damage by 4, unless the weapon pierces armor.",
     flavorText: "Not invincible. Just harder to kill.",
     tags: ["defense", "reaction", "armor"]
   },
@@ -227,13 +227,12 @@ export const mainDeckCards: Card[] = [
     timing: "reaction",
     target: "self",
     rarity: "common",
-    block: 4,
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "block"],
-    shortText: "Block 4 damage from one attack.",
-    rulesText: "Block 4 damage from one attack.",
-    flavorText: "A few seconds can save a life.",
+    shortText: "Halve this hit’s damage, rounding down.",
+    rulesText: "Halve this hit’s damage to you, rounding down.",
+    flavorText: "Consider this a barrier to communication.",
     tags: ["defense", "reaction", "block"]
   },
   {
@@ -247,8 +246,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 3,
     isReaction: true,
     icons: ["reaction", "cancel"],
-    shortText: "Cancel damage to yourself from one attack.",
-    rulesText: "Cancel damage to yourself from one attack. Grenade splash still resolves against other players.",
+    shortText: "Cancel this hit’s damage to you.",
+    rulesText: "Cancel this hit’s damage to you. Grenade splash still hits other players.",
     flavorText: "The best armor is not being there.",
     tags: ["defense", "reaction", "cancel"]
   },
@@ -264,9 +263,9 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "damage"],
-    shortText: "After taking damage, deal 3 back.",
-    rulesText: "After taking attack damage, deal 3 damage back to the attacker.",
-    flavorText: "You first. Then me.",
+    shortText: "Take this hit, then deal 3 damage to the attacker.",
+    rulesText: "Take this hit’s damage, then deal 3 damage to the attacker.",
+    flavorText: "One good hit deserves another.",
     tags: ["defense", "reaction", "retaliation"]
   },
   {
@@ -281,8 +280,8 @@ export const mainDeckCards: Card[] = [
     isReaction: true,
     icons: ["reaction", "cancel", "stealth"],
     shortText: "Cancel this hit; prevent direct targeting until your next turn.",
-    rulesText: "Cancel damage to yourself from one attack. Until your next turn, attacks and targeted abilities cannot choose you. Splash, event damage, and Ricochet redirects still affect you.",
-    flavorText: "A cloud of smoke can be a wall.",
+    rulesText: "Cancel this hit’s damage to you. Until your next turn, attacks and targeted abilities cannot choose you. Splash, events, and Ricochet still affect you.",
+    flavorText: "Nothing to see. That’s the point.",
     tags: ["defense", "reaction", "cancel", "stealth"]
   },
   {
@@ -296,9 +295,9 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "redirect"],
-    shortText: "Redirect an attack to another player.",
-    rulesText: "Redirect this hit to another living opponent other than the attacker, including a smoke-protected opponent. They may defend only when secondary defense is enabled; Ricochet cannot be chained.",
-    flavorText: "Wrong angle. Worse outcome.",
+    shortText: "Redirect this hit to another opponent except the attacker.",
+    rulesText: "Redirect this hit to another living opponent, except the attacker. Smoke offers no protection. They may defend only if secondary defense is enabled. No further Ricochets.",
+    flavorText: "A sharp turn for the worse.",
     tags: ["defense", "reaction", "redirect"]
   },
   {
@@ -312,9 +311,9 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "damage", "cancel"],
-    shortText: "Cancel damage; attacker takes that damage.",
-    rulesText: "Cancel incoming attack damage to yourself. The attacker takes the same amount of damage they tried to deal.",
-    flavorText: "Bad shot. Worse timing.",
+    shortText: "Cancel this hit; deal that damage to the attacker.",
+    rulesText: "Cancel this hit’s damage to you. Deal that much damage to the attacker.",
+    flavorText: "That blew up in your face. Literally.",
     tags: ["defense", "reaction", "retaliation", "cancel"]
   },
   {
@@ -325,12 +324,13 @@ export const mainDeckCards: Card[] = [
     timing: "reaction",
     target: "self",
     rarity: "common",
+    block: 2,
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "block"],
-    shortText: "Reduce damage by half.",
-    rulesText: "Reduce damage from one attack by half, rounded down.",
-    flavorText: "Take the hit on your terms.",
+    shortText: "Block 2 damage from this hit.",
+    rulesText: "Block 2 damage from this hit.",
+    flavorText: "Brace for impact. This part hurts.",
     tags: ["defense", "reaction", "block"]
   },
   {
@@ -344,9 +344,9 @@ export const mainDeckCards: Card[] = [
     supplyCost: 3,
     isLethalDefense: true,
     icons: ["lethal", "survive"],
-    shortText: "Survive at 1 HP. Consume healing cards.",
-    rulesText: "When another player's attack would eliminate you, survive at 1 health. Apply all available healing cards, then discard the rest.",
-    flavorText: "The body count was off by one.",
+    shortText: "Survive at 1 health, use your healing cards, discard the rest.",
+    rulesText: "When another player’s attack would eliminate you, survive at 1 health. Use all healing cards in your hand, then discard the rest.",
+    flavorText: "Not dead. Just dramatically injured.",
     tags: ["defense", "lethal", "survival"]
   },
 

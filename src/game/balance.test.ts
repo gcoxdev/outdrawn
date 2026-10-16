@@ -27,7 +27,7 @@ function estimatedSurvivalValue() {
       return total + 6 * card.count;
     }
 
-    if (card.id === "defense_brace") {
+    if (card.id === "defense_shield_plate") {
       return total + 3 * card.count;
     }
 

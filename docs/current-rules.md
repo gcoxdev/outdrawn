@@ -98,15 +98,21 @@ Each living player acts once per round. After all living players have acted:
 
 Defense cards are played from hand as reactions. There is no equipment system in the current prototype.
 
-- Armor Vest: reduce incoming attack damage by 2 unless the weapon penetrates armor.
-- Shield Plate: block 4 damage.
-- Dodge: cancel damage to yourself from one attack. Grenade splash against other players still resolves.
-- Counterattack: after taking damage, deal 3 damage back to the attacker.
-- Smoke Bomb: cancel damage and become protected until your next turn. Ordinary attack targeting and targeted abilities cannot choose you. Splash and event damage still affect you. The current prototype also permits Ricochet to redirect an attack onto a smoke-protected player.
-- Ricochet: redirect the current hit to another living player other than yourself, the attacker, or one of your teammates. The new target gets a defense window only if secondary defense is enabled. Ricochet cannot be chained against secondary damage.
-- Backfire: cancel incoming attack damage and deal that much damage to the attacker.
-- Brace: take half the incoming damage, rounded down (for example, 3 becomes 1).
-- Revive: when an attack would eliminate you, survive at 1 health plus the healing values of all healing cards in your hand, capped at maximum health. Discard your entire hand, including Revive and those healing cards. This costs no actions and does not trigger extra draws from Painkillers.
+- Armor Vest: Reduce this hit’s damage by 4, unless the weapon pierces armor.
+- Shield Plate: Halve this hit’s damage to you, rounding down.
+- Brace: Block 2 damage from this hit.
+- Dodge: Cancel this hit’s damage to you. Grenade splash still hits other players.
+- Counterattack: Take this hit’s damage, then deal 3 damage to the attacker.
+- Smoke Bomb: Cancel this hit’s damage to you. Until your next turn, attacks and targeted abilities cannot choose you. Splash, events, and Ricochet still affect you.
+- Ricochet: Redirect this hit to another living opponent, except the attacker. Smoke offers no protection. They may defend only if secondary defense is enabled. No further Ricochets.
+- Backfire: Cancel this hit’s damage to you. Deal that much damage to the attacker.
+- Revive: When another player’s attack would eliminate you, survive at 1 health. Use all healing cards in your hand, then discard the rest.
+
+### Defense clarifications
+
+- Shield Plate rounds the damage you take down: a 3-damage hit becomes 1 damage. No Cover reduces the amount prevented by 1, as it does for other blocking defenses.
+- Ricochet cannot redirect to yourself, the attacker, or a teammate.
+- Revive consumes all healing cards without spending actions or triggering extra draws from Painkillers. Healing is capped at maximum health, and your entire hand is discarded, including Revive and the healing cards.
 
 ## Abilities
 

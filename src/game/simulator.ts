@@ -797,8 +797,8 @@ function scoreReaction(card: CardInstance, damage: number, defenderHealth: numbe
     return damage >= 3 || damage >= defenderHealth ? 7 : 0;
   }
 
-  if (definition.id === "defense_brace") {
-    return damage >= 4 ? 5 : 0;
+  if (definition.id === "defense_shield_plate") {
+    return damage - Math.floor(damage / 2);
   }
 
   return Math.min(damage, definition.block ?? 0);

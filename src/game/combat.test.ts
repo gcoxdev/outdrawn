@@ -71,7 +71,7 @@ describe("combat and healing", () => {
     const damagedTarget = state.players.find((player) => player.id === target.id)!;
     const updatedAttacker = state.players.find((player) => player.id === attacker.id)!;
 
-    expect(damagedTarget.health).toBe(14);
+    expect(damagedTarget.health).toBe(16);
     expect(updatedAttacker.hand.some((card) => card.instanceId === weapon.instanceId)).toBe(false);
     expect(damagedTarget.hand.some((card) => card.instanceId === armor.instanceId)).toBe(false);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([weapon.instanceId, armor.instanceId]));
