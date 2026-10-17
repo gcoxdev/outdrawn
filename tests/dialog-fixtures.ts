@@ -30,7 +30,22 @@ export function fixtures() {
   team.winnerId = team.players[0].id;
   team.winnerTeamId = "team_1";
   team.players.forEach((player, index) => { player.teamId = index < 20 ? "team_1" : "team_2"; player.eliminated = index >= 20; });
-  return Object.fromEntries(Object.entries({ empty: base, discards, crowded, event, winner, tie, team }).map(([name, state]) => {
+  const elimination = structuredClone(base);
+  elimination.players.forEach(player => { player.hand = []; });
+  const weapon = card("weapon_pistol");
+  elimination.players[0].hand = [weapon];
+  elimination.players[0].controller = { type: "computer", strategy: "competent" };
+  elimination.players[1].health = 1;
+  elimination.pendingReaction = { attackerId: "player_1", defenderId: "player_2", weapon, baseDamage: 3 };
+  const finalEliminations = structuredClone(base);
+  finalEliminations.players.forEach((player, index) => { player.hand = []; player.health = index === 0 ? 10 : 1; player.actedThisRound = true; });
+  finalEliminations.round = 3;
+  const eventElimination = structuredClone(base);
+  eventElimination.settings.passDeviceMode = true;
+  eventElimination.players[0].health = 1;
+  eventElimination.players[0].hand = [];
+  eventElimination.mainDeck = [card("event_pressure_zone")];
+  return Object.fromEntries(Object.entries({ empty: base, discards, crowded, event, winner, tie, team, elimination, finalEliminations, eventElimination }).map(([name, state]) => {
     state.players.filter(player => player.eliminated).forEach(player => { player.health = 0; state.discardPile.push(...player.hand); player.hand = []; });
     let serialized = "";
     saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });

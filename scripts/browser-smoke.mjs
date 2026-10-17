@@ -55,6 +55,7 @@ try {
   await button("Draw");
   await until(() => js("return !!document.querySelector('dialog.event-dialog-backdrop[open]')"), "event modal");
   await button("Acknowledge");
+  await button("Continue");
   await button("Reveal Hand");
   assert.equal((await saved()).currentPlayerIndex, 1);
   await button("End Turn");
@@ -65,6 +66,7 @@ try {
 
   await loadFixture("bot");
   await until(async () => (await saved()).players[1].eliminated, "Master Minigun attack");
+  await button("Continue");
   await until(async () => (await saved()).currentPlayerIndex === 2, "bot finishes its turn");
   console.log("PASS Master bot progresses without a recovery action");
 

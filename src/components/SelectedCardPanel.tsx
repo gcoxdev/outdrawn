@@ -20,6 +20,7 @@ export function SelectedCardPanel({ state, player, card, dispatch }: {
   const needsTarget = transfer || definition.type === "weapon" || definition.type === "healing" || definition.target === "onePlayer";
   const cost = transfer ? 1 : definition.actionsCost ?? 1;
   const canAct = canPlayerAct(state, player.id) && player.actionsRemaining >= cost;
+  const canTransferNow = canPlayerAct(state, player.id);
   const canTransfer = state.settings.allowTeamCardTransfer && getCardTargets(state, player, card, true).length > 0;
   const canSubmit = canAct && (transfer || !isReaction) && (!needsTarget || !!target && !target.disabledReason)
     && (transfer || definition.type !== "healing" || !!target && canPlayHealingCard(player, definition, target.player, state.settings.maxHealth, canAct));
@@ -41,17 +42,17 @@ export function SelectedCardPanel({ state, player, card, dispatch }: {
     <header className="card-action-header"><h2>{definition.name}</h2><span className="card-action-cost">{!transfer && isReaction ? "Reaction" : `${cost} action${cost === 1 ? "" : "s"}`}</span></header>
     <p className="card-action-rules">{isMinigun ? `Allocate up to ${(definition.damage ?? 0) + (state.attackBonuses[player.id] ?? 0)} damage, max ${definition.maxDamagePerTarget ?? 3} per opponent.` : definition.rulesText}</p>
     {transfer ? <p className="card-action-note">Give this card to a teammate.</p> : isReaction ? <p className="card-action-note">Play this card when you’re defending against an eligible attack.</p> : null}
-    {(!isReaction || transfer) && !canAct && <p className="card-action-note" role="status">{player.actionsRemaining < cost ? `You need ${cost} action${cost === 1 ? "" : "s"} to ${transfer ? "transfer" : "play"} this card.` : "Finish the current decision first."}</p>}
-    {isMinigun ? <MinigunAllocation targets={options.map(option => option.player)} pool={(definition.damage ?? 0) + (state.attackBonuses[player.id] ?? 0)} perTargetCap={definition.maxDamagePerTarget ?? 3}
+    {(!isReaction || transfer) && !canAct && <p className="card-action-note" role="status">{player.actionsRemaining === 0 ? "No actions left. You can still discard cards or end your turn." : player.actionsRemaining < cost ? `You need ${cost} actions to ${transfer ? "transfer" : "play"} this card. You have ${player.actionsRemaining} left.` : "Finish the current decision first."}</p>}
+    {canAct && (isMinigun ? <MinigunAllocation targets={options.map(option => option.player)} pool={(definition.damage ?? 0) + (state.attackBonuses[player.id] ?? 0)} perTargetCap={definition.maxDamagePerTarget ?? 3}
       disabledReasons={Object.fromEntries(options.filter(option => option.disabledReason).map(option => [option.player.id, option.disabledReason!]))}
       disabled={!canAct} onFire={damageByTarget => dispatch({ type: "ATTACK", attackerId: player.id, weaponInstanceId: card.instanceId, damageByTarget })} />
       : (!isReaction || transfer) && <div className="card-action-play">
         {needsTarget && <TargetPicker key={transfer ? "transfer" : "play"} label={transfer ? "Recipient" : "Target"} options={options} value={targetId} onChange={setTargetId} />}
         <button className="decision-primary card-action-primary" type="button" disabled={!canSubmit} onClick={submit}>{primaryLabel}</button>
-      </div>}
+      </div>)}
     <footer className="card-action-secondary">
       <button type="button" className="card-action-link" disabled={!canPlayerEndTurn(state, player.id)} onClick={() => dispatch({ type: "DISCARD_CARD", playerId: player.id, cardInstanceId: card.instanceId })}><Trash2 size={14} aria-hidden="true" />Discard</button>
-      {canTransfer && <button type="button" className="card-action-link" aria-pressed={transfer} onClick={() => { setTransfer(value => !value); setTargetId(!transfer ? null : definition.type === "healing" ? player.id : null); }}><ArrowRightLeft size={14} aria-hidden="true" />{transfer ? "Cancel transfer" : "Transfer"}</button>}
+      {canTransfer && <button type="button" className="card-action-link" aria-pressed={transfer} disabled={!transfer && !canTransferNow} title={!canTransferNow ? "Transferring a card requires 1 action." : undefined} onClick={() => { setTransfer(value => !value); setTargetId(!transfer ? null : definition.type === "healing" ? player.id : null); }}><ArrowRightLeft size={14} aria-hidden="true" />{transfer ? "Cancel transfer" : "Transfer"}</button>}
     </footer>
   </section>;
 }

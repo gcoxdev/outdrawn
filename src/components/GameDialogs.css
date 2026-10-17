@@ -66,6 +66,14 @@ body:has(.match-dialog[open]) { overflow: hidden; }
 .event-dialog-player { margin: 0; color: #aaa494; font-size: 12px; overflow-wrap: anywhere; }
 .event-dialog-rules { margin: 20px 0 0; padding-top: 18px; border-top: 1px solid var(--dialog-line); color: #e1dacb; font-size: 14px; line-height: 1.75; }
 
+.elimination-dialog__panel { width: min(440px, 100%); background: radial-gradient(ellipse at 50% 10%, #a7473524, transparent 65%), #1c1e1a; }
+.elimination-dialog__body { padding: 24px; text-align: center; }
+.elimination-dialog__emblem { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 18px; border: 1px solid #ad594c66; border-radius: 50%; background: #b7463919; color: #df8876; }
+.elimination-dialog__body h2 { margin: 10px 0 20px; font-size: clamp(24px, 5vw, 32px); line-height: 1.2; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.elimination-dialog__players { display: grid; gap: 6px; list-style: none; padding: 0; margin: 0 0 20px; }
+.elimination-dialog__players li { padding: 9px 12px; border: 1px solid var(--dialog-line); border-radius: 6px; background: #ffffff03; font-size: 14px; overflow-wrap: anywhere; }
+.elimination-dialog__remaining { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; padding-top: 16px; border-top: 1px solid var(--dialog-line); color: var(--dialog-muted); font-size: 13px; }
+.elimination-dialog__remaining strong { color: #eee8db; font-size: 18px; font-variant-numeric: tabular-nums; }
 .winner-modal__panel { width: min(500px, 100%); background: radial-gradient(ellipse at 50% 15%, #87633424, transparent 60%), #1c1e1a; }
 .winner-modal__body { padding: 28px; text-align: center; }
 .winner-modal__emblem { display: grid; place-items: center; width: 68px; height: 68px; margin: 0 auto 20px; border: 1px solid #9a794b6b; border-radius: 50%; outline: 1px solid #9a794b22; outline-offset: 5px; background: #ac804519; color: #d6b37a; }
@@ -108,6 +116,8 @@ body:has(.match-dialog[open]) { overflow: hidden; }
   .event-dialog-body { grid-template-columns: 104px minmax(0, 1fr); gap: 20px; padding: 16px 22px; }
   .event-dialog-copy { text-align: left; }
   .winner-modal__body { padding: 18px 24px; }
+  .elimination-dialog__body { padding: 16px 20px; }
+  .elimination-dialog__emblem { width: 42px; height: 42px; margin-bottom: 12px; }
   .winner-modal__emblem { width: 44px; height: 44px; margin-bottom: 14px; }
   .pass-device-gate__body { padding: 18px 24px; }
   .pass-device-gate__privacy { margin-top: 14px; padding-top: 12px; }

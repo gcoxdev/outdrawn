@@ -2,8 +2,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /** Native modal behavior provides focus containment, inert background, and restoration. */
-export function Dialog({ children, className, label, onClose }: {
-  children: ReactNode; className: string; label: string; onClose?: () => void;
+export function Dialog({ children, className, label, descriptionId, onClose }: {
+  children: ReactNode; className: string; label: string; descriptionId?: string; onClose?: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -15,7 +15,7 @@ export function Dialog({ children, className, label, onClose }: {
     return () => { dialog.close(); if (previous?.isConnected) previous.focus(); };
   }, []);
   return createPortal(
-    <dialog ref={ref} className={`app-dialog ${className}`} aria-label={label} onCancel={event => {
+    <dialog ref={ref} className={`app-dialog ${className}`} aria-label={label} aria-describedby={descriptionId} onCancel={event => {
       event.preventDefault();
       event.stopPropagation();
       onClose?.();

@@ -8,6 +8,11 @@
 .card-action-secondary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; padding-top: 10px; border-top: 1px solid #bda57024; }
 .card-action-play { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, auto); align-items: end; gap: 12px; }
 .card-action-play > button:only-child { grid-column: 1 / -1; justify-self: start; }
+.redirect-action { align-items: stretch; row-gap: 6px; }
+.redirect-action .target-picker { display: contents; }
+.redirect-action .target-picker__label { grid-column: 1; grid-row: 1; }
+.redirect-action .target-picker__trigger { grid-column: 1; grid-row: 2; }
+.redirect-action > button { grid-column: 2; grid-row: 2; }
 :is(.game-table, .card-action-dialog) .action-panel button.decision-primary { color: #fff1e4; background: #b74639; border-color: #ca5b4c; min-height: 44px; }
 :is(.game-table, .card-action-dialog) .action-panel button.decision-primary:hover:not(:disabled) { background: #cb5242; border-color: #db7261; }
 :is(.game-table, .card-action-dialog) .action-panel button.turn-pass { background: transparent; border-color: transparent; color: #b8b5a6; }
@@ -36,6 +41,7 @@
 @media (max-width: 760px) {
   :is(.game-table, .card-action-dialog) .card-action-panel { padding: 14px; }
   .card-action-play { grid-template-columns: minmax(0, 1fr); }
+  .redirect-action > button { grid-column: 1; grid-row: 3; margin-top: 6px; }
   .card-action-play > button:only-child { justify-self: stretch; }
   :is(.game-table, .card-action-dialog) .action-panel button.card-action-link { min-height: 44px; }
   .target-dialog.match-dialog { align-items: end; padding: 0; }

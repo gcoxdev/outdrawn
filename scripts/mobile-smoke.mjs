@@ -97,7 +97,7 @@ try {
     await tap("Reveal Hand");
     assert.equal((await saved()).pendingSearch.cards.length, 3);
     await fixture("death");
-    await tap("Reveal Hand"); await tap("Draw"); await tap("Acknowledge"); await tap("Reveal Hand");
+    await tap("Reveal Hand"); await tap("Draw"); await tap("Acknowledge"); await tap("Continue"); await tap("Reveal Hand");
     assert.equal((await saved()).currentPlayerIndex, 1);
     console.log(`PASS ${engine}: touch choices, readable rules, modal focus, privacy, nested events, reload, human elimination`);
 

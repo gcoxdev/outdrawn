@@ -77,6 +77,33 @@ try {
       await button("Acknowledge").click();
       assert.equal((await saved()).pendingEventDialog, null);
       assert((await saved()).pendingDiscard, "Event discard choice must remain after acknowledgment");
+      await load("elimination");
+      await button("Take Hit").click();
+      await page.getByRole("dialog", { name: "Player eliminated", exact: true }).waitFor();
+      assert.equal(await page.locator(".elimination-dialog h2").innerText(), "Blake");
+      assert.match(await page.locator(".elimination-dialog__remaining").innerText(), /3 players remain/);
+      await fits();
+      await screenshot("elimination", width);
+      const beforeContinue = await saved();
+      await page.waitForTimeout(700);
+      assert.deepEqual(await saved(), beforeContinue, "Computer must wait for acknowledgment");
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator(".elimination-dialog").count(), 1);
+      await button("Continue").click();
+      await page.waitForFunction(previous => localStorage.getItem("outdrawn-match-v1") !== previous, await page.evaluate(() => localStorage.getItem("outdrawn-match-v1")));
+      assert.equal(await page.locator(".elimination-dialog").count(), 0);
+      await page.reload();
+      await page.locator(".game-table").waitFor();
+      assert.equal(await page.locator(".elimination-dialog").count(), 0, "Reload must not replay eliminations");
+      await load("finalEliminations");
+      await button("End Turn").click();
+      await page.getByRole("dialog", { name: "Players eliminated", exact: true }).waitFor();
+      assert.equal(await page.locator(".elimination-dialog__players li").count(), 3);
+      assert.equal(await page.locator(".winner-modal").count(), 0);
+      await fits();
+      await screenshot("elimination-group", width);
+      await button("See results").click();
+      await page.getByRole("dialog", { name: "Game winner" }).waitFor();
       for (const name of ["winner", "tie", "team"]) {
         await load(name);
         await fits();
@@ -88,6 +115,16 @@ try {
         assert.equal((await saved()).phase, "gameOver");
       }
     }
+    await load("eventElimination");
+    await button("Reveal Hand").click();
+    await button("Draw").click();
+    await page.locator(".event-dialog-backdrop").waitFor();
+    assert.equal(await page.locator(".elimination-dialog").count(), 0);
+    await button("Acknowledge").click();
+    await page.locator(".elimination-dialog").waitFor();
+    assert.equal(await page.locator(".pass-device-gate").count(), 0);
+    await button("Continue").click();
+    await page.locator(".pass-device-gate").waitFor();
     await load("empty");
     await page.locator(".log-panel__meta button").click();
     await page.getByText("No discarded cards", { exact: true }).waitFor();
@@ -103,7 +140,7 @@ try {
     assert.equal((await saved()).phase, "action");
     assert.equal((await saved()).round, 1);
     assert.deepEqual(errors, []);
-    console.log(`PASS ${engine}: discard previews/order/empty states, event acknowledgment, victory/tie/team dialogs, focus, short screens, restart`);
+    console.log(`PASS ${engine}: discards, events, eliminations, bot pause/resume, reload, privacy, victory/tie/team dialogs, focus, short screens, restart`);
     await browser.close(); browser = null;
   }
 } finally {

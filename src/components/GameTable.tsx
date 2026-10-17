@@ -19,6 +19,7 @@ import { WinnerModal } from "./WinnerModal";
 import { DiscardPiles } from "./DiscardPiles";
 import { CardActionDialog } from "./CardActionDialog";
 import { GameNotice } from "./GameNotice";
+import { EliminationDialog } from "./EliminationDialog";
 
 const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
   reaction: "Defender Hand", redirect: "Redirecting Hand", secondary: "Secondary Defense",
@@ -33,6 +34,8 @@ function definitionFor(card: CardInstance | null) {
 type GameTableProps = {
   state: GameState;
   dispatch: (action: GameAction) => void;
+  eliminatedPlayerIds?: PlayerId[];
+  onEliminationsAcknowledged?: () => void;
   saveFailed?: boolean;
   paused?: boolean;
   onPausedChange?: (paused: boolean) => void;
@@ -43,7 +46,8 @@ type GameTableProps = {
 
 type MobileTab = "play" | "players" | "log";
 
-export function GameTable({ state, dispatch, saveFailed = false, paused = false, onPausedChange, computerDelay = 500, onComputerDelayChange, onReferenceOpenChange }: GameTableProps) {
+export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminationsAcknowledged, saveFailed = false, paused = false, onPausedChange, computerDelay = 500, onComputerDelayChange, onReferenceOpenChange }: GameTableProps) {
+  const hasEliminationNotice = !!eliminatedPlayerIds?.length;
   const [handLayout, setHandLayout] = useState<"tiles" | "list">("tiles");
   const handRef = useRef<HTMLDivElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -89,7 +93,7 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
   const handDiscardRequirement = getHandDiscardRequirement(state, currentPlayer, handDisplayPlayer);
   const playableReactionCardIds = getPlayableReactionCardIds(state, handDisplayPlayer);
   const allowedHandCardIds = handDiscardRequirement ? handDiscardRequirement.allowedCardInstanceIds : playableReactionCardIds;
-  const previewCard = shouldShowDisplayHand && !state.pendingEventDialog && !handDiscardRequirement
+  const previewCard = shouldShowDisplayHand && !state.pendingEventDialog && !hasEliminationNotice && !handDiscardRequirement
     ? handDisplayPlayer.hand.find(card => card.instanceId === previewId && (!allowedHandCardIds || allowedHandCardIds.includes(card.instanceId)))
     : undefined;
   useEffect(() => { onReferenceOpenChange?.(menuOpen || showDiscards || !!previewCard || activeMobileTab === "log"); return () => onReferenceOpenChange?.(false); }, [menuOpen, showDiscards, previewCard, activeMobileTab, onReferenceOpenChange]);
@@ -144,6 +148,8 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
       {saveFailed && <GameNotice className="save-warning">This browser could not save the match. Keep this tab open to continue playing.</GameNotice>}
       {state.pendingEventDialog ? (
         <EventDialog state={state} dispatch={dispatch} />
+      ) : hasEliminationNotice ? (
+        <EliminationDialog state={state} playerIds={eliminatedPlayerIds!} onContinue={() => onEliminationsAcknowledged?.()} />
       ) : state.phase === "gameOver" && !resultDismissed ? (
         <WinnerModal
           onClose={() => setResultDismissed(true)}
@@ -346,10 +352,10 @@ export function GameTable({ state, dispatch, saveFailed = false, paused = false,
           requestAnimationFrame(() => { if (!document.querySelector("dialog[open]")) handRef.current?.focus({ preventScroll: true }); });
         }} onClose={() => setPreviewId(null)} />}
 
-      {showDiscards && !privacyGateActive && !state.pendingEventDialog && (
+      {showDiscards && !privacyGateActive && !state.pendingEventDialog && !hasEliminationNotice && (
         <DiscardPiles main={state.discardPile} events={state.eventDiscardPile} onClose={() => setShowDiscards(false)} />
       )}
-      {privacyGateActive && !state.pendingEventDialog && (
+      {privacyGateActive && !state.pendingEventDialog && !hasEliminationNotice && (
         <Dialog className="match-dialog pass-device-gate" label={`Pass device to ${passDeviceContext!.playerName}`}>
           <div className="match-dialog__panel pass-device-gate__panel">
             <header className="match-dialog__header">

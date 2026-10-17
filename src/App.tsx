@@ -4,7 +4,7 @@ import { MatchRecovery, preserveRejectedMatch } from "./components/MatchRecovery
 import { SetupScreen } from "./components/SetupScreen";
 import { defaultGameSettings } from "./data/constants";
 import { readSavedMatch, saveGame } from "./game/persistence";
-import { gameReducer } from "./game/reducer";
+import { createMatchPresentation, matchPresentationReducer } from "./game/matchPresentation";
 import { chooseAutomatedAction, getDecisionPlayerId } from "./game/simulator";
 import type { GameState, PlayerSetup } from "./game/types";
 
@@ -46,7 +46,7 @@ const initialState: GameState = {
 export default function App() {
   const [boot] = useState(() => { try { return readSavedMatch(initialState, window.localStorage); } catch { return { state: initialState }; } });
   const [rejected, setRejected] = useState(boot.rejected);
-  const [state, dispatch] = useReducer(gameReducer, boot.state);
+  const [{ game: state, eliminatedPlayerIds }, dispatch] = useReducer(matchPresentationReducer, boot.state, createMatchPresentation);
   const [saveFailed, setSaveFailed] = useState(false);
   useEffect(() => {
     if (rejected) return;
@@ -58,7 +58,7 @@ export default function App() {
   const aiRandom = useRef(createRng(Date.now()));
 
   useEffect(() => {
-    if (state.phase !== "action" || state.pendingEventDialog || paused || referenceOpen || rejected) {
+    if (state.phase !== "action" || state.pendingEventDialog || eliminatedPlayerIds.length || paused || referenceOpen || rejected) {
       return;
     }
 
@@ -73,7 +73,7 @@ export default function App() {
     }, computerDelay);
 
     return () => window.clearTimeout(timeoutId);
-  }, [state, paused, referenceOpen, computerDelay, rejected]);
+  }, [state, eliminatedPlayerIds, paused, referenceOpen, computerDelay, rejected]);
 
   if (rejected) return <MatchRecovery raw={rejected} onReset={() => { preserveRejectedMatch(rejected); setRejected(undefined); }} />;
 
@@ -98,7 +98,7 @@ export default function App() {
     );
   }
 
-  return <GameTable state={state} dispatch={dispatch} saveFailed={saveFailed} paused={paused} onPausedChange={setPaused} computerDelay={computerDelay} onComputerDelayChange={setComputerDelay} onReferenceOpenChange={setReferenceOpen} />;
+  return <GameTable state={state} dispatch={dispatch} eliminatedPlayerIds={eliminatedPlayerIds} onEliminationsAcknowledged={() => dispatch({ type: "ACKNOWLEDGE_ELIMINATIONS" })} saveFailed={saveFailed} paused={paused} onPausedChange={setPaused} computerDelay={computerDelay} onComputerDelayChange={setComputerDelay} onReferenceOpenChange={setReferenceOpen} />;
 }
 
 function createRng(seed: number): () => number {

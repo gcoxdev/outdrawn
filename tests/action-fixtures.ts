@@ -27,14 +27,24 @@ export function fixtures() {
   noCost.players[0].hand = [noCost.players[0].hand[0]];
   const exhausted = structuredClone(base);
   exhausted.players[0].actionsRemaining = 0;
+  const exhaustedOptions = structuredClone(teams);
+  exhaustedOptions.players[0].actionsRemaining = 0;
+  exhaustedOptions.players[0].hand.push(card("weapon_minigun"), card("ability_steal"));
+  const oneAction = structuredClone(teams);
+  oneAction.players[0].actionsRemaining = 1;
+  oneAction.players[0].hand.push(card("healing_medkit"));
+  const exhaustedReaction = structuredClone(base);
+  exhaustedReaction.players[1].actionsRemaining = 0;
+  exhaustedReaction.pendingReaction = { attackerId: "player_1", defenderId: "player_2", weapon: exhaustedReaction.players[0].hand[0], baseDamage: 3 };
   const redirect = structuredClone(smoke);
   const decoy = card("defense_decoy");
   redirect.players[1].hand.push(decoy);
   redirect.pendingRedirect = { attackerId: "player_1", defenderId: "player_2", weapon: redirect.players[0].hand[0], baseDamage: 3, decoy };
+  redirect.players[1].actionsRemaining = 0;
   const large = createNewGame(Array.from({ length: 100 }, (_, i) => `Player ${i + 1}`), () => 0);
   large.settings.passDeviceMode = false;
   large.players[0].hand = [card("weapon_pistol")];
-  return Object.fromEntries(Object.entries({ base, crowded, teams, smoke, intimidate, noCost, exhausted, redirect, large }).map(([name, state]) => {
+  return Object.fromEntries(Object.entries({ base, crowded, teams, smoke, intimidate, noCost, exhausted, exhaustedOptions, oneAction, exhaustedReaction, redirect, large }).map(([name, state]) => {
     validateSavedGame(state);
     let serialized = "";
     saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });

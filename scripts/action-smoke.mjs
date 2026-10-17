@@ -57,6 +57,43 @@ try {
     }
     for (const [width, height] of [[1440, 900], [768, 1024], [390, 844], [320, 568], [844, 390]]) {
       await page.setViewportSize({ width, height });
+      await load("exhaustedOptions");
+      for (const name of ["Pistol", "Bandage", "Mark Target", "Adrenaline", "Minigun", "Steal"]) {
+        await selectCard(name);
+        assert.match(await page.locator(".card-action-panel [role=status]").innerText(), /No actions left/);
+        assert.equal(await page.locator(".card-action-panel .target-picker, .card-action-panel .minigun-picker, .card-action-panel .decision-primary").count(), 0, `${name}: exhausted players must not be offered play choices`);
+        assert(await button("Transfer").isDisabled());
+        assert(await button("Discard").isEnabled());
+        await fits();
+      }
+      await shot("no-actions", width);
+      await load("oneAction");
+      await selectCard("Medkit");
+      assert.match(await page.locator(".card-action-panel [role=status]").innerText(), /You need 2 actions.*You have 1 left/);
+      assert.equal(await button("Choose target").count(), 0);
+      assert(await button("Transfer").isEnabled(), "A two-action card can still be transferred for one action");
+      await button("Transfer").click();
+      await choose("Blake", 2, true);
+      assert(await button("Give to Blake").isEnabled());
+      await button("Cancel transfer").click();
+      assert.equal(await button("Choose target").count(), 0);
+      await load("redirect");
+      async function redirectFits() {
+        const picker = await button("Choose target").boundingBox();
+        const submit = await page.locator(".redirect-action > button").boundingBox();
+        if (width > 760) {
+          assert(Math.abs(picker.y - submit.y) <= 1, "Redirect controls must align at the top");
+          assert(Math.abs(picker.height - submit.height) <= 1, "Redirect controls must have equal height");
+        }
+        await fits();
+      }
+      await redirectFits();
+      await choose("Casey", 3);
+      await redirectFits();
+      await shot("redirect", width);
+      assert(await button("Redirect to Casey").isEnabled(), "Ricochet does not require turn actions");
+      await button("Redirect to Casey").click();
+      assert.equal((await saved()).pendingRedirect, null);
       await load("crowded");
       assert(await page.locator(".current-board").evaluate(element => element.scrollHeight > element.clientHeight), "Large hands must scroll");
       const toolbar = await page.locator(".turn-toolbar").boundingBox();
@@ -161,12 +198,17 @@ try {
     assert.equal((await saved()).pendingReaction.defenderId, "player_2");
     await load("exhausted");
     await selectCard("Pistol");
-    await choose("Blake", 2);
-    assert(await button("Attack Blake").isDisabled());
+    assert.equal(await button("Choose target").count(), 0);
+    assert.match(await page.locator(".card-action-panel [role=status]").innerText(), /No actions left/);
     await button("Discard").click();
     await page.waitForFunction(() => document.activeElement?.classList.contains("hand-rail"));
     assert.equal((await saved()).players[0].hand.length, 3);
     assert.equal((await saved()).players[0].actionsRemaining, 0);
+    await load("exhaustedReaction");
+    await selectCard("Dodge");
+    await button("Play Dodge").click();
+    assert.equal((await saved()).pendingReaction, null);
+    assert.equal((await saved()).players[1].actionsRemaining, 0);
     await load("redirect");
     await choose("Casey", 3);
     assert((await saved()).pendingRedirect, "Choosing redirect target must not commit");
