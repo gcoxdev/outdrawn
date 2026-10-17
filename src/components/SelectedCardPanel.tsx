@@ -14,7 +14,8 @@ export function SelectedCardPanel({ state, player, card, dispatch }: {
   const [transfer, setTransfer] = useState(false);
   const [targetId, setTargetId] = useState<string | null>(() => definition.type === "healing" ? player.id : null);
   const options = getCardTargets(state, player, card, transfer);
-  const target = options.find(option => option.player.id === targetId);
+  const automaticTarget = (transfer || definition.type === "healing") && options.length === 1 ? options[0] : undefined;
+  const target = automaticTarget ?? options.find(option => option.player.id === targetId);
   const isMinigun = !transfer && definition.id === "weapon_minigun";
   const isReaction = definition.type === "defense" || definition.isLethalDefense;
   const needsTarget = transfer || definition.type === "weapon" || definition.type === "healing" || definition.target === "onePlayer";
@@ -47,7 +48,8 @@ export function SelectedCardPanel({ state, player, card, dispatch }: {
       disabledReasons={Object.fromEntries(options.filter(option => option.disabledReason).map(option => [option.player.id, option.disabledReason!]))}
       disabled={!canAct} onFire={damageByTarget => dispatch({ type: "ATTACK", attackerId: player.id, weaponInstanceId: card.instanceId, damageByTarget })} />
       : (!isReaction || transfer) && <div className="card-action-play">
-        {needsTarget && <TargetPicker key={transfer ? "transfer" : "play"} label={transfer ? "Recipient" : "Target"} options={options} value={targetId} onChange={setTargetId} />}
+        {needsTarget && !automaticTarget && <TargetPicker key={transfer ? "transfer" : "play"} label={transfer ? "Recipient" : "Target"} options={options} value={targetId} onChange={setTargetId} />}
+        {automaticTarget?.disabledReason && <p className="card-action-note" role="status">{automaticTarget.disabledReason}</p>}
         <button className="decision-primary card-action-primary" type="button" disabled={!canSubmit} onClick={submit}>{primaryLabel}</button>
       </div>)}
     <footer className="card-action-secondary">

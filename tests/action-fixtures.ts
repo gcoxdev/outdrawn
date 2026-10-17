@@ -18,6 +18,24 @@ export function fixtures() {
   teams.players[0].health = teams.settings.maxHealth;
   teams.players[1].health = teams.settings.maxHealth - 4;
   teams.players[0].hand.push(card("healing_bandage"));
+  const soloHealing = structuredClone(base);
+  soloHealing.players[0].health = 10;
+  soloHealing.players[0].hand = ["healing_bandage", "healing_medkit", "healing_painkillers", "healing_field_dressing"].map(card);
+  soloHealing.mainDeck = [card("weapon_pistol")];
+  const fullHealth = structuredClone(soloHealing);
+  fullHealth.players[0].health = fullHealth.settings.maxHealth;
+  const lastTeammate = structuredClone(teams);
+  lastTeammate.players[0].health = 10;
+  lastTeammate.players[1].health = 0;
+  lastTeammate.players[1].eliminated = true;
+  lastTeammate.discardPile.push(...lastTeammate.players[1].hand);
+  lastTeammate.players[1].hand = [];
+  const teamHealingDisabled = structuredClone(teams);
+  teamHealingDisabled.players[0].health = 10;
+  teamHealingDisabled.settings.allowTeamHealing = false;
+  const multipleTeammates = createNewGame(["Ari", "Blake", "Casey", "Morgan"], () => 0);
+  multipleTeammates.settings.passDeviceMode = false;
+  multipleTeammates.players.forEach((player, index) => { player.teamId = index < 3 ? "team_1" : "team_2"; player.hand = [card("weapon_pistol")]; });
   const smoke = structuredClone(base);
   smoke.smokeProtectedPlayerIds = ["player_2", "player_3"];
   smoke.players[0].hand.push(card("weapon_minigun"));
@@ -44,7 +62,7 @@ export function fixtures() {
   const large = createNewGame(Array.from({ length: 100 }, (_, i) => `Player ${i + 1}`), () => 0);
   large.settings.passDeviceMode = false;
   large.players[0].hand = [card("weapon_pistol")];
-  return Object.fromEntries(Object.entries({ base, crowded, teams, smoke, intimidate, noCost, exhausted, exhaustedOptions, oneAction, exhaustedReaction, redirect, large }).map(([name, state]) => {
+  return Object.fromEntries(Object.entries({ base, crowded, teams, soloHealing, fullHealth, lastTeammate, teamHealingDisabled, multipleTeammates, smoke, intimidate, noCost, exhausted, exhaustedOptions, oneAction, exhaustedReaction, redirect, large }).map(([name, state]) => {
     validateSavedGame(state);
     let serialized = "";
     saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });

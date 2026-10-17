@@ -57,6 +57,19 @@ try {
     }
     for (const [width, height] of [[1440, 900], [768, 1024], [390, 844], [320, 568], [844, 390]]) {
       await page.setViewportSize({ width, height });
+      for (const fixture of ["soloHealing", "lastTeammate", "teamHealingDisabled"]) {
+        await load(fixture);
+        await selectCard("Bandage");
+        assert.equal(await button("Choose target").count(), 0, `${fixture}: self-only healing needs no picker`);
+        assert(await button("Heal Ari").isEnabled());
+        await fits();
+        const beforeHealing = await saved();
+        await button("Heal Ari").click();
+        const afterHealing = await saved();
+        assert.equal(afterHealing.players[0].health, beforeHealing.players[0].health + 3);
+        assert.equal(afterHealing.players[0].actionsRemaining, beforeHealing.players[0].actionsRemaining - 1);
+        assert.equal(afterHealing.players[1].health, beforeHealing.players[1].health);
+      }
       await load("exhaustedOptions");
       for (const name of ["Pistol", "Bandage", "Mark Target", "Adrenaline", "Minigun", "Steal"]) {
         await selectCard(name);
@@ -73,7 +86,7 @@ try {
       assert.equal(await button("Choose target").count(), 0);
       assert(await button("Transfer").isEnabled(), "A two-action card can still be transferred for one action");
       await button("Transfer").click();
-      await choose("Blake", 2, true);
+      assert.equal(await button("Choose recipient").count(), 0);
       assert(await button("Give to Blake").isEnabled());
       await button("Cancel transfer").click();
       assert.equal(await button("Choose target").count(), 0);
@@ -143,7 +156,7 @@ try {
       assert.equal(await button("Choose recipient").count(), 0);
       await button("Transfer").click();
       await fits();
-      await choose("Blake", 2, true);
+      assert.equal(await button("Choose recipient").count(), 0);
       const preTransfer = await saved();
       await button("Give to Blake").click();
       const transferred = await saved();
@@ -182,6 +195,30 @@ try {
       await fits();
       console.log(`${engine}: card actions at ${width}×${height} passed`);
     }
+    await load("soloHealing");
+    for (const name of ["Bandage", "Medkit", "Painkillers", "Field Dressing"]) {
+      await selectCard(name);
+      assert.equal(await button("Choose target").count(), 0);
+      assert(await button("Heal Ari").isEnabled());
+    }
+    await load("fullHealth");
+    await selectCard("Bandage");
+    assert.equal(await button("Choose target").count(), 0);
+    assert(await button("Heal Ari").isDisabled());
+    assert.equal(await page.locator(".card-action-panel [role=status]").innerText(), "Already at full health");
+    await selectCard("Painkillers");
+    assert(await button("Heal Ari").isEnabled(), "Painkillers can still be used to draw at full health");
+    await button("Heal Ari").click();
+    assert.equal((await saved()).players[0].health, 20);
+    assert((await saved()).players[0].hand.some(card => card.definitionId === "weapon_pistol"));
+    await load("multipleTeammates");
+    await selectCard("Pistol");
+    await button("Transfer").click();
+    assert(await button("Choose recipient").isEnabled());
+    assert(await button("Give card").isDisabled());
+    await choose("Casey", 3, true);
+    await button("Give to Casey").click();
+    assert.equal((await saved()).players[2].hand.length, 2);
     await load("noCost");
     await selectCard("Pistol");
     await button("Choose target").click();
