@@ -20,7 +20,7 @@ export function normalizeSettings(input: Partial<GameSettings>): GameSettings {
     actionsPerTurn: integer(settings.actionsPerTurn, defaults.actionsPerTurn, 1, 6),
     freeDrawsPerTurn: integer(settings.freeDrawsPerTurn, 0, 0, 10),
     eliminationHealthReward: integer(settings.eliminationHealthReward, 0, 0, 20),
-    turnOrder: settings.turnOrder === "roundRobin" ? "roundRobin" : "standard",
+    turnOrder: settings.turnOrder === "standard" ? "standard" : "roundRobin",
     blackMarketPreset: Object.hasOwn(blackMarketPresets, settings.blackMarketPreset) ? settings.blackMarketPreset : "standard",
     blackMarketCustom: {
       actionCost: 0,

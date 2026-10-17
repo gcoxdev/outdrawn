@@ -37,6 +37,10 @@ export function GameLog({ entries, players }: GameLogProps) {
       </div>
       <div className="log-filter" aria-label="Log filters">
         <label>
+          <span>Search</span>
+          <input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="damage, stole, revive..." />
+        </label>
+        <label>
           <span>Player</span>
           <select value={playerFilter} onChange={(event) => setPlayerFilter(event.target.value)}>
             <option value="">All players</option>
@@ -46,10 +50,6 @@ export function GameLog({ entries, players }: GameLogProps) {
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          <span>Search</span>
-          <input value={textFilter} onChange={(event) => setTextFilter(event.target.value)} placeholder="damage, stole, revive..." />
         </label>
         {hasFilter && (
           <button

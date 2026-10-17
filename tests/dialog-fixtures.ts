@@ -40,6 +40,7 @@ export function fixtures() {
   const finalEliminations = structuredClone(base);
   finalEliminations.players.forEach((player, index) => { player.hand = []; player.health = index === 0 ? 10 : 1; player.actedThisRound = true; });
   finalEliminations.round = 3;
+  finalEliminations.firstPlayerIndex = 1; // Ari finishes the round.
   const eventElimination = structuredClone(base);
   eventElimination.settings.passDeviceMode = true;
   eventElimination.players[0].health = 1;

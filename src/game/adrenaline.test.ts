@@ -129,6 +129,7 @@ describe("weapon action availability", () => {
 
   it("keeps Smoke protection across consecutive attacker turns until the defender's turn", () => {
     let state = fixture();
+    state.settings.turnOrder = "standard"; // Rotating start can give the attacker consecutive turns.
     state.round = 6;
     state.firstPlayerIndex = 1;
     state.players[2] = { ...state.players[2], health: 0, eliminated: true };

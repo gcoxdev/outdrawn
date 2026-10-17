@@ -16,7 +16,7 @@ The current web prototype is a local browser game for 3-100 players. Each player
 - Maximum hand size: 7 cards by default.
 - Actions per turn: 2 by default.
 - Free draws per turn: 0 by default. Free draws are used before action-spending draws.
-- Turn order: Standard by default. Standard rotates the first player marker each round. Round robin keeps the same seating order each round.
+- Turn order: Round robin by default, keeping the same seating order each round. The optional Rotating start mode moves the first player marker to the next living player each round.
 - Health reward on elimination: 0 by default. If enabled, a player who earns an elimination heals by that amount per elimination, up to maximum health.
 - Defense on secondary attacks: off by default. If enabled, players can play eligible defense cards against player-caused secondary damage such as Ricochet, Grenade splash, Minigun hits, Counterattack, and Backfire. Ricochet cannot be used again against secondary damage. Event and collapse damage cannot be defended.
 - After starting hands are dealt, 65 regular cards and 16 event cards are shuffled into the opening draw pile at every table size. The regular-card supply is sampled from repeated copies of the standard deck as needed. Events drawn or revealed from the main deck resolve instead of going into hand. Drawing an event does not cost an action.
@@ -59,7 +59,7 @@ Each living player acts once per round. After all living players have acted:
 
 1. Collapse damage is applied.
 2. Temporary round effects clear.
-3. In Standard order, the first player marker advances clockwise to the next living player. Round robin retains its first player marker, moving it only if that player was eliminated.
+3. Round robin retains its first player marker, moving it only if that player was eliminated. In Rotating start mode, the first player marker advances clockwise to the next living player each round.
 
 ## Collapse
 

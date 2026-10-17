@@ -284,7 +284,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
               <summary><span><Settings2 size={15} /> Advanced rules</span><ChevronDown size={16} /></summary>
               <div className="lobby-disclosure__body">
                 {numberSetting("maxHealth")}{numberSetting("freeDrawsPerTurn")}{numberSetting("eliminationHealthReward")}
-                <label className="lobby-rule"><span id="turn-order-label">Turn order</span><select aria-labelledby="turn-order-label" value={settings.turnOrder} onChange={event => updateTurnOrder(event.target.value as TurnOrderMode)}><option value="standard">Standard</option><option value="roundRobin">Round robin</option></select></label>
+                <label className="lobby-rule"><span id="turn-order-label">Turn order</span><select aria-labelledby="turn-order-label" value={settings.turnOrder} onChange={event => updateTurnOrder(event.target.value as TurnOrderMode)}><option value="roundRobin">Round robin</option><option value="standard">Rotating start</option></select></label>
                 <label className="lobby-toggle"><span>Defense on secondary attacks</span><input type="checkbox" checked={settings.allowSecondaryDefense} onChange={event => updateBooleanSetting("allowSecondaryDefense", event.target.checked)} /><span className="lobby-switch" aria-hidden="true" /></label>
               </div>
             </details>

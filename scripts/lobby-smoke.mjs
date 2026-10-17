@@ -72,7 +72,10 @@ try {
     await page.getByLabel("Player 1 name", { exact: true }).fill("Lobby Tester");
 
     await page.getByText("Advanced rules", { exact: true }).tap();
-    await page.getByLabel("Turn order", { exact: true }).selectOption("roundRobin");
+    const turnOrder = page.getByLabel("Turn order", { exact: true });
+    assert.equal(await turnOrder.inputValue(), "roundRobin");
+    assert.deepEqual(await turnOrder.locator("option").allTextContents(), ["Round robin", "Rotating start"]);
+    await turnOrder.selectOption({ label: "Rotating start" });
     await page.getByLabel("Defense on secondary attacks", { exact: true }).check();
     await page.locator(".lobby-disclosure--market summary").tap();
     await page.getByLabel("Market preset", { exact: true }).selectOption("custom");
@@ -88,7 +91,7 @@ try {
     assert.equal(saved.players[0].name, "Lobby Tester");
     assert.equal(saved.players[1].controller.strategy, "expert");
     assert.equal(saved.settings.startingHealth, 30);
-    assert.equal(saved.settings.turnOrder, "roundRobin");
+    assert.equal(saved.settings.turnOrder, "standard");
     assert.equal(saved.settings.allowSecondaryDefense, true);
     assert.equal(saved.settings.blackMarketCustom.keepCount, 2);
     assert.deepEqual(errors, []);

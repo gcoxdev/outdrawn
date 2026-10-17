@@ -9,6 +9,14 @@ function storage() {
 }
 
 describe("local match saves", () => {
+  it("preserves rotating-start saves when round robin is the new default", () => {
+    const store = storage(), state = createNewGame(["A", "B", "C"], () => 0);
+    state.settings.turnOrder = "standard";
+    expect(saveGame(state, store)).toBe(true);
+    const restored = loadGame({ ...state, phase: "setup" }, store);
+    expect(restored.phase).toBe("action");
+    expect(restored.settings.turnOrder).toBe("standard");
+  });
   it("preserves the next shuffle across saves and repeated reducer calls", () => {
     const store = storage(), state = createNewGame(["A", "B", "C"], () => 0);
     state.mainDeck = [];

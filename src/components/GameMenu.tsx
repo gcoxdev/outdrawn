@@ -225,7 +225,7 @@ function getCurrentGameRules(settings: GameSettings): Array<{ label: string; val
     { label: "Max hand", value: `${settings.maxHandSize} cards` },
     { label: "Actions", value: `${settings.actionsPerTurn} per turn` },
     { label: "Free draws", value: `${settings.freeDrawsPerTurn} per turn` },
-    { label: "Turn order", value: settings.turnOrder === "roundRobin" ? "Round robin" : "Standard" },
+    { label: "Turn order", value: settings.turnOrder === "roundRobin" ? "Round robin" : "Rotating start" },
     { label: "Secondary defense", value: settings.allowSecondaryDefense ? "Allowed" : "Not allowed" },
     { label: "Team healing", value: settings.allowTeamHealing ? "Allowed" : "Off" },
     { label: "Team transfer", value: settings.allowTeamCardTransfer ? "Allowed" : "Off" },

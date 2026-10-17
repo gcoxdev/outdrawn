@@ -97,6 +97,7 @@ describe("player damage totals", () => {
     state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
     state.round = 4;
     state.players.forEach(player => { player.actedThisRound = true; });
+    state.firstPlayerIndex = 1; // Ari finishes the round.
     const health = state.players[0].health;
     state = gameReducer(state, { type: "END_TURN", playerId: "player_1" });
     expect(state.players[0].health).toBeLessThan(health);

@@ -175,6 +175,7 @@ describe("team mode", () => {
     state = {
       ...state,
       round: 3,
+      firstPlayerIndex: 1, // Ari finishes the round after the other living players.
       players: state.players.map((player) =>
         player.teamId === current.teamId
           ? { ...player, health: 5, actedThisRound: player.id !== current.id }

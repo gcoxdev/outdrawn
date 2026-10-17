@@ -13,7 +13,7 @@ const seed = Number(process.argv[3] ?? 20260508);
 const mixedStrategies: StrategyLevel[] = ["beginner", "novice", "expert", "master"];
 const scenarios: Scenario[] = [
   { name: "Default" },
-  { name: "Round robin", settings: { turnOrder: "roundRobin" } },
+  { name: "Rotating start", settings: { turnOrder: "standard" } },
   { name: "Secondary defense", settings: { allowSecondaryDefense: true } },
   { name: "Elimination reward 2", settings: { eliminationHealthReward: 2 } },
   { name: "Elimination reward 4", settings: { eliminationHealthReward: 4 } },

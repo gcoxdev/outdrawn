@@ -49,7 +49,7 @@ export const defaultGameSettings: GameSettings = {
   maxHandSize: MAX_HAND_SIZE,
   actionsPerTurn: ACTIONS_PER_TURN,
   freeDrawsPerTurn: FREE_DRAWS_PER_TURN,
-  turnOrder: "standard",
+  turnOrder: "roundRobin",
   eliminationHealthReward: 0,
   allowSecondaryDefense: false,
   allowTeamHealing: true,

@@ -343,6 +343,7 @@ describe("event cards", () => {
     state = {
       ...state,
       round: 8,
+      firstPlayerIndex: 1, // Ari is taking the last turn of this round.
       players: state.players.map((player, index) => ({
         ...player,
         health: 2,
@@ -362,6 +363,7 @@ describe("event cards", () => {
     state = {
       ...state,
       round: 10,
+      firstPlayerIndex: 2, // Devon has acted; Ari finishes the round.
       currentPlayerIndex: 0,
       eventDeck: [event("event_critical_condition")],
       players: state.players.map((player, index) => ({
@@ -386,6 +388,7 @@ describe("event cards", () => {
     state = {
       ...state,
       round: 8,
+      firstPlayerIndex: 1, // Ari is taking the last turn of this round.
       players: state.players.map((player, index) => ({
         ...player,
         health: 2,

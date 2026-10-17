@@ -55,6 +55,7 @@ describe("live elimination notifications", () => {
     const game = fixture();
     game.pendingReaction = null;
     game.round = 3;
+    game.firstPlayerIndex = 1; // Ari finishes the round.
     game.players.forEach((player, index) => { player.actedThisRound = true; player.health = index === 0 ? 10 : 1; });
     const result = reduce(createMatchPresentation(game), { type: "END_TURN", playerId: "player_1" });
     expect(result.game.phase).toBe("gameOver");
