@@ -14,7 +14,7 @@ const scenarios: Array<{ name: string; games: number; options: SimulationOptions
   ].map(([name, settings]) => ({ name: String(name), games: 100, options: { settings } as SimulationOptions })),
   { name: "duos", games: 100, options: { teams: ["a", "a", "b", "b"] } },
   { name: "duos-no-support", games: 100, options: { teams: ["a", "a", "b", "b"], settings: { allowTeamHealing: false, allowTeamCardTransfer: false } } },
-  ...[3, 6, 16, 17, 18, 33, 34, 35, 50, 51, 52, 100].map(playerCount => ({ name: `players-${playerCount}`, games: playerCount >= 50 ? 12 : 30, options: { playerCount } })),
+  ...[2, 3, 6, 16, 17, 18, 33, 34, 35, 50, 51, 52, 100].map(playerCount => ({ name: `players-${playerCount}`, games: playerCount >= 50 ? 12 : 30, options: { playerCount } })),
 ];
 const mean = (values: number[]) => +(values.reduce((sum, value) => sum + value, 0) / (values.length || 1)).toFixed(2);
 const results = scenarios.map(scenario => {

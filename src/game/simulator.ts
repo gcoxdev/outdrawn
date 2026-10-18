@@ -1,3 +1,4 @@
+import { getRicochetTargets } from "./rules";
 import { getPendingDecision } from "./decisions";
 import { mainDeckCards } from "../data/cards";
 import { blackMarketPresets, defaultGameSettings, type GameSettings } from "../data/constants";
@@ -400,9 +401,7 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
       return false;
     }
     if (definition?.id === "defense_decoy") {
-      return state.players.some(
-        (player) => !player.eliminated && player.id !== pending.attackerId && player.id !== defender.id && isHostileTarget(defender, player)
-      );
+      return getRicochetTargets(state, pending.attackerId, defender.id).length > 0;
     }
     return Boolean(definition && (definition.type === "defense" || definition.isLethalDefense));
   });
@@ -824,8 +823,7 @@ function chooseRedirectTarget(
   strategy: StrategyLevel,
   random: () => number
 ): PlayerState {
-  const defender = getPlayer(state, defenderId);
-  const targets = state.players.filter((player) => defender && !player.eliminated && player.id !== attackerId && player.id !== defenderId && isHostileTarget(defender, player));
+  const targets = getRicochetTargets(state, attackerId, defenderId);
   if (strategy === "beginner" || strategy === "novice") {
     return randomItem(targets, random);
   }

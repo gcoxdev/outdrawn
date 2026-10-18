@@ -295,8 +295,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     isReaction: true,
     icons: ["reaction", "redirect"],
-    shortText: "Redirect this hit to another opponent except the attacker.",
-    rulesText: "Redirect this hit to another living opponent, except the attacker. Smoke offers no protection. They may defend only if secondary defense is enabled. No further Ricochets.",
+    shortText: "Redirect this hit to another opponent, or the attacker if no other is available.",
+    rulesText: "Redirect this hit to another opponent, or back to the attacker if no other is available. Smoke offers no protection. No further Ricochets.",
     flavorText: "A sharp turn for the worse.",
     tags: ["defense", "reaction", "redirect"]
   },

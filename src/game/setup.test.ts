@@ -50,10 +50,10 @@ describe("game setup", () => {
   });
 
   it("rejects invalid player counts", () => {
-    expect(() => createNewGame(["Ari", "Blake"], () => 0)).toThrow("3 to 100 players");
+    expect(() => createNewGame(["Ari"], () => 0)).toThrow("2 to 100 players");
     expect(() =>
       createNewGame(Array.from({ length: 101 }, (_, index) => `Player ${index + 1}`), () => 0)
-    ).toThrow("3 to 100 players");
+    ).toThrow("2 to 100 players");
   });
 
   it("supports one hundred players", () => {

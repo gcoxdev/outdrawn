@@ -1,6 +1,6 @@
 import type { TeamId } from "./types";
 
-export const MIN_PLAYERS = 3;
+export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 100;
 export const PLAYER_COUNT_PRESETS = [4, 6, 10, 20, 50, 100] as const;
 

@@ -1,3 +1,4 @@
+import { getRicochetTargets } from "./rules";
 import { accumulateDamageDealt, recordEffects, recordHealthChanges } from "./effects";
 import { acceptsDecisionAction, getPlayerDecision } from "./decisions";
 import { allCards, type CardType } from "../data/cards";
@@ -1098,10 +1099,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         !attacker ||
         !target ||
         action.defenderId !== defender.id ||
-        target.eliminated ||
-        target.id === attacker.id ||
-        target.id === defender.id ||
-        areTeammates(defender, target)
+        !getRicochetTargets(state, attacker.id, defender.id).some(candidate => candidate.id === target.id)
       ) {
         return state;
       }
@@ -1122,11 +1120,13 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       const multi = state.pendingMultiHitAttack;
       const keepWeapon = reloadActive || Boolean(multi && multi.hitsRemaining > 1);
       const spendAttackAction = !multi || multi.hitsRemaining === 2;
-      if (state.settings.allowSecondaryDefense) {
+      const returnsToAttacker = target.id === attacker.id;
+      if (state.settings.allowSecondaryDefense || returnsToAttacker) {
         const redirectedState = {
           ...stateBeforeRedirect,
           pendingSecondaryDamage: {
-            attackerId: attacker.id,
+            // A reflected hit belongs to the Ricochet player, not a self-attack.
+            attackerId: returnsToAttacker ? defender.id : attacker.id,
             defenderId: target.id,
             weapon: pending.weapon,
             baseDamage: pending.baseDamage,
@@ -1152,7 +1152,10 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
               : player
           )
         };
-        return log(finishMultiHit(redirectedState), `${defender.name} redirected ${attacker.name}'s attack to ${target.name}. ${target.name} may defend.`);
+        const redirected = log(finishMultiHit(redirectedState), `${defender.name} redirected ${attacker.name}'s attack to ${target.name}.${state.settings.allowSecondaryDefense ? ` ${target.name} may defend.` : ""}`);
+        if (state.settings.allowSecondaryDefense) return redirected;
+        const result = resolveCurrentSecondaryDamage(redirected, null);
+        return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
       }
 
       const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy, {
@@ -1307,9 +1310,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       }
 
       if (reactionDefinition.id === "defense_decoy") {
-        const hasRedirectTarget = state.players.some(
-          (player) => !player.eliminated && player.id !== attacker.id && player.id !== defender.id
-        );
+        const hasRedirectTarget = getRicochetTargets(state, attacker.id, defender.id).length > 0;
         if (!hasRedirectTarget) {
           return state;
         }

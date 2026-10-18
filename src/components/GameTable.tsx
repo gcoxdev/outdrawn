@@ -1,3 +1,4 @@
+import { getRicochetTargets } from "../game/rules";
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
 import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check } from "lucide-react";
 import { EventIcon } from "./EventIcon";
@@ -7,7 +8,7 @@ import { allCards } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { getPassDeviceContext } from "../game/privacy";
-import { getCurrentPlayer, getTeamMembers, hasPendingDecision as hasDecision, isHostileTarget, labelTeam } from "../game/rules";
+import { getCurrentPlayer, getTeamMembers, hasPendingDecision as hasDecision, labelTeam } from "../game/rules";
 import { getDecisionPlayerId } from "../game/rules";
 import type { CardInstance, GameState, PlayerId } from "../game/types";
 import { ActionPanel } from "./ActionPanel";
@@ -505,13 +506,7 @@ export function getPlayableReactionCardIds(state: GameState, handDisplayPlayer: 
       }
 
       if (definition.id === "defense_decoy") {
-        return state.players.some(
-          (player) =>
-            !player.eliminated &&
-            player.id !== activeReaction.attackerId &&
-            player.id !== handDisplayPlayer.id &&
-            isHostileTarget(handDisplayPlayer, player)
-        );
+        return getRicochetTargets(state, activeReaction.attackerId, handDisplayPlayer.id).length > 0;
       }
 
       return true;

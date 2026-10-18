@@ -201,7 +201,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
           <section className="lobby-table lobby-panel" aria-labelledby="table-title">
             <header className="lobby-panel__heading">
               <div className="lobby-section-title"><Users size={18} /><h2 id="table-title">Set the table</h2></div>
-              <span className="lobby-meta">3–100 players</span>
+              <span className="lobby-meta">{MIN_PLAYERS}–{MAX_PLAYERS} players</span>
             </header>
             <div className="lobby-table-options">
               <label className="lobby-field">

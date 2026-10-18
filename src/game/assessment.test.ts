@@ -14,7 +14,7 @@ const base = () => createNewGame(["Ann", "Anna", "Ann", "Blake"], () => 0);
 
 describe("assessment follow-up", () => {
   it("keeps 65 regular cards and 16 events after dealing at scaling thresholds and hand limits", () => {
-    for (const count of [3, 4, 16, 17, 18, 33, 34, 35, 50, 51, 52, 100]) for (const handSize of [1, 5, 15]) {
+    for (const count of [2, 3, 4, 16, 17, 18, 33, 34, 35, 50, 51, 52, 100]) for (const handSize of [1, 5, 15]) {
       const state = createNewGame(Array.from({ length: count }, (_, i) => `P${i}`), () => 0.37, { ...defaultGameSettings, startingHandSize: handSize });
       expect(state.players.every(player => player.hand.length === handSize)).toBe(true);
       expect(state.mainDeck.filter(card => getCardDefinitionById(card.definitionId)?.type === "event")).toHaveLength(16);

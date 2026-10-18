@@ -82,3 +82,13 @@ export function labelTeam(teamId: TeamId): string {
 export function getDecisionPlayerId(state: GameState): string {
   return getPlayerDecision(state)?.playerId ?? getCurrentPlayer(state)?.id ?? "";
 }
+
+
+/** Smoke does not restrict Ricochet. Return to the attacker only as a fallback. */
+export function getRicochetTargets(state: GameState, attackerId: PlayerId, defenderId: PlayerId): PlayerState[] {
+  const defender = getPlayer(state, defenderId);
+  if (!defender) return [];
+  const opponents = state.players.filter(player => !player.eliminated && isHostileTarget(defender, player));
+  const otherOpponents = opponents.filter(player => player.id !== attackerId);
+  return otherOpponents.length ? otherOpponents : opponents.filter(player => player.id === attackerId);
+}

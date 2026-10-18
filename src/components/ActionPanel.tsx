@@ -1,8 +1,9 @@
+import { getRicochetTargets } from "../game/rules";
 import { useState } from "react";
 import { ArrowRight, CopyPlus, SkipForward } from "lucide-react";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
-import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getDecisionPlayerId, getCardDefinitionById, getPlayer, isHostileTarget } from "../game/rules";
+import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getDecisionPlayerId, getCardDefinitionById, getPlayer } from "../game/rules";
 import type { CardInstance, GameState, PlayerState } from "../game/types";
 import { CardBack } from "./CardView";
 import { CardChoices } from "./CardChoices";
@@ -90,9 +91,7 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
 
   if (state.pendingRedirect && pendingRedirectDefender && pendingRedirectAttacker) {
     const weaponDefinition = getCardDefinitionById(state.pendingRedirect.weapon.definitionId);
-    const redirectTargets = state.players.filter(
-      (player) => !player.eliminated && player.id !== pendingRedirectAttacker.id && player.id !== pendingRedirectDefender.id && isHostileTarget(pendingRedirectDefender, player)
-    );
+    const redirectTargets = getRicochetTargets(state, pendingRedirectAttacker.id, pendingRedirectDefender.id);
 
     return (
       <section className="action-panel reaction-panel">

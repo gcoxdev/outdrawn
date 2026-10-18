@@ -104,14 +104,14 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Dodge: Cancel this hit’s damage to you. Grenade splash still hits other players.
 - Counterattack: Take this hit’s damage, then deal 3 damage to the attacker.
 - Smoke Bomb: Cancel this hit’s damage to you. Until your next turn, attacks and targeted abilities cannot choose you. Splash, events, and Ricochet still affect you.
-- Ricochet: Redirect this hit to another living opponent, except the attacker. Smoke offers no protection. They may defend only if secondary defense is enabled. No further Ricochets.
+- Ricochet: Redirect this hit to another opponent, or back to the attacker if no other is available. Smoke offers no protection. No further Ricochets.
 - Backfire: Cancel this hit’s damage to you. Deal that much damage to the attacker.
 - Revive: When another player’s attack would eliminate you, survive at 1 health. Use all healing cards in your hand, then discard the rest.
 
 ### Defense clarifications
 
 - Shield Plate rounds the damage you take down: a 3-damage hit becomes 1 damage. No Cover reduces the amount prevented by 1, as it does for other blocking defenses.
-- Ricochet cannot redirect to yourself, the attacker, or a teammate.
+- Ricochet cannot redirect to yourself or a teammate. It can return to the attacker only when no other living opponent is available; smoke-protected opponents still count. A hit returned to the attacker credits damage and eliminations to the player who used Ricochet. The secondary-defense setting still applies.
 - Revive consumes all healing cards without spending actions or triggering extra draws from Painkillers. Healing is capped at maximum health, and your entire hand is discarded, including Revive and the healing cards.
 
 ## Abilities
@@ -168,6 +168,10 @@ If a player is eliminated by event or collapse damage:
 
 - Their cards are discarded. The same applies to self-inflicted Adrenaline elimination.
 - No player gains loot.
+
+## Two-Player Games
+
+Two-player games use the same rules and full deck. Ricochet returns to the attacker because no other opponent is available. Grenade has no splash target. Minigun can assign at most 3 damage to the single opponent before applicable modifiers.
 
 ## Hand Limit
 

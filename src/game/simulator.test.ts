@@ -145,7 +145,7 @@ describe("game simulator", () => {
     expect(action).toMatchObject({ type: "ATTACK", targetPlayerId: "player_2", weaponInstanceId: pistol.instanceId });
   });
 
-  it("does not choose Ricochet when a team defender has no valid redirect target", () => {
+  it("chooses Ricochet against the attacker when no other opponent remains", () => {
     let state = createNewGame(
       [
         { name: "Ari", controller: { type: "computer", strategy: "competent" }, teamId: "team_a" },
@@ -169,6 +169,6 @@ describe("game simulator", () => {
 
     const action = chooseAutomatedAction(state, "competent", () => 0);
 
-    expect(action).toEqual({ type: "SKIP_REACTION", defenderId: "player_2" });
+    expect(action).toEqual({ type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: ricochet.instanceId });
   });
 });

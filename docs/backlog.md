@@ -2,7 +2,7 @@
 
 ## Expansion
 
-- Player counts from 3–100 and generated/custom teams are implemented. Further expansion should focus on pacing and usability at large tables.
+- Player counts from 2–100 and generated/custom teams are implemented. Further expansion should focus on pacing and usability at large tables.
 - Design large-table battle royale pacing, deck scaling, event scaling, and UI behavior for high player counts such as 20, 50, or 100 players.
 - Evaluate additional team formats beyond the implemented duos, trios, squads, two teams, and custom teams.
 - Roster search, living/team filters, and a current-decision jump are implemented. Consider expandable team groups if human playtests still show navigation difficulty.

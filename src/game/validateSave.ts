@@ -1,3 +1,4 @@
+import { MIN_PLAYERS } from "./setupOptions";
 import { allCards } from "../data/cards";
 import { normalizeSettings } from "./settings";
 import type { GameState } from "./types";
@@ -35,7 +36,7 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
     requireValue(player.eliminated === (player.health === 0));
     requireValue(!player.eliminated || player.hand.length === 0);
   }, 100);
-  requireValue(value.players.length >= 3);
+  requireValue(value.players.length >= MIN_PLAYERS);
   const ids = new Set<string>(value.players.map(player => player.id));
   requireValue(ids.size === value.players.length);
   const playerId = (id: unknown) => requireValue(typeof id === "string" && ids.has(id));

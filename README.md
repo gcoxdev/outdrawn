@@ -1,6 +1,6 @@
 # Outdrawn
 
-Outdrawn is a local browser card battle for 3–100 human or computer players. Play free-for-all or in teams, with five computer difficulty levels and configurable match settings. Win by being the last player or team standing.
+Outdrawn is a local browser card battle for 2–100 human or computer players. Play free-for-all or in teams, with five computer difficulty levels and configurable match settings. Win by being the last player or team standing.
 
 Built with React, TypeScript, and Vite.
 
