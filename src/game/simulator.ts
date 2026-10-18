@@ -996,7 +996,7 @@ function cardValue(card: CardInstance): number {
   return 1;
 }
 
-function getDeckBalance() {
+export function getDeckBalance() {
   const weaponCards = mainDeckCards.filter((card) => card.type === "weapon").reduce((total, card) => total + card.count, 0);
   const defenseAndHealingCards = mainDeckCards
     .filter((card) => card.type === "defense" || card.type === "healing")
@@ -1004,7 +1004,8 @@ function getDeckBalance() {
   const abilityCards = mainDeckCards.filter((card) => card.type === "ability").reduce((total, card) => total + card.count, 0);
   const weaponDamagePotential = mainDeckCards
     .filter((card) => card.type === "weapon")
-    .reduce((total, card) => total + estimatedWeaponPressure(card) * card.count, 0);
+    // Catalog damage already includes both SMG hits.
+    .reduce((total, card) => total + ((card.damage ?? 0) + (card.splashDamage ?? 0)) * card.count, 0);
   const estimatedSurvivalValue = mainDeckCards.reduce((total, card) => {
     if (card.type === "healing") {
       return total + (card.heal ?? 0) * card.count;
@@ -1032,10 +1033,6 @@ function getDeckBalance() {
     estimatedSurvivalValue,
     pressureToSurvivalRatio: Number((weaponDamagePotential / estimatedSurvivalValue).toFixed(2))
   };
-}
-
-function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number }): number {
-  return (card.damage ?? 0) * (card.id === "weapon_smg" ? 2 : 1) + (card.splashDamage ?? 0);
 }
 
 function addIssue(metrics: SimulationMetrics, issue: string) {

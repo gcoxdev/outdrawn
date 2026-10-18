@@ -51,7 +51,7 @@ describe("game settings", () => {
     const blocked = gameReducer(overLimit, { type: "END_TURN", playerId: currentPlayer.id });
 
     expect(blocked.currentPlayerIndex).toBe(overLimit.currentPlayerIndex);
-    expect(blocked.log.at(-1)?.message).toContain("discard down to 3");
+    expect(blocked).toBe(overLimit);
   });
 
   it("uses custom free draw settings when starting a game", () => {

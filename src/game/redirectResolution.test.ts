@@ -96,3 +96,69 @@ describe("shared hit resolution", () => {
     expect(state.discardPile.map(card => card.instanceId)).toEqual(["weapon"]);
   });
 });
+
+describe("Ricochet and Mark Target", () => {
+  it.each([false, true].flatMap(secondary => [[1, 0], [0, 1], [2, 3], [1, 1]].map(([originalMarks, newMarks]) => ({ secondary, originalMarks, newMarks }))))(
+    "replaces $originalMarks original marks with $newMarks recipient marks, secondary defense $secondary",
+    ({ secondary, originalMarks, newMarks }) => {
+      const state = fixture(secondary, "weapon_pistol");
+      state.attackBonuses.player_1 = 3;
+      state.markedTargets = { player_2: originalMarks, player_4: newMarks };
+      const before = structuredClone(state);
+      const next = takeSecondaryHits(redirect(state));
+      expect(next.players[1].health).toBe(20);
+      expect(next.players[3].health).toBe(20 - 3 - 3 - newMarks);
+      expect(next.players[0]).toMatchObject({ actionsRemaining: 1, damageDealt: 6 + newMarks });
+      expect(next.markedTargets).toEqual(state.markedTargets);
+      expect(state).toEqual(before);
+    }
+  );
+
+  it.each([false, true])("applies a marked attacker's bonus when a two-player hit returns to them, secondary defense %s", secondary => {
+    const state = fixture(secondary, "weapon_pistol");
+    state.players = state.players.slice(0, 2);
+    state.markedTargets = { player_1: 2, player_2: 1 };
+    const next = takeSecondaryHits(redirect(state, "player_1"));
+    expect(next.players[0].health).toBe(15);
+    expect(next.players[1]).toMatchObject({ health: 20, damageDealt: 5 });
+  });
+
+  it.each([false, true])("applies recipient marks and Ambush to the first SMG hit only, secondary defense %s", secondary => {
+    const state = fixture(secondary, "weapon_smg");
+    state.markedTargets = { player_2: 2, player_4: 3 };
+    state.attackBonuses.player_1 = 3;
+    let next = takeSecondaryHits(redirect(state));
+    expect(next.players[3].health).toBe(12);
+    expect(next.pendingReaction).toMatchObject({ defenderId: "player_2", baseDamage: 2 });
+    next = gameReducer(next, { type: "SKIP_REACTION", defenderId: "player_2" });
+    expect(next.players[1].health).toBe(18);
+    expect(next.players[0]).toMatchObject({ actionsRemaining: 1, damageDealt: 10 });
+    expect(next.pendingMultiHitAttack).toBeNull();
+  });
+
+  it.each([false, true])("does not subtract or add marks on a redirected second SMG hit, secondary defense %s", secondary => {
+    let state = fixture(secondary, "weapon_smg");
+    state.markedTargets = { player_2: 2, player_4: 3 };
+    state.attackBonuses.player_1 = 3;
+    state = gameReducer(state, { type: "ATTACK", attackerId: "player_1", targetPlayerId: "player_2", weaponInstanceId: "weapon" });
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: "player_2" });
+    expect(state.players[1].health).toBe(13);
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: "redirect" });
+    state = takeSecondaryHits(gameReducer(state, { type: "RESOLVE_PENDING_REDIRECT", defenderId: "player_2", targetPlayerId: "player_4" }));
+    expect(state.players[3].health).toBe(18);
+    expect(state.players[0]).toMatchObject({ actionsRemaining: 1, damageDealt: 9 });
+    expect(state.pendingMultiHitAttack).toBeNull();
+  });
+
+  it("preserves recalculated damage after saving during the redirected reaction", () => {
+    const state = fixture(true, "weapon_pistol");
+    state.markedTargets = { player_2: 2, player_4: 1 };
+    const redirected = redirect(state);
+    expect(redirected.pendingSecondaryDamage?.baseDamage).toBe(4);
+    let raw = "";
+    const store = { getItem: () => raw, setItem: (_key: string, value: string) => { raw = value; }, removeItem() {} };
+    saveGame(redirected, store);
+    const restored = loadGame({ ...state, phase: "setup" }, store);
+    expect(takeSecondaryHits(restored).players[3].health).toBe(16);
+  });
+});

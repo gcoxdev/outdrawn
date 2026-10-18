@@ -110,7 +110,7 @@ describe("weapon action availability", () => {
     state = play(state, "ability_adrenaline");
     const denied = attack(state, "weapon_pistol");
     expect(denied.pendingReaction).toBeNull();
-    expect(denied.log.at(-1)?.message).toContain("has no extra cards");
+    expect(denied).toBe(state);
     expect(denied.players[0].actionsRemaining).toBe(3);
     state.intimidations = {};
     state.smokeProtectedPlayerIds = ["player_2"];

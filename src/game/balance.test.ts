@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mainDeckCards } from "../data/cards";
-
-function totalWeaponDamage() {
-  return mainDeckCards
-    .filter((card) => card.type === "weapon")
-    .reduce((total, card) => total + estimatedWeaponPressure(card) * card.count, 0);
-}
+import { getDeckBalance } from "./simulator";
 
 function totalDamageSupport() {
   return mainDeckCards
@@ -43,13 +38,14 @@ function estimatedSurvivalValue() {
   }, 0);
 }
 
-function estimatedWeaponPressure(card: { id: string; damage?: number; splashDamage?: number; maxTargets?: number }) {
-  return (card.damage ?? 0) * (card.id === "weapon_smg" ? 2 : 1) + (card.splashDamage ?? 0);
-}
-
 describe("coarse starter deck composition", () => {
+  it("counts each SMG as 4 damage in the report and guardrail", () => {
+    // Current deck: 152 pressure from other weapons, plus three 4-damage SMGs.
+    // SMG's catalog damage is already the total of its two 2-damage hits.
+    expect(getDeckBalance().weaponDamagePotential).toBe(152 + 3 * 4);
+  });
   it("leans toward damage without making survival cards irrelevant", () => {
-    const pressure = totalWeaponDamage() + totalDamageSupport();
+    const pressure = getDeckBalance().weaponDamagePotential + totalDamageSupport();
     const survival = estimatedSurvivalValue();
     const weaponCount = mainDeckCards.filter((card) => card.type === "weapon").reduce((total, card) => total + card.count, 0);
     const survivalCount = mainDeckCards

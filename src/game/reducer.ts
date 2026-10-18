@@ -1051,6 +1051,11 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       const multi = state.pendingMultiHitAttack;
       const keepWeapon = reloadActive || Boolean(multi && multi.hitsRemaining > 1);
       const spendAttackAction = !multi || multi.hitsRemaining === 2;
+      // Marks belong to the recipient, not the projectile. Preserve the hit's
+      // other bonuses; SMG's second hit never receives target bonuses.
+      const markAdjustment = !multi || multi.hitsRemaining === 2
+        ? (state.markedTargets[target.id] ?? 0) - (state.markedTargets[defender.id] ?? 0)
+        : 0;
       const creditToDefender = target.id === attacker.id || areTeammates(attacker, target);
       const redirectedState = {
         ...stateBeforeRedirect,
@@ -1059,7 +1064,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
           attackerId: creditToDefender ? defender.id : attacker.id,
           defenderId: target.id,
           weapon: pending.weapon,
-          baseDamage: pending.baseDamage,
+          baseDamage: pending.baseDamage + markAdjustment,
           source: "ricochet" as const,
           remaining: []
         },
@@ -1167,7 +1172,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       if (intimidatingPlayers.includes(target.id)) {
         const availableCostCards = attacker.hand.filter((card) => card.instanceId !== weapon.instanceId);
         if (availableCostCards.length === 0) {
-          return log(state, `${attacker.name} must discard 1 card to attack ${target.name}, but has no extra cards.`);
+          return state;
         }
 
         return log(
@@ -1316,7 +1321,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       }
 
       if (currentPlayerOverHandLimit(state)) {
-        return log(state, `${getCurrentPlayer(state).name} must discard down to ${state.settings.maxHandSize} cards before ending turn.`);
+        return state;
       }
 
       const ended = updatePlayer(state, action.playerId, (player) => ({
