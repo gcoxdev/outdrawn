@@ -1,6 +1,6 @@
 import { getRicochetTargets } from "../game/rules";
 import { useState } from "react";
-import { ArrowRight, CopyPlus, SkipForward } from "lucide-react";
+import { ArrowRight, PlayingCardsFan, SkipForward } from "lucide-react";
 import { blackMarketPresets, type BlackMarketConfig } from "../data/constants";
 import type { GameAction } from "../game/actions";
 import { canPlayerAct, canPlayerDraw, canPlayerEndTurn, getDecisionPlayerId, getCardDefinitionById, getPlayer } from "../game/rules";
@@ -298,7 +298,7 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
             title={drawUnavailableReason || (currentPlayer.freeDrawsRemaining > 0 ? "Uses one free draw" : "Costs one action")}
             aria-label="Draw" onClick={() => dispatch({ type: "DRAW_CARD", playerId: currentPlayer.id })}
           >
-            <CopyPlus size={16} /> Draw<span className="command-cost">{currentPlayer.freeDrawsRemaining > 0 ? "Free" : "1 action"}</span>
+            <PlayingCardsFan size={16} /> Draw<span className="command-cost">{currentPlayer.freeDrawsRemaining > 0 ? "Free" : "1 action"}</span>
           </button>
           <button className="turn-pass" disabled={!canAct} onClick={() => dispatch({ type: "PASS_ACTION", playerId: currentPlayer.id })}>
             <SkipForward size={16} /> Pass

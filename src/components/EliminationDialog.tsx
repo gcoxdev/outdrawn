@@ -1,4 +1,4 @@
-import { ArrowRight, Target, Users } from "lucide-react";
+import { ArrowRight, Crosshair, Users } from "lucide-react";
 import { useId } from "react";
 import type { GameState, PlayerId } from "../game/types";
 import { Dialog } from "./Dialog";
@@ -16,11 +16,11 @@ export function EliminationDialog({ state, playerIds, onContinue }: {
     <Dialog className="match-dialog elimination-dialog" label={players.length === 1 ? "Player eliminated" : "Players eliminated"} descriptionId={descriptionId}>
       <section className="match-dialog__panel elimination-dialog__panel">
         <header className="match-dialog__header">
-          <div><Target size={18} aria-hidden="true" /><span>{players.length === 1 ? "Player eliminated" : "Players eliminated"}</span></div>
+          <div><Crosshair size={18} aria-hidden="true" /><span>{players.length === 1 ? "Player eliminated" : "Players eliminated"}</span></div>
           <span className="match-dialog__meta">Round {state.round}</span>
         </header>
         <div id={descriptionId} className="match-dialog__body elimination-dialog__body">
-          <div className="elimination-dialog__emblem"><Target size={30} aria-hidden="true" /></div>
+          <div className="elimination-dialog__emblem"><Crosshair size={30} aria-hidden="true" /></div>
           <p className="match-dialog__kicker">Out of the match</p>
           {players.length === 1 ? <h2>{players[0].name}</h2> : <>
             <h2>{players.length} players eliminated</h2>

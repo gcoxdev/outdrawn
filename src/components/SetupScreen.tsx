@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Layers, Minus, Plus, RotateCcw, Settings2, Shield, Users } from "lucide-react";
+import { ArrowRight, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, PlayingCardsFan, Minus, Plus, RotateCcw, Settings2, Shield, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   blackMarketPresets,
@@ -294,7 +294,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
               <label className="lobby-toggle"><span>Card transfer</span><input type="checkbox" checked={settings.allowTeamCardTransfer} onChange={event => updateBooleanSetting("allowTeamCardTransfer", event.target.checked)} /><span className="lobby-switch" aria-hidden="true" /></label>
             </div>}
             <details className="lobby-disclosure lobby-disclosure--market">
-              <summary><span><Layers size={15} /> Black Market <small>{labelBlackMarketPreset(settings.blackMarketPreset)}</small></span><ChevronDown size={16} /></summary>
+              <summary><span><PlayingCardsFan size={15} /> Black Market <small>{labelBlackMarketPreset(settings.blackMarketPreset)}</small></span><ChevronDown size={16} /></summary>
               <div className="lobby-disclosure__body">
                 <label className="lobby-field"><span id="market-preset-label">Market preset</span><select aria-labelledby="market-preset-label" value={settings.blackMarketPreset} onChange={event => updateBlackMarketPreset(event.target.value as BlackMarketPreset)}>
                   {Object.keys(blackMarketPresets).map(preset => <option key={preset} value={preset}>{labelBlackMarketPreset(preset as BlackMarketPreset)}</option>)}

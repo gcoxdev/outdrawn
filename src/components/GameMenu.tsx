@@ -1,4 +1,4 @@
-import { BookOpen, ChevronDown, Home, Layers, Maximize2, Menu, Plus, RotateCcw, Search, Settings2, Shield, X } from "lucide-react";
+import { BookOpen, ChevronDown, Home, PlayingCardsFan, Maximize2, Menu, Plus, RotateCcw, Search, Settings2, Shield, X } from "lucide-react";
 import { useId, useMemo, useState, useEffect, type KeyboardEvent } from "react";
 import { allCards, deckSummary, type Card, type CardType } from "../data/cards";
 import { blackMarketPresets, type GameSettings } from "../data/constants";
@@ -17,7 +17,7 @@ type MenuTab = "settings" | "rules" | "cards";
 const menuTabs = [
   { id: "settings", label: "Settings", icon: Settings2 },
   { id: "rules", label: "Rules", icon: BookOpen },
-  { id: "cards", label: "Cards", icon: Layers }
+  { id: "cards", label: "Cards", icon: PlayingCardsFan }
 ] as const;
 const cardTypes: Array<{ id: CardType; label: string }> = [
   { id: "weapon", label: "Weapons" }, { id: "defense", label: "Defense" },

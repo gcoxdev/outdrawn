@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, Maximize2, X } from "lucide-react";
+import { PlayingCardsFan, Maximize2, X } from "lucide-react";
 import type { Card } from "../data/cards";
 import type { CardInstance } from "../game/types";
 import { getCardDefinitionById } from "../game/rules";
@@ -15,7 +15,7 @@ export function DiscardPiles({ main, events, onClose }: { main: CardInstance[]; 
     <Dialog className="match-dialog" label="Discard piles" onClose={onClose}>
       <section className="match-dialog__panel discard-piles-panel">
         <header className="match-dialog__header">
-          <div><Layers size={18} /><h2>Discard piles</h2></div>
+          <div><PlayingCardsFan size={18} /><h2>Discard piles</h2></div>
           <button className="match-dialog__close" type="button" aria-label="Close discard piles" onClick={onClose}><X size={19} /></button>
         </header>
         <div className="discard-piles-tabs" aria-label="Choose discard pile">
@@ -36,7 +36,7 @@ export function DiscardPiles({ main, events, onClose }: { main: CardInstance[]; 
                 </li>;
               })}
             </ol>
-          </> : <div className="discard-piles-empty"><Layers size={28} /><h3>No discarded {pile === "events" ? "events" : "cards"}</h3><p>{pile === "events" ? "Discarded event cards will appear here." : "Cards discarded during the match will appear here."}</p></div>}
+          </> : <div className="discard-piles-empty"><PlayingCardsFan size={28} /><h3>No discarded {pile === "events" ? "events" : "cards"}</h3><p>{pile === "events" ? "Discarded event cards will appear here." : "Cards discarded during the match will appear here."}</p></div>}
         </div>
       </section>
     </Dialog>

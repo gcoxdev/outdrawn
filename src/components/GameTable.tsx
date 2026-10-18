@@ -1,7 +1,7 @@
 import type { ComputerRecap } from "../game/matchPresentation";
 import { getRicochetTargets } from "../game/rules";
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
-import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check, Plus } from "lucide-react";
+import { Eye, EyeOff, HeartPulse, PlayingCardsFan, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check, Plus } from "lucide-react";
 import { EventIcon } from "./EventIcon";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -238,7 +238,7 @@ export function GameTable({ fastForward = false, canSkipComputers = false, compu
           <header className="decision-strip">
             <h1>{decisionText}</h1>
             <div className="log-panel__meta">
-              <span><Layers size={14} aria-hidden="true" /> <strong className="pile-count">{state.mainDeck.length}</strong> in deck</span>
+              <span><PlayingCardsFan size={14} aria-hidden="true" /> <strong className="pile-count">{state.mainDeck.length}</strong> in deck</span>
               <button type="button" onClick={() => setShowDiscards(true)}>Discards <strong className="pile-count">{state.discardPile.length}</strong></button>
             </div>
           </header>
@@ -252,7 +252,7 @@ export function GameTable({ fastForward = false, canSkipComputers = false, compu
                 <h2>{handDisplayPlayer.name}</h2>
               </div>
               <div className="board-heading__health" aria-label={`${handDisplayPlayer.name} has ${handDisplayPlayer.health} health`}>
-                <Heart size={16} aria-hidden="true" />
+                <HeartPulse size={16} aria-hidden="true" />
                 <strong>{handDisplayPlayer.health}</strong>
                 <span>HP</span>
               </div>

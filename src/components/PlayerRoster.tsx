@@ -1,6 +1,5 @@
 import "./PlayerRoster.css";
-import { Activity, Bot, Copy, Heart, Target, User } from "lucide-react";
-import { HeartMinusIcon } from "./HeartMinusIcon";
+import { Bot, Crosshair, HeartMinus, HeartPulse, PlayingCardsFan, User, Zap } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { labelTeam } from "../game/rules";
@@ -110,29 +109,29 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
         </div>
         <div className="player-roster-card__stats" aria-label={`${player.name} stats`}>
           <span className="stat-health" title="Health">
-            <Heart size={14} />
+            <HeartPulse size={14} />
             {player.health}
           </span>
           <span className="stat-cards" title="Cards">
-            <Copy size={14} />
+            <PlayingCardsFan size={14} />
             {player.hand.length}
           </span>
           <span className="stat-actions" title="Actions">
-            <Activity size={14} />
+            <Zap size={14} />
             {player.actionsRemaining}
           </span>
           {freeDrawsEnabled && (
             <span className="stat-draws" title="Draws">
-              <Copy size={14} />
+              <PlayingCardsFan size={14} />
               {player.freeDrawsRemaining}
             </span>
           )}
           <div className="player-roster-card__combat-stats">
             <span className="stat-kills" title="Eliminations" aria-label={`${player.eliminations} eliminations`}>
-              <Target size={14} aria-hidden="true" />{player.eliminations}
+              <Crosshair size={14} aria-hidden="true" />{player.eliminations}
             </span>
             <span className="stat-damage" title={partialDamageHistory ? "Damage dealt since this match was updated" : "Damage dealt after defenses"} aria-label={`${player.damageDealt ?? 0} damage dealt${partialDamageHistory ? " since this match was updated" : ""}`}>
-              <HeartMinusIcon size={14} aria-hidden="true" />{player.damageDealt ?? 0}
+              <HeartMinus size={14} aria-hidden="true" />{player.damageDealt ?? 0}
             </span>
           </div>
         </div>

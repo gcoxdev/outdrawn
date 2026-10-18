@@ -1,5 +1,5 @@
 import {
-  Activity,
+  HeartMinus,
   Bomb,
   Crosshair,
   HeartPulse,
@@ -11,7 +11,6 @@ import {
 import { useState } from "react";
 import type { Card } from "../data/cards";
 import { EventIcon } from "./EventIcon";
-import { HeartMinusIcon } from "./HeartMinusIcon";
 import { useCardBack } from "./CardBackPreference";
 
 const typeIcons = {
@@ -92,10 +91,10 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     isSelected ? " is-selected" : ""
   }`;
   const stats = [
-    card.damage ? { label: card.damage, icon: HeartMinusIcon, title: "Damage" } : null,
+    card.damage ? { label: card.damage, icon: HeartMinus, title: "Damage" } : null,
     card.splashDamage ? { label: card.splashDamage, icon: Bomb, title: "Splash" } : null,
     card.block ? { label: card.block, icon: ShieldCheck, title: "Block" } : null,
-    card.actionsCost ? { label: card.actionsCost, icon: Activity, title: "Actions" } : null,
+    card.actionsCost ? { label: card.actionsCost, icon: Zap, title: "Actions" } : null,
     card.heal ? { label: card.heal, icon: HeartPulse, title: "Heal" } : null
   ].filter(Boolean);
 
