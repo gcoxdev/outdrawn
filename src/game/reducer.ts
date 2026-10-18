@@ -1120,50 +1120,43 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       const multi = state.pendingMultiHitAttack;
       const keepWeapon = reloadActive || Boolean(multi && multi.hitsRemaining > 1);
       const spendAttackAction = !multi || multi.hitsRemaining === 2;
-      const returnsToAttacker = target.id === attacker.id;
-      if (state.settings.allowSecondaryDefense || returnsToAttacker) {
-        const redirectedState = {
-          ...stateBeforeRedirect,
-          pendingSecondaryDamage: {
-            // A reflected hit belongs to the Ricochet player, not a self-attack.
-            attackerId: returnsToAttacker ? defender.id : attacker.id,
-            defenderId: target.id,
-            weapon: pending.weapon,
-            baseDamage: pending.baseDamage,
-            source: "ricochet" as const,
-            remaining: []
-          },
-          discardPile: [
-            ...stateBeforeRedirect.discardPile,
-            pending.decoy,
-            ...(keepWeapon ? [] : [pending.weapon])
-          ],
-          reloadPlayerIds: reloadActive && !multi ? stateBeforeRedirect.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : stateBeforeRedirect.reloadPlayerIds,
-          attackBonuses: omitKey(stateBeforeRedirect.attackBonuses, attacker.id),
-          players: stateBeforeRedirect.players.map((player) =>
-            player.id === attacker.id
-              ? {
-                  ...player,
-                  hand: keepWeapon ? player.hand : player.hand.filter((card) => card.instanceId !== pending.weapon.instanceId),
-                  attackedThisRound: true,
-                  actedThisRound: true,
-                  actionsRemaining: spendAttackAction ? Math.max(0, player.actionsRemaining - 1) : player.actionsRemaining
-                }
-              : player
-          )
-        };
-        const redirected = log(finishMultiHit(redirectedState), `${defender.name} redirected ${attacker.name}'s attack to ${target.name}.${state.settings.allowSecondaryDefense ? ` ${target.name} may defend.` : ""}`);
-        if (state.settings.allowSecondaryDefense) return redirected;
-        const result = resolveCurrentSecondaryDamage(redirected, null);
-        return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
-      }
-
-      const result = resolveAttack(stateBeforeRedirect, attacker, target, pending.weapon, pending.decoy, {
-        keepWeaponInHand: keepWeapon, spendAction: spendAttackAction, baseDamageOverride: pending.baseDamage, deferGameOver: true
-      });
-      const resolvedState = multi ? finishMultiHit(result.state) : reloadActive ? consumeReload(result.state, attacker.id) : result.state;
-      return result.messages.reduce((nextState, message) => log(nextState, message), resolvedState);
+      const creditToDefender = target.id === attacker.id || areTeammates(attacker, target);
+      const redirectedState = {
+        ...stateBeforeRedirect,
+        pendingSecondaryDamage: {
+          // A redirect onto the firing side credits the Ricochet player.
+          attackerId: creditToDefender ? defender.id : attacker.id,
+          defenderId: target.id,
+          weapon: pending.weapon,
+          baseDamage: pending.baseDamage,
+          source: "ricochet" as const,
+          remaining: []
+        },
+        discardPile: [
+          ...stateBeforeRedirect.discardPile,
+          pending.decoy,
+          ...(keepWeapon ? [] : [pending.weapon])
+        ],
+        reloadPlayerIds: reloadActive && !multi ? stateBeforeRedirect.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : stateBeforeRedirect.reloadPlayerIds,
+        attackBonuses: omitKey(stateBeforeRedirect.attackBonuses, attacker.id),
+        players: stateBeforeRedirect.players.map((player) =>
+          player.id === attacker.id
+            ? {
+                ...player,
+                hand: keepWeapon ? player.hand : player.hand.filter((card) => card.instanceId !== pending.weapon.instanceId),
+                attackedThisRound: true,
+                actedThisRound: true,
+                actionsRemaining: spendAttackAction ? Math.max(0, player.actionsRemaining - 1) : player.actionsRemaining
+              }
+            : player
+        )
+      };
+      const redirected = log(finishMultiHit(redirectedState), `${defender.name} redirected ${attacker.name}'s attack to ${target.name}.${state.settings.allowSecondaryDefense ? ` ${target.name} may defend.` : ""}`);
+      if (state.settings.allowSecondaryDefense) return redirected;
+      const result = resolveCurrentSecondaryDamage(redirected, null);
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
+
     case "RESOLVE_PENDING_ATTACK_COST": {
       const pending = state.pendingAttackCost;
       const attacker = pending ? getPlayer(state, pending.attackerId) : undefined;
@@ -1648,111 +1641,39 @@ function resolveMinigunAttack(state: GameState, attacker: PlayerState, weapon: C
   const reloadActive = state.reloadPlayerIds.includes(attacker.id);
   const damagedPlayerIds = Object.keys(allocation);
   const damageByPlayerId = allocation;
-  const maxDamage = Math.max(0, ...Object.values(damageByPlayerId));
-  if (state.settings.allowSecondaryDefense) {
-    const baseState: GameState = {
-      ...state,
-      discardPile: reloadActive ? state.discardPile : [...state.discardPile, weapon],
-      reloadPlayerIds: reloadActive ? state.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : state.reloadPlayerIds,
-      attackBonuses: omitKey(state.attackBonuses, attacker.id),
-      players: state.players.map((player) =>
-        player.id === attacker.id
-          ? {
-              ...player,
-              hand: reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId),
-              attackedThisRound: true,
-              actedThisRound: true,
-              actionsRemaining: Math.max(0, player.actionsRemaining - 1)
-            }
-          : player
-      )
-    };
-    return enqueueSecondaryDamage(
-      baseState,
-      [`${attacker.name} allocated ${sumValues(damageByPlayerId)} Minigun damage across ${damagedPlayerIds.length} opponent${damagedPlayerIds.length === 1 ? "" : "s"}.`],
-      damagedPlayerIds.map((playerId) => ({
-        attackerId: attacker.id,
-        defenderId: playerId,
-        weapon,
-        baseDamage: damageByPlayerId[playerId] ?? 0,
-        source: "minigun"
-      }))
-    );
-  }
-
-  const eliminatedHands = state.players
-    .filter((player) => damagedPlayerIds.includes(player.id) && player.health <= (damageByPlayerId[player.id] ?? 0))
-    .flatMap((player) => player.hand);
-  const eliminatedCount = state.players.filter((player) => damagedPlayerIds.includes(player.id) && player.health <= (damageByPlayerId[player.id] ?? 0)).length;
-  const players = state.players.map((player) => {
-    if (player.id === attacker.id) {
-      const rewardedHealth = applyEliminationHealthReward(player.health, eliminatedCount, state);
-      return {
-        ...player,
-        hand: [...(reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId)), ...eliminatedHands],
-        health: rewardedHealth,
-        eliminations: player.eliminations + eliminatedCount,
-        attackedThisRound: true,
-        actedThisRound: true,
-        actionsRemaining: Math.max(0, player.actionsRemaining - 1)
-      };
-    }
-
-    if (damagedPlayerIds.includes(player.id)) {
-      const damage = damageByPlayerId[player.id] ?? 0;
-      const health = Math.max(0, player.health - damage);
-      return {
-        ...player,
-        health,
-        hand: health === 0 ? [] : player.hand,
-        eliminated: health === 0
-      };
-    }
-
-    return player;
-  });
-  let nextState: GameState = {
+  const baseState: GameState = {
     ...state,
-    players,
     discardPile: reloadActive ? state.discardPile : [...state.discardPile, weapon],
     reloadPlayerIds: reloadActive ? state.reloadPlayerIds.filter((playerId) => playerId !== attacker.id) : state.reloadPlayerIds,
-    attackBonuses: omitKey(state.attackBonuses, attacker.id)
+    attackBonuses: omitKey(state.attackBonuses, attacker.id),
+    players: state.players.map((player) =>
+      player.id === attacker.id
+        ? {
+            ...player,
+            hand: reloadActive ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId),
+            attackedThisRound: true,
+            actedThisRound: true,
+            actionsRemaining: Math.max(0, player.actionsRemaining - 1)
+          }
+        : player
+    )
   };
-  nextState = recordEffects(nextState, ...damagedPlayerIds.map(playerId => ({ kind: "damage" as const, source: "minigun" as const, cardDefinitionId: weapon.definitionId, sourcePlayerId: attacker.id, playerId, amount: Math.min(getPlayer(state, playerId)!.health, damageByPlayerId[playerId]) })), { kind: "healing", source: "eliminationReward", playerId: attacker.id, sourcePlayerId: attacker.id, amount: getPlayer(nextState, attacker.id)!.health - attacker.health });
-  const winner = getWinner(nextState);
-  const winnerTeamId = getWinningTeamId(nextState);
   const messages = [`${attacker.name} allocated ${sumValues(damageByPlayerId)} Minigun damage across ${damagedPlayerIds.length} opponent${damagedPlayerIds.length === 1 ? "" : "s"}.`];
+  const hits: SecondaryDamageItem[] = damagedPlayerIds.map(playerId => ({
+    attackerId: attacker.id, defenderId: playerId, weapon,
+    baseDamage: damageByPlayerId[playerId], source: "minigun"
+  }));
+  if (state.settings.allowSecondaryDefense) return enqueueSecondaryDamage(baseState, messages, hits);
 
-  players
-    .filter((player) => damagedPlayerIds.includes(player.id))
-    .forEach((player) => {
-      const damage = damageByPlayerId[player.id] ?? 0;
-      messages.push(`${player.name} took ${damage} Minigun damage.`);
-      if (player.eliminated) {
-        messages.push(`${player.name} was eliminated.`);
-      }
-    });
-  const rewardGain = state.players.find((player) => player.id === attacker.id)
-    ? (players.find((player) => player.id === attacker.id)?.health ?? attacker.health) - attacker.health
-    : 0;
-  if (rewardGain > 0) {
-    messages.push(`${attacker.name} recovered ${rewardGain} health from elimination reward.`);
+  // Resolve the same hits without opening reaction windows. Victory waits until
+  // every allocated hit has applied, just as it does with secondary defense on.
+  let nextState = baseState;
+  for (const hit of hits) {
+    const result = resolveSecondaryDamage(nextState, getPlayer(nextState, attacker.id)!, getPlayer(nextState, hit.defenderId)!, weapon, hit.baseDamage, hit.source, null, { deferGameOver: true });
+    nextState = result.state;
+    messages.push(...result.messages);
   }
-
-  if (winner || winnerTeamId) {
-    nextState = {
-      ...nextState,
-      phase: "gameOver",
-      winnerId: winner?.id ?? players.find((player) => player.teamId === winnerTeamId && !player.eliminated)?.id ?? null,
-      winnerTeamId
-    };
-    messages.push(winnerTeamId ? `${labelTeam(winnerTeamId)} is the last team standing.` : `${winner!.name} wins.`);
-  }
-
-  return {
-    state: nextState,
-    messages
-  };
+  return { state: nextState, messages };
 }
 
 function getValidMinigunAllocation(
@@ -1809,13 +1730,6 @@ function sumValues(record: Record<string, number>): number {
   return Object.values(record).reduce((total, value) => total + value, 0);
 }
 
-function applyEliminationHealthReward(health: number, eliminations: number, state: GameState): number {
-  if (health <= 0 || eliminations <= 0 || state.settings.eliminationHealthReward <= 0) {
-    return health;
-  }
-
-  return Math.min(state.settings.maxHealth, health + eliminations * state.settings.eliminationHealthReward);
-}
 
 function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
   const next = { ...record };

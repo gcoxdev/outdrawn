@@ -111,7 +111,7 @@ Defense cards are played from hand as reactions. There is no equipment system in
 ### Defense clarifications
 
 - Shield Plate rounds the damage you take down: a 3-damage hit becomes 1 damage. No Cover reduces the amount prevented by 1, as it does for other blocking defenses.
-- Ricochet cannot redirect to yourself or a teammate. It can return to the attacker only when no other living opponent is available; smoke-protected opponents still count. A hit returned to the attacker credits damage and eliminations to the player who used Ricochet. The secondary-defense setting still applies.
+- Ricochet cannot redirect to yourself or a teammate. It can return to the attacker only when no other living opponent is available; smoke-protected opponents still count. Ricochet redirects only the direct hit; a redirected Grenade creates no splash. A hit redirected onto the attacker or their teammate credits damage, eliminations, loot, and elimination rewards to the player who used Ricochet. Other redirects retain the original attacker’s credit. The secondary-defense setting only controls whether the new target may defend.
 - Revive consumes all healing cards without spending actions or triggering extra draws from Painkillers. Healing is capped at maximum health, and your entire hand is discarded, including Revive and the healing cards.
 
 ## Abilities

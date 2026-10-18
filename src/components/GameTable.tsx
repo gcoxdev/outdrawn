@@ -1,6 +1,6 @@
 import { getRicochetTargets } from "../game/rules";
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
-import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check } from "lucide-react";
+import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check, Plus } from "lucide-react";
 import { EventIcon } from "./EventIcon";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -330,7 +330,7 @@ export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminations
 
           {state.phase === "gameOver" ? <section className="action-panel finished-match">
             <h2>Match complete</h2><p>{state.outcome?.description ?? "Review the result or start a new match."}</p>
-            <div className="action-row"><button type="button" onClick={() => setResultDismissed(false)}>View result</button><button className="review-log-button" type="button" onClick={() => { setActiveMobileTab("log"); document.querySelector(".game-log")?.scrollIntoView({ block: "nearest" }); }}>Review log</button><button type="button" onClick={() => setShowDiscards(true)}>Discards</button><button type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}>New Game</button></div>
+            <div className="action-row match-complete-actions"><button type="button" onClick={() => setResultDismissed(false)}>View result</button><button className="review-log-button" type="button" onClick={() => { setActiveMobileTab("log"); document.querySelector(".game-log")?.scrollIntoView({ block: "nearest" }); }}>Review log</button><button type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}><Plus size={16} aria-hidden="true" />New Game</button></div>
           </section> : <ActionPanel
             state={state}
             currentPlayer={currentPlayer}

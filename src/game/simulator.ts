@@ -497,7 +497,7 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
       return { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: card.instanceId };
     }
 
-    if (definition.id === "ability_ambush" && player.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon")) {
+    if (definition.id === "ability_ambush" && player.actionsRemaining >= 2 && player.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon")) {
       return { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: card.instanceId };
     }
 
@@ -507,6 +507,7 @@ function chooseAbility(state: GameState, player: PlayerState, strategy: Strategy
 
     if (
       definition.id === "ability_reload" &&
+      player.actionsRemaining >= 2 &&
       !state.reloadPlayerIds.includes(player.id) &&
       player.hand.some((handCard) => getCardDefinitionById(handCard.definitionId)?.type === "weapon")
     ) {
