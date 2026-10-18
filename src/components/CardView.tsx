@@ -1,6 +1,5 @@
 import {
   Activity,
-  BadgeAlert,
   Bomb,
   Crosshair,
   HeartPulse,
@@ -12,13 +11,14 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { Card } from "../data/cards";
+import { EventIcon } from "./EventIcon";
 
 const typeIcons = {
   weapon: Crosshair,
   defense: Shield,
   ability: Zap,
   healing: HeartPulse,
-  event: BadgeAlert
+  event: EventIcon
 };
 
 type CardViewProps = {

@@ -1,5 +1,6 @@
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
-import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, Zap, ArrowRight, LayoutGrid, List, ChevronRight, Check } from "lucide-react";
+import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check } from "lucide-react";
+import { EventIcon } from "./EventIcon";
 import { useEffect, useMemo, useState, useRef } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { allCards } from "../data/cards";
@@ -582,7 +583,7 @@ function EventDialog({ state, dispatch }: GameTableProps) {
   return (
     <Dialog className="match-dialog event-dialog-backdrop" label={`${definition.name} event`}>
       <section className="match-dialog__panel event-dialog-panel">
-        <header className="match-dialog__header"><div><Zap size={18} /><span>Event drawn</span></div><span className="match-dialog__meta">Round {state.round}</span></header>
+        <header className="match-dialog__header"><div><EventIcon size={18} aria-hidden="true" /><span>Event drawn</span></div><span className="match-dialog__meta">Round {state.round}</span></header>
         <div className="match-dialog__body event-dialog-body">
           <div className="event-dialog-card"><CardView card={definition} mode="detail" /></div>
           <div className="event-dialog-copy">

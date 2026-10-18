@@ -8,6 +8,7 @@ import type { GamePhase } from "../game/types";
 import { PwaControls } from "./PwaControls";
 import { Dialog } from "./Dialog";
 import { CardPreview } from "./CardPreview";
+import { CardView } from "./CardView";
 import rulesText from "../../docs/current-rules.md?raw";
 import "./GameMenu.css";
 
@@ -168,6 +169,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
                         const status = getCardImplementationStatus(card);
                         const note = getCardImplementationNote(card);
                         return <article className="catalog-card" key={card.id}>
+                          <div className="catalog-card__art" aria-hidden="true"><CardView card={card} mode="board" /></div>
                           <div className="catalog-card__copy">
                             <strong>{card.name}</strong>
                             <p>{card.rulesText}</p>

@@ -78,7 +78,10 @@ body:has(.menu-overlay[open]) { overflow: hidden; }
 .catalog-group h3 > span { height: 6px; width: 6px; border-radius: 50%; background: var(--card-accent); }
 .catalog-group h3 small { margin-left: auto; color: var(--menu-muted); font-size: 11px; font-weight: 400; }
 .catalog-list { display: grid; gap: 8px; }
-.catalog-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 13px 14px; border: 1px solid var(--menu-line); border-left: 2px solid color-mix(in srgb, var(--card-accent) 60%, #303028); border-radius: 6px; background: #ffffff02; }
+.catalog-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 13px 14px; border: 1px solid var(--menu-line); border-left: 2px solid color-mix(in srgb, var(--card-accent) 60%, #303028); border-radius: 6px; background: #ffffff02; }
+.catalog-card__art { width: 44px; pointer-events: none; }
+.catalog-card__art .card-view { width: 100%; min-height: 0; margin: 0; }
+.catalog-card__copy { min-width: 0; }
 .catalog-card__actions { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; align-self: stretch; gap: 4px; }
 .catalog-card strong { color: #e5dfd2; font-size: 13px; font-weight: 600; }
 .catalog-card__actions > span { color: #a59b86; font-size: 11px; }
@@ -93,6 +96,9 @@ body:has(.menu-overlay[open]) { overflow: hidden; }
 .menu-match-actions button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 8px; border-color: #484338; background: transparent; color: #d5cab6; font-size: 12px; font-weight: 550; }
 @keyframes menu-enter { from { transform: translateX(18px); opacity: .6; } to { transform: translateX(0); opacity: 1; } }
 @media (max-width: 520px) {
+  .catalog-card { grid-template-columns: 40px minmax(0, 1fr); gap: 8px 12px; }
+  .catalog-card__art { width: 40px; grid-row: span 2; }
+  .catalog-card__actions { grid-column: 2; flex-direction: row; align-items: center; }
   .menu-panel { border-left: 0; }
   .menu-panel__header { min-height: 72px; padding-left: 16px; padding-right: 16px; }
   .menu-tabs { padding: 10px 16px; gap: 4px; }
