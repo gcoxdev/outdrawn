@@ -6,6 +6,44 @@ import { MAX_PLAYERS, MIN_PLAYERS } from "./setupOptions";
 import { normalizeSettings } from "./settings";
 import type { GameState, PlayerSetup, PlayerState } from "./types";
 
+/** A lobby retains settings, never decisions or history from the previous match. */
+export function createSetupState(settings: GameSettings = defaultGameSettings): GameState {
+  return {
+    phase: "setup",
+    settings,
+    round: 0,
+    players: [],
+    currentPlayerIndex: 0,
+    firstPlayerIndex: 0,
+    mainDeck: [],
+    eventDeck: [],
+    discardPile: [],
+    eventDiscardPile: [],
+    activeEvent: null,
+    pendingEventDialog: null,
+    pendingReaction: null,
+    pendingRedirect: null,
+    pendingAttackCost: null,
+    pendingMultiHitAttack: null,
+    pendingDiscard: null,
+    pendingSearch: null,
+    pendingSupplyDrop: null,
+    pendingMarketSearch: null,
+    pendingBlackMarket: null,
+    pendingSteal: null,
+    pendingSecondaryDamage: null,
+    selectedCardId: null,
+    attackBonuses: {},
+    reloadPlayerIds: [],
+    markedTargets: {},
+    smokeProtectedPlayerIds: [],
+    intimidations: {},
+    log: [],
+    winnerId: null,
+    winnerTeamId: null
+  };
+}
+
 export function createNewGame(
   playerInputs: string[] | PlayerSetup[],
   random: () => number = Math.random,

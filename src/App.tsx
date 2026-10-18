@@ -2,46 +2,13 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { GameTable } from "./components/GameTable";
 import { MatchRecovery, preserveRejectedMatch } from "./components/MatchRecovery";
 import { SetupScreen } from "./components/SetupScreen";
-import { defaultGameSettings } from "./data/constants";
+import { createSetupState } from "./game/setup";
 import { readSavedMatch, saveGame } from "./game/persistence";
 import { createMatchPresentation, matchPresentationReducer } from "./game/matchPresentation";
 import { chooseAutomatedAction, getDecisionPlayerId } from "./game/simulator";
-import type { GameState, PlayerSetup } from "./game/types";
+import type { PlayerSetup } from "./game/types";
 
-const initialState: GameState = {
-  phase: "setup",
-  settings: defaultGameSettings,
-  round: 0,
-  players: [],
-  currentPlayerIndex: 0,
-  firstPlayerIndex: 0,
-  mainDeck: [],
-  eventDeck: [],
-  discardPile: [],
-  eventDiscardPile: [],
-  activeEvent: null,
-  pendingEventDialog: null,
-  pendingReaction: null,
-  pendingRedirect: null,
-  pendingAttackCost: null,
-  pendingMultiHitAttack: null,
-  pendingDiscard: null,
-  pendingSearch: null,
-  pendingSupplyDrop: null,
-  pendingMarketSearch: null,
-  pendingBlackMarket: null,
-  pendingSteal: null,
-  pendingSecondaryDamage: null,
-  selectedCardId: null,
-  attackBonuses: {},
-  reloadPlayerIds: [],
-  markedTargets: {},
-  smokeProtectedPlayerIds: [],
-  intimidations: {},
-  log: [],
-  winnerId: null,
-  winnerTeamId: null
-};
+const initialState = createSetupState();
 
 export default function App() {
   const [boot] = useState(() => { try { return readSavedMatch(initialState, window.localStorage); } catch { return { state: initialState }; } });

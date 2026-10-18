@@ -16,6 +16,7 @@
     "prebuild": "node scripts/generate-icons.mjs && node scripts/optimize-artwork.mjs",
     "test:mobile": "npm run build && node scripts/mobile-smoke.mjs",
     "test:lobby": "npm run build && node scripts/lobby-smoke.mjs",
+    "test:lobby-reset": "npm run build && node scripts/lobby-reset-smoke.mjs",
     "test:menu": "npm run build && node scripts/menu-smoke.mjs",
     "test:table": "npm run build && node scripts/table-smoke.mjs",
     "test:dev": "node scripts/dev-smoke.mjs",

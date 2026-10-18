@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMatchPresentation, matchPresentationReducer as reduce } from "./matchPresentation";
 import { createNewGame } from "./setup";
+import { getPendingDecision } from "./decisions";
 import { readSavedMatch, saveGame } from "./persistence";
 
 function fixture(weaponId = "weapon_pistol") {
@@ -78,5 +79,39 @@ describe("live elimination notifications", () => {
     const restarted = reduce(result, { type: "RESTART_GAME" });
     expect(restarted.eliminatedPlayerIds).toEqual([]);
     expect(restarted.game.players.every(player => !player.eliminated)).toBe(true);
+  });
+});
+
+
+describe("returning to the lobby", () => {
+  it.each(["reaction", "search", "event", "finished"])("starts a fresh match after leaving %s", kind => {
+    const game = fixture();
+    game.settings = { ...game.settings, startingHealth: 30, passDeviceMode: false };
+    if (kind !== "reaction") game.pendingReaction = null;
+    if (kind === "search") game.pendingSearch = { playerId: "player_1", cards: [game.players[0].hand[0]] };
+    if (kind === "event") {
+      game.pendingEventDialog = { playerId: "player_1", card: { instanceId: "event", definitionId: "event_pressure_zone" } };
+      game.eventDialogQueue = [game.pendingEventDialog];
+    }
+    if (kind === "finished") {
+      game.phase = "gameOver";
+      game.winnerId = "player_1";
+      game.outcome = { kind: "survivor", description: "Ari wins." };
+    }
+    const lobby = reduce({ game, eliminatedPlayerIds: ["player_2"] }, { type: "RESET_GAME" });
+    const started = reduce(lobby, { type: "START_GAME", playerNames: ["New A", "New B", "New C"] });
+    expect(started.game.phase).toBe("action");
+    expect(started.game.players.map(player => player.name)).toEqual(["New A", "New B", "New C"]);
+    expect(started.game.players.every(player => player.health === 30 && !player.eliminated)).toBe(true);
+    expect(getPendingDecision(started.game)).toBeNull();
+    expect(started.eliminatedPlayerIds).toEqual([]);
+    expect(lobby.game.phase).toBe("setup");
+    expect(lobby.game.settings).toEqual(game.settings);
+    expect(lobby.game.players).toEqual([]);
+    expect(lobby.game.log).toEqual([]);
+    expect(getPendingDecision(lobby.game)).toBeNull();
+    expect(lobby.game.eventDialogQueue ?? []).toEqual([]);
+    expect(lobby.game.outcome).toBeUndefined();
+    expect(lobby.game.winnerId).toBeNull();
   });
 });

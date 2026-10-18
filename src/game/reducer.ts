@@ -7,7 +7,7 @@ import { finalizeEliminations } from "./elimination";
 import { normalizeSettings } from "./settings";
 import type { CardInstance, DrawContinuation, PlayerId, SecondaryDamageItem, SecondaryDamageSource } from "./types";
 import type { GameAction } from "./actions";
-import { createNewGame } from "./setup";
+import { createNewGame, createSetupState } from "./setup";
 import type { GameState, PlayerState } from "./types";
 import { createPendingReaction, getBaseAttackDamage, getGrenadeSplashTargets, resolveAttack, resolveHealing, resolveSecondaryDamage } from "./combat";
 import { DEBUG_SNAPSHOT_LOG_LIMIT, getHandSnapshots, shouldCaptureHandSnapshots } from "./logSnapshots";
@@ -1405,10 +1405,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       );
     }
     case "RESET_GAME":
-      return {
-        ...state,
-        phase: "setup"
-      };
+      return createSetupState(state.settings);
     case "RESTART_GAME":
       return createNewGame(
         state.players.map((player) => ({
