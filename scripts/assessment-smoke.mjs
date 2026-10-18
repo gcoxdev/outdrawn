@@ -79,7 +79,12 @@ try {
       await page.keyboard.press("Escape");
       assert(await button("View result").evaluate(el => el === document.activeElement));
       assert.equal(await page.getByText(/is choosing|is resolving this decision/).count(), 0);
-      await button("Review log").click();
+      if (width === 1440) {
+        assert.equal(await button("Review log").count(), 0, "Desktop already shows the log and must hide the redundant button");
+      } else {
+        assert(!(await page.locator(".game-log").isVisible()), "Mobile log starts on a separate tab");
+        await button("Review log").click();
+      }
       assert(await page.locator(".game-log").isVisible());
       await fits();
     }

@@ -10,6 +10,7 @@ import { build } from "esbuild";
 import { createStaticHandler } from "./static-host.mjs";
 import { buildOffline } from "./build-offline.mjs";
 import { iconFiles } from "./generate-icons.mjs";
+import { assertModalTabNavigation } from "./browser-focus.mjs";
 
 const directory = await mkdtemp(join(tmpdir(), "outdrawn-mobile-"));
 let browser, server;
@@ -56,8 +57,7 @@ try {
     slow = false;
     await page.getByRole("button", { name: "Open menu", exact: true }).tap();
     assert(await page.evaluate(() => !!document.activeElement.closest("dialog[open]")));
-    for (let i = 0; i < 12; i++) await page.keyboard.press("Tab");
-    assert(await page.evaluate(() => !!document.activeElement.closest("dialog[open]")));
+    await assertModalTabNavigation(page, page.getByRole("dialog", { name: "Game menu", exact: true }));
     await page.keyboard.press("Escape");
     await page.locator("dialog[open]").waitFor({ state: "detached" });
     assert.equal(await page.evaluate(() => document.activeElement.getAttribute("aria-label")), "Open menu");

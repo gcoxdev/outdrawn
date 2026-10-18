@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { chromium, webkit } from "playwright";
 import { createStaticHandler } from "./static-host.mjs";
+import { assertModalTabNavigation } from "./browser-focus.mjs";
 
 const server = createServer(createStaticHandler("dist"));
 await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
@@ -112,8 +113,7 @@ try {
     await page.setViewportSize({ width: 390, height: 844 });
     await tab("Settings").click();
     await screenshot("mobile");
-    for (let i = 0; i < 15; i++) await page.keyboard.press("Tab");
-    assert(await page.evaluate(() => !!document.activeElement.closest("dialog[open]")));
+    await assertModalTabNavigation(page, page.getByRole("dialog", { name: "Game menu", exact: true }));
     await page.getByRole("checkbox", { name: "Pass device mode", exact: true }).check();
     await page.getByRole("button", { name: "Check Updates", exact: true }).click();
     await page.getByText("Offline copy is up to date.", { exact: true }).waitFor();
