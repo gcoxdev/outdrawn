@@ -104,11 +104,12 @@ try {
       await screenshot("elimination-group", width);
       await button("See results").click();
       await page.getByRole("dialog", { name: "Game winner" }).waitFor();
-      for (const name of ["winner", "tie", "team"]) {
+      for (const name of ["winner", "tie", "tiebreak", "team"]) {
         await load(name);
         await fits();
         await screenshot(name, width);
         if (name === "tie") assert.equal(await page.locator(".winner-modal h2").innerText(), "It's a tie");
+        if (name === "tiebreak") assert.match(await page.locator(".winner-modal__description").innerText(), /Eliminations and health were tied\. Ari wins on cards in hand before the final effect: 1; .* was 0\./);
         if (name === "team") assert.equal(await page.locator(".winner-modal__team li").count(), 20);
         await button("Review table").click();
         assert.equal(await page.locator(".winner-modal").count(), 0);

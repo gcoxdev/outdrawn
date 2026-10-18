@@ -41,12 +41,19 @@ export function fixtures() {
   finalEliminations.players.forEach((player, index) => { player.hand = []; player.health = index === 0 ? 10 : 1; player.actedThisRound = true; });
   finalEliminations.round = 3;
   finalEliminations.firstPlayerIndex = 1; // Ari finishes the round.
+  const tiebreakBase = structuredClone(finalEliminations);
+  tiebreakBase.round = 8;
+  tiebreakBase.players.forEach((player, index) => {
+    player.health = 2;
+    player.hand = index === 0 ? [card("weapon_knife")] : [];
+  });
+  const tiebreak = gameReducer(tiebreakBase, { type: "END_TURN", playerId: "player_1" });
   const eventElimination = structuredClone(base);
   eventElimination.settings.passDeviceMode = true;
   eventElimination.players[0].health = 1;
   eventElimination.players[0].hand = [];
   eventElimination.mainDeck = [card("event_pressure_zone")];
-  return Object.fromEntries(Object.entries({ empty: base, discards, crowded, event, winner, tie, team, elimination, finalEliminations, eventElimination }).map(([name, state]) => {
+  return Object.fromEntries(Object.entries({ empty: base, discards, crowded, event, winner, tie, tiebreak, team, elimination, finalEliminations, eventElimination }).map(([name, state]) => {
     state.players.filter(player => player.eliminated).forEach(player => { player.health = 0; state.discardPile.push(...player.hand); player.hand = []; });
     let serialized = "";
     saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });

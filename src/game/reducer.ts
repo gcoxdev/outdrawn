@@ -163,10 +163,12 @@ function completeGameIfOver(state: GameState, beforePlayers: PlayerState[], brea
     return null;
   }
 
-  const winner = getWinner(state) ?? (breakTie ? breakEliminationTie(beforePlayers.filter(player => !player.eliminated)) : null);
+  const survivor = getWinner(state);
+  const tiebreak = !survivor && breakTie ? breakEliminationTie(beforePlayers.filter(player => !player.eliminated)) : null;
+  const winner = survivor ?? tiebreak?.winner ?? null;
   if (state.players.every(player => player.eliminated)) {
     state = { ...state, outcome: { kind: winner ? "tiebreak" : "tie", description: winner
-      ? "Everyone fell in the final effect. The winner was selected by most eliminations, then pre-effect health, then pre-effect hand size."
+      ? `Everyone fell in the final effect. ${tiebreak!.description}`
       : breakTie ? "Everyone fell in the final effect. The leading players were tied on eliminations, pre-effect health, and pre-effect hand size."
       : "The final combat sequence left nobody alive. No winner is declared." } };
   }
@@ -2025,7 +2027,7 @@ function scheduleForcedDiscard(state: GameState, playerIds: PlayerId[], cardType
   };
 }
 
-function breakEliminationTie(players: PlayerState[]): PlayerState | null {
+function breakEliminationTie(players: PlayerState[]): { winner: PlayerState; description: string } | null {
   const candidates = [...players].sort(
     (left, right) => right.eliminations - left.eliminations || right.health - left.health || right.hand.length - left.hand.length
   );
@@ -2037,7 +2039,24 @@ function breakEliminationTie(players: PlayerState[]): PlayerState | null {
   const tied = candidates.filter(
     (player) => player.eliminations === winner.eliminations && player.health === winner.health && player.hand.length === winner.hand.length
   );
-  return tied.length === 1 ? winner : null;
+  if (tied.length !== 1) return null;
+
+  const runnerUp = candidates[1];
+  if (!runnerUp) return { winner, description: `${winner.name} was the only player alive before the final effect.` };
+  // Compare the highest-ranked rival; players who lost an earlier criterion
+  // must not influence the health or hand-size comparison.
+  const comparison = (value: number, other: number) => candidates.length === 2
+    ? `${value} vs. ${runnerUp.name}’s ${other}`
+    : `${value}; the next highest among the remaining contenders was ${other}`;
+  let description: string;
+  if (winner.eliminations !== runnerUp.eliminations) {
+    description = `${winner.name} wins on eliminations: ${comparison(winner.eliminations, runnerUp.eliminations)}.`;
+  } else if (winner.health !== runnerUp.health) {
+    description = `Eliminations were tied. ${winner.name} wins on health before the final effect: ${comparison(winner.health, runnerUp.health)}.`;
+  } else {
+    description = `Eliminations and health were tied. ${winner.name} wins on cards in hand before the final effect: ${comparison(winner.hand.length, runnerUp.hand.length)}.`;
+  }
+  return { winner, description };
 }
 
 function getHighestDamageWeapon(hand: CardInstance[]): CardInstance | null {
