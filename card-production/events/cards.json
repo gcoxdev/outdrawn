@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Pressure Zone",
+    "id": "event_pressure_zone",
+    "slug": "event-pressure-zone",
+    "stat": "1",
+    "statLabel": "DAMAGE",
+    "rules": "All living players take 1 damage.",
+    "quip": "The atmosphere has become openly hostile.",
+    "artwork": "assets/event-pressure-zone.png"
+  },
+  {
+    "name": "Supply Drop",
+    "id": "event_supply_drop",
+    "slug": "event-supply-drop",
+    "stat": "3",
+    "statLabel": "DRAW",
+    "rules": "Draw 3 cards.",
+    "quip": "Special delivery.",
+    "artwork": "assets/event-supply-drop.png"
+  },
+  {
+    "name": "Bounty",
+    "id": "event_bounty",
+    "slug": "event-bounty",
+    "stat": "2",
+    "statLabel": "DAMAGE",
+    "rules": "The highest-health living player or players, if tied, takes 2 damage.",
+    "quip": "Healthy competition just got personal.",
+    "artwork": "assets/event-bounty.png"
+  },
+  {
+    "name": "Scavenge",
+    "id": "event_scavenge",
+    "slug": "event-high-ground",
+    "stat": "1",
+    "statLabel": "DRAW",
+    "rules": "Each living player draws 1 card. Each may exceed their hand limit until their turn ends.",
+    "quip": "Finders keepers.",
+    "artwork": "assets/event-high-ground.png"
+  },
+  {
+    "name": "Low Ammo",
+    "id": "event_low_ammo",
+    "slug": "event-low-ammo",
+    "stat": "3",
+    "statLabel": "DAMAGE",
+    "rules": "Each player discards 1 weapon of their choice. Anyone unable to do so takes 3 damage.",
+    "quip": "Click. The shortest horror story.",
+    "artwork": "assets/event-low-ammo.png"
+  },
+  {
+    "name": "No Cover",
+    "id": "event_no_cover",
+    "slug": "event-no-cover",
+    "stat": "2",
+    "statLabel": "DAMAGE",
+    "rules": "Each player discards 1 defense card of their choice. Anyone unable to do so takes 2 damage.",
+    "quip": "So much for staying out of sight.",
+    "artwork": "assets/event-no-cover.png"
+  },
+  {
+    "name": "Critical Condition",
+    "id": "event_critical_condition",
+    "slug": "event-critical-condition",
+    "stat": "1-2",
+    "statLabel": "DAMAGE",
+    "rules": "Players with 5–10 health take 1 damage. Players below 5 health take 2 damage.",
+    "quip": "Bad shape. Worse timing.",
+    "artwork": "assets/event-critical-condition.png"
+  },
+  {
+    "name": "Black Market",
+    "id": "event_black_market",
+    "slug": "event-black-market",
+    "stat": "M",
+    "statLabel": "TRADE",
+    "rules": "You may exchange once using the table’s Black Market configuration. Discard unkept cards.",
+    "quip": "Everything is available. Nothing is free.",
+    "artwork": "assets/event-black-market.png"
+  }
+]

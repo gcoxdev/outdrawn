@@ -1,0 +1,83 @@
+[
+  {
+    "slug": "weapon-pistol",
+    "id": "weapon_pistol",
+    "name": "Pistol",
+    "stat": "3",
+    "rules": "Deal 3 damage to one player.",
+    "quip": "Simple. Loud. Reliable.",
+    "artwork": "assets/weapon-pistol.png"
+  },
+  {
+    "slug": "weapon-shotgun",
+    "id": "weapon_shotgun",
+    "name": "Shotgun",
+    "stat": "6",
+    "rules": "Deal 6 damage to one player.",
+    "quip": "Close enough is good enough.",
+    "artwork": "assets/weapon-shotgun.png"
+  },
+  {
+    "slug": "weapon-sniper-rifle",
+    "id": "weapon_sniper_rifle",
+    "name": "Sniper Rifle",
+    "stat": "8",
+    "rules": "Deal 8 damage to one player.",
+    "quip": "The shot lands before the panic does.",
+    "artwork": "assets/weapon-sniper-rifle.png"
+  },
+  {
+    "slug": "weapon-knife",
+    "id": "weapon_knife",
+    "name": "Knife",
+    "stat": "2",
+    "rules": "Deal 2 damage to one player.",
+    "quip": "Some arguments need a sharp point.",
+    "artwork": "assets/weapon-knife.png"
+  },
+  {
+    "slug": "weapon-grenade",
+    "id": "weapon_grenade",
+    "name": "Grenade",
+    "stat": "4+2",
+    "rules": "Deal 4 damage to one player and 2 splash damage to the next living player on each side in seating order. You are immune.",
+    "quip": "One little pin. One big boom.",
+    "artwork": "assets/weapon-grenade.png"
+  },
+  {
+    "slug": "weapon-assault-rifle",
+    "id": "weapon_assault_rifle",
+    "name": "Assault Rifle",
+    "stat": "5",
+    "rules": "Deal 5 damage to one player.",
+    "quip": "Controlled fire. Serious pressure.",
+    "artwork": "assets/weapon-assault-rifle.png"
+  },
+  {
+    "slug": "weapon-crossbow",
+    "id": "weapon_crossbow",
+    "name": "Crossbow",
+    "stat": "4",
+    "rules": "Deal 4 damage to one player. Pierces Armor Vest.",
+    "quip": "Old tech. New problem.",
+    "artwork": "assets/weapon-crossbow.png"
+  },
+  {
+    "slug": "weapon-smg",
+    "id": "weapon_smg",
+    "name": "SMG",
+    "stat": "2×2",
+    "rules": "Deal 2 damage twice to one player. Resolve each hit separately.",
+    "quip": "Accuracy by volume.",
+    "artwork": "assets/weapon-smg.png"
+  },
+  {
+    "slug": "weapon-minigun",
+    "id": "weapon_minigun",
+    "name": "Minigun",
+    "stat": "6",
+    "rules": "Split up to 6 damage among opponents, max 3 each. Each may defend once only if secondary defense is agreed to.",
+    "quip": "Nothing mini about the consequences.",
+    "artwork": "assets/weapon-minigun.png"
+  }
+]

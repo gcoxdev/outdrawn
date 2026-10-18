@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Bandage",
+    "stat": "3",
+    "rules": "Heal 3 health, up to your maximum.",
+    "quip": "A temporary fix for a permanent concern.",
+    "id": "healing_bandage",
+    "slug": "healing-bandage",
+    "statLabel": "HEAL",
+    "artwork": "assets/healing-bandage.png"
+  },
+  {
+    "name": "Medkit",
+    "stat": "6",
+    "rules": "Spend 2 actions to heal 6 health, up to your maximum.",
+    "quip": "Health restored. Schedule ruined.",
+    "id": "healing_medkit",
+    "slug": "healing-medkit",
+    "statLabel": "HEAL",
+    "artwork": "assets/healing-medkit.png"
+  },
+  {
+    "name": "Painkillers",
+    "stat": "2",
+    "rules": "Heal 2 health, up to your maximum. Draw 1 card.",
+    "quip": "Take the edge off. Keep the attitude.",
+    "id": "healing_painkillers",
+    "slug": "healing-painkillers",
+    "statLabel": "HEAL",
+    "artwork": "assets/healing-painkillers.png"
+  },
+  {
+    "name": "Field Dressing",
+    "stat": "4",
+    "rules": "Heal 4 health, up to your maximum.",
+    "quip": "Apply pressure to yourself and the enemy.",
+    "id": "healing_field_dressing",
+    "slug": "healing-field-dressing",
+    "statLabel": "HEAL",
+    "artwork": "assets/healing-field-dressing.png"
+  }
+]

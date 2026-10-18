@@ -1,0 +1,92 @@
+[
+  {
+    "id": "ability_ambush",
+    "slug": "ability-ambush",
+    "name": "Ambush",
+    "stat": "+3",
+    "statLabel": "DAMAGE",
+    "rules": "Your next attack this turn deals +3 damage.",
+    "quip": "I was hoping you’d come around.",
+    "artwork": "assets/ability-ambush.png"
+  },
+  {
+    "id": "ability_disarm",
+    "slug": "ability-disarm",
+    "name": "Disarm",
+    "stat": "1",
+    "statLabel": "DISCARD",
+    "rules": "Choose one player. They discard their highest-damage weapon.",
+    "quip": "You had a handle on this. Had.",
+    "artwork": "assets/ability-disarm.png"
+  },
+  {
+    "id": "ability_steal",
+    "slug": "ability-steal",
+    "name": "Steal",
+    "stat": "1",
+    "statLabel": "STEAL",
+    "rules": "Choose one player. Pick 1 card from their hand and take it.",
+    "quip": "Consider it an involuntary donation.",
+    "artwork": "assets/ability-steal.png"
+  },
+  {
+    "id": "ability_search",
+    "slug": "ability-search",
+    "name": "Search",
+    "stat": "3",
+    "statLabel": "DRAW",
+    "rules": "Draw 3 cards. Keep 1 and discard the rest.",
+    "quip": "One of these has to be useful.",
+    "artwork": "assets/ability-search.png"
+  },
+  {
+    "id": "ability_reload",
+    "slug": "ability-reload",
+    "name": "Reload",
+    "stat": "R",
+    "statLabel": "REUSE",
+    "rules": "Keep your next weapon played this turn instead of discarding it after use.",
+    "quip": "I wasn’t finished making my point.",
+    "artwork": "assets/ability-reload.png"
+  },
+  {
+    "id": "ability_sabotage",
+    "slug": "ability-sabotage",
+    "name": "Sabotage",
+    "stat": "2",
+    "statLabel": "DISCARD",
+    "rules": "Choose one player. They discard 2 cards of their choice, or their whole hand if fewer.",
+    "quip": "Plans burn faster than supplies.",
+    "artwork": "assets/ability-sabotage.png"
+  },
+  {
+    "id": "ability_mark_target",
+    "slug": "ability-mark-target",
+    "name": "Mark Target",
+    "stat": "+1",
+    "statLabel": "MARK",
+    "rules": "Choose one player. Attacks against them deal +1 damage until the round ends.",
+    "quip": "Stand out. Fall first.",
+    "artwork": "assets/ability-mark-target.png"
+  },
+  {
+    "id": "ability_intimidate",
+    "slug": "ability-intimidate",
+    "name": "Intimidate",
+    "stat": "1",
+    "statLabel": "TAX",
+    "rules": "Choose one player. Until your next turn, they must discard 1 other card before a single-target weapon attack against you. Pay once for SMG. Minigun is exempt.",
+    "quip": "A little fear goes a long way.",
+    "artwork": "assets/ability-intimidate.png"
+  },
+  {
+    "id": "ability_adrenaline",
+    "slug": "ability-adrenaline",
+    "name": "Adrenaline",
+    "stat": "+1",
+    "statLabel": "ACTION",
+    "rules": "Gain 1 net action this turn, then lose 2 health.",
+    "quip": "Move now. Pay later.",
+    "artwork": "assets/ability-adrenaline.png"
+  }
+]

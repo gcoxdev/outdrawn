@@ -1,0 +1,103 @@
+[
+  {
+    "id": "defense_armor_vest",
+    "slug": "defense-armor-vest",
+    "name": "Armor Vest",
+    "stat": "4",
+    "statLabel": "BLOCK",
+    "block": 4,
+    "rules": "Reduce this hit’s damage by 4, unless the weapon pierces armor.",
+    "quip": "Not invincible. Just harder to kill.",
+    "short": "Reduce this hit’s damage by 4 unless armor is pierced.",
+    "artwork": "assets/defense-armor-vest.png"
+  },
+  {
+    "id": "defense_shield_plate",
+    "slug": "defense-shield-plate",
+    "name": "Shield Plate",
+    "stat": "½",
+    "statLabel": "DAMAGE",
+    "rules": "Halve this hit’s damage to you, rounding down.",
+    "quip": "Consider this a barrier to communication.",
+    "short": "Halve this hit’s damage, rounding down.",
+    "artwork": "assets/defense-shield-plate.png"
+  },
+  {
+    "id": "defense_brace",
+    "slug": "defense-brace",
+    "name": "Brace",
+    "stat": "2",
+    "statLabel": "BLOCK",
+    "block": 2,
+    "rules": "Block 2 damage from this hit.",
+    "quip": "Brace for impact. This part hurts.",
+    "short": "Block 2 damage from this hit.",
+    "artwork": "assets/defense-brace.png"
+  },
+  {
+    "id": "defense_dodge",
+    "slug": "defense-dodge",
+    "name": "Dodge",
+    "stat": "×",
+    "statLabel": "CANCEL",
+    "rules": "Cancel this hit’s damage to you. Grenade splash still hits other players.",
+    "quip": "The best armor is not being there.",
+    "short": "Cancel this hit’s damage to you.",
+    "artwork": "assets/defense-dodge.png"
+  },
+  {
+    "id": "defense_counterattack",
+    "slug": "defense-counterattack",
+    "name": "Counterattack",
+    "stat": "3",
+    "statLabel": "DAMAGE",
+    "rules": "Take this hit’s damage, then deal 3 damage to the attacker.",
+    "quip": "One good hit deserves another.",
+    "short": "Take this hit, then deal 3 damage to the attacker.",
+    "artwork": "assets/defense-counterattack.png"
+  },
+  {
+    "id": "defense_smoke_bomb",
+    "slug": "defense-smoke-bomb",
+    "name": "Smoke Bomb",
+    "stat": "×",
+    "statLabel": "EVADE",
+    "rules": "Cancel this hit’s damage to you. Until your next turn, attacks and targeted abilities cannot choose you. Splash, events, and Ricochet still affect you.",
+    "quip": "Nothing to see. That’s the point.",
+    "short": "Cancel this hit; prevent direct targeting until your next turn.",
+    "artwork": "assets/defense-smoke-bomb.png"
+  },
+  {
+    "id": "defense_ricochet",
+    "slug": "defense-ricochet",
+    "name": "Ricochet",
+    "stat": "↗",
+    "statLabel": "REDIRECT",
+    "rules": "Redirect this hit to another opponent, or back to the attacker if no other is available. Smoke offers no protection. No further Ricochets.",
+    "quip": "A sharp turn for the worse.",
+    "short": "Redirect this hit to another opponent, or the attacker if no other is available.",
+    "artwork": "assets/defense-ricochet.png"
+  },
+  {
+    "id": "defense_backfire",
+    "slug": "defense-backfire",
+    "name": "Backfire",
+    "stat": "↩",
+    "statLabel": "REFLECT",
+    "rules": "Cancel this hit’s damage to you. Deal that much damage to the attacker.",
+    "quip": "That blew up in your face. Literally.",
+    "short": "Cancel this hit; deal that damage to the attacker.",
+    "artwork": "assets/defense-backfire.png"
+  },
+  {
+    "id": "defense_revive",
+    "slug": "defense-revive",
+    "name": "Revive",
+    "stat": "1",
+    "statLabel": "HEALTH",
+    "rules": "When damage would eliminate you, discard this card and all non-healing cards. Recover at 1 health until your next turn.",
+    "quip": "Not dead. Just dramatically injured.",
+    "short": "Automatically survive lethal damage. Recover at 1 health until your next turn.",
+    "artwork": "assets/defense-revive.png"
+  }
+]
