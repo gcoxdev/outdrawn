@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { MatchErrorBoundary } from "./components/MatchRecovery";
+import { CardBackProvider } from "./components/CardBackPreference";
 import "./index.css";
 import "./components/GameTable.css";
 import "./components/GameDialogs.css";
@@ -21,7 +22,7 @@ async function startApp() {
   }
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <MatchErrorBoundary><App /></MatchErrorBoundary>
+      <MatchErrorBoundary><CardBackProvider><App /></CardBackProvider></MatchErrorBoundary>
     </StrictMode>
   );
 

@@ -19,6 +19,17 @@ body:has(.menu-overlay[open]) { overflow: hidden; }
 .menu-overlay .menu-tabs button.is-active:hover { background: #b6483838; border-color: #b15a4470; }
 .menu-section { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #555146 transparent; padding: 20px 20px max(24px, env(safe-area-inset-bottom)); outline-offset: -3px !important; }
 .menu-section--settings { display: flex; flex-direction: column; gap: 20px; }
+.menu-card-backs { margin: 0; min-width: 0; padding: 12px; border: 1px solid var(--menu-line); border-radius: 8px; }
+.menu-card-backs legend { padding: 0 6px; font-size: 13px; font-weight: 550; }
+.menu-card-backs__options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.menu-card-back { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; padding: 5px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+.menu-card-back img { display: block; width: 100%; height: auto; aspect-ratio: 5 / 7; border-radius: 4px; }
+.menu-card-back span { color: var(--menu-muted); font-size: 11px; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
+.menu-card-back input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.menu-card-back:has(input:checked) { border-color: #d5ab72; background: #d5ab7214; }
+.menu-card-back:has(input:checked) span { color: #f3d4a7; }
+.menu-card-back:has(input:focus-visible) { outline: 2px solid #dfb577; outline-offset: 3px; }
+.menu-card-back:hover { background: #ffffff08; }
 .menu-preferences { border: 1px solid var(--menu-line); border-radius: 8px; padding: 0 15px; background: #ffffff02; }
 .menu-toggle { display: flex; align-items: center; justify-content: space-between; position: relative; gap: 20px; min-height: 78px; padding: 14px 0; cursor: pointer; }
 .menu-toggle + .menu-toggle { border-top: 1px solid var(--menu-line); min-height: 58px; }

@@ -128,7 +128,7 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
             </span>
           )}
           <div className="player-roster-card__combat-stats">
-            <span className="stat-kills" title="Kills" aria-label={`${player.eliminations} kills`}>
+            <span className="stat-kills" title="Eliminations" aria-label={`${player.eliminations} eliminations`}>
               <Target size={14} aria-hidden="true" />{player.eliminations}
             </span>
             <span className="stat-damage" title={partialDamageHistory ? "Damage dealt since this match was updated" : "Damage dealt after defenses"} aria-label={`${player.damageDealt ?? 0} damage dealt${partialDamageHistory ? " since this match was updated" : ""}`}>

@@ -1,0 +1,6 @@
+[
+  { "id": "classic", "name": "Classic", "file": "outdrawn-back-dark-logo-01" },
+  { "id": "shadow-target", "name": "Shadow Target", "file": "back-01-shadow-target" },
+  { "id": "iron-sight", "name": "Iron Sight", "file": "back-02-iron-sight" },
+  { "id": "crimson-filigree", "name": "Crimson Filigree", "file": "back-03-crimson-filigree" }
+]

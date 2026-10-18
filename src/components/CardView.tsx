@@ -12,6 +12,7 @@ import { useState } from "react";
 import type { Card } from "../data/cards";
 import { EventIcon } from "./EventIcon";
 import { HeartMinusIcon } from "./HeartMinusIcon";
+import { useCardBack } from "./CardBackPreference";
 
 const typeIcons = {
   weapon: Crosshair,
@@ -185,9 +186,10 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
 }
 
 export function CardBack() {
+  const { cardBack } = useCardBack();
   return (
     <div className="card-back" aria-label="Hidden card">
-      <img className="card-back__image" src="/optimized/cards/backs/outdrawn-back-dark-logo-01.webp" alt="" aria-hidden="true" />
+      <img className="card-back__image" src={cardBack.image} alt="" aria-hidden="true" />
     </div>
   );
 }

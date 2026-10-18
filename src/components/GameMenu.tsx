@@ -9,6 +9,7 @@ import { PwaControls } from "./PwaControls";
 import { Dialog } from "./Dialog";
 import { CardPreview } from "./CardPreview";
 import { CardView } from "./CardView";
+import { cardBackOptions, useCardBack } from "./CardBackPreference";
 import rulesText from "../../docs/current-rules.md?raw";
 import "./GameMenu.css";
 
@@ -38,6 +39,7 @@ type GameMenuProps = {
 
 export function GameMenu({ settings, dispatch, phase = "setup", variant = "floating", onOpenChange }: GameMenuProps) {
   const menuId = useId();
+  const { cardBack, selectCardBack } = useCardBack();
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => { onOpenChange?.(isOpen); return () => onOpenChange?.(false); }, [isOpen, onOpenChange]);
   const [activeTab, setActiveTab] = useState<MenuTab>("settings");
@@ -126,6 +128,17 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
                     <span className="menu-switch" aria-hidden="true" />
                   </label>}
                 </section>
+                <fieldset className="menu-card-backs">
+                  <legend>Card back</legend>
+                  <div className="menu-card-backs__options">
+                    {cardBackOptions.map(back => <label className="menu-card-back" key={back.id}>
+                      <input type="radio" name={`${menuId}-card-back`} value={back.id} checked={cardBack.id === back.id}
+                        onChange={() => selectCardBack(back.id)} />
+                      <img src={back.image} alt="" width="750" height="1050" draggable={false} />
+                      <span>{back.name}</span>
+                    </label>)}
+                  </div>
+                </fieldset>
                 <PwaControls allowUpdate={phase !== "action"} />
                 <details className="current-game-rules" open>
                   <summary>Match rules<ChevronDown size={16} /></summary>

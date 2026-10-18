@@ -23,6 +23,7 @@ import {
 } from "../game/setupOptions";
 import type { PlayerSetup, StrategyLevel, TeamId } from "../game/types";
 import { GameMenu } from "./GameMenu";
+import { useCardBack } from "./CardBackPreference";
 import "./SetupScreen.css";
 
 type SetupScreenProps = {
@@ -61,6 +62,7 @@ const lobbyModes: LobbyMode[] = ["ffa", "duos", "trios", "squads", "twoTeams", "
 const visibleSetupRows = 20;
 
 export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
+  const { cardBack } = useCardBack();
   const [playerCount, setPlayerCount] = useState(4);
   const [playerCountDraft, setPlayerCountDraft] = useState("4");
   const [rosterPage, setRosterPage] = useState(0);
@@ -193,7 +195,7 @@ export function SetupScreen({ settings, dispatch, onStart }: SetupScreenProps) {
           <div className="lobby-card-fan" aria-hidden="true">
             <img src="/optimized/cards/fronts/defense/ai-review/final/defense-dodge-dark-01.webp" alt="" />
             <img src="/optimized/cards/fronts/weapons/ai-review/final/weapon-pistol-dark-01.webp" alt="" />
-            <img src="/optimized/cards/backs/outdrawn-back-dark-logo-01.webp" alt="" />
+            <img src={cardBack.image} alt="" />
           </div>
         </section>
 

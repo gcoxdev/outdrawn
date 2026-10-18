@@ -3,6 +3,8 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile, mkdir, stat, unlink } from "node:fs/promises";
 import { resolve, relative, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
+const cardBacks = JSON.parse(await readFile(new URL("../src/data/cardBacks.json", import.meta.url), "utf8"));
+const cardBackSources = new Set(cardBacks.map(back => `cards/backs/${back.file}.png`));
 
 async function files(root) {
   const entries = await readdir(root, { withFileTypes: true });
@@ -19,7 +21,7 @@ export async function optimizeArtwork(source = "public", output = resolve(source
   const manifest = {};
   const selected = (await files(root)).filter(file => {
     const name = relative(root, file).replaceAll("\\", "/");
-    return name === "branding/logos/outdrawn-logo-dark-01.png" || name === "cards/backs/outdrawn-back-dark-logo-01.png" ||
+    return name === "branding/logos/outdrawn-logo-dark-01.png" || cardBackSources.has(name) ||
       (name.startsWith("cards/fronts/") && name.includes("/final/") && name.endsWith(".png"));
   }).sort();
   if (!selected.length) throw new Error("No source artwork found");

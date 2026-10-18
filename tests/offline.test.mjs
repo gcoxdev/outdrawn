@@ -58,6 +58,8 @@ test("release generation is deterministic and versions replaced artwork", async 
     assert.equal(first.version, again.version);
     assert(first.urls.includes("/assets/app-abcdefgh.js"));
     assert(first.urls.some(url => url.includes("/final/")));
+    const backs = JSON.parse(await readFile("src/data/cardBacks.json", "utf8"));
+    for (const back of backs) assert(first.urls.includes(`/optimized/cards/backs/${back.file}.webp`), `Card back missing from offline cache: ${back.id}`);
     for (const icon of iconFiles) assert(first.urls.includes(`/${icon}`), `Icon missing from offline cache: ${icon}`);
     assert(!first.urls.includes("/cards/backs/outdrawn-back-light-01.png"));
     await assert.rejects(access(join(root, "cards/backs/outdrawn-back-light-01.png")));

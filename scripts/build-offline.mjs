@@ -3,6 +3,7 @@ import { readdir, readFile, writeFile, unlink } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { iconFiles } from "./generate-icons.mjs";
+const cardBacks = JSON.parse(await readFile(new URL("../src/data/cardBacks.json", import.meta.url), "utf8"));
 
 async function files(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -12,7 +13,7 @@ async function files(directory) {
 export async function buildOffline(directory = "dist") {
   const root = resolve(directory);
   const kept = new Set(["index.html", "manifest.webmanifest", ...iconFiles,
-    "optimized/branding/logos/outdrawn-logo-dark-01.webp", "optimized/cards/backs/outdrawn-back-dark-logo-01.webp"]);
+    "optimized/branding/logos/outdrawn-logo-dark-01.webp", ...cardBacks.map(back => `optimized/cards/backs/${back.file}.webp`)]);
   for (const name of kept) await readFile(resolve(root, name));
   const paths = [];
   for (const file of await files(root)) {
