@@ -364,7 +364,7 @@ export const mainDeckCards: Card[] = [
     icons: ["damage", "buff"],
     shortText: "Your next attack this turn deals +3 damage.",
     rulesText: "Your next attack this turn deals +3 damage.",
-    flavorText: "The fight starts before they know it.",
+    flavorText: "I was hoping you’d come around.",
     tags: ["ability", "modifier", "damage-buff"]
   },
   {
@@ -379,8 +379,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["discard", "weapon"],
     shortText: "Target discards their highest-damage weapon.",
-    rulesText: "Choose one player. They discard their highest-damage weapon from hand.",
-    flavorText: "A threat without a weapon is just noise.",
+    rulesText: "Choose one player. They discard their highest-damage weapon.",
+    flavorText: "You had a handle on this. Had.",
     tags: ["ability", "control", "weapon-removal"]
   },
   {
@@ -395,7 +395,7 @@ export const mainDeckCards: Card[] = [
     icons: ["steal", "hand"],
     shortText: "Choose 1 card from another player.",
     rulesText: "Choose one player. Pick 1 card from their hand and take it.",
-    flavorText: "Looting is easier when they are still alive.",
+    flavorText: "Consider it an involuntary donation.",
     tags: ["ability", "hand-attack", "steal"]
   },
   {
@@ -411,7 +411,7 @@ export const mainDeckCards: Card[] = [
     icons: ["draw", "choose", "discard"],
     shortText: "Draw 3, keep 1, discard the rest.",
     rulesText: "Draw 3 cards. Keep 1 and discard the rest.",
-    flavorText: "Something useful is always buried nearby.",
+    flavorText: "One of these has to be useful.",
     tags: ["ability", "card-selection", "draw"]
   },
   {
@@ -425,8 +425,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["reuse", "weapon"],
     shortText: "Your next weapon stays in your hand after use.",
-    rulesText: "Your next weapon attack this turn stays in your hand instead of being discarded after it resolves.",
-    flavorText: "The empty click was only a pause.",
+    rulesText: "Keep your next weapon played this turn instead of discarding it after use.",
+    flavorText: "I wasn’t finished making my point.",
     tags: ["ability", "weapon-support", "reload"]
   },
   {
@@ -440,8 +440,8 @@ export const mainDeckCards: Card[] = [
     discard: 2,
     supplyCost: 2,
     icons: ["discard", "hand"],
-    shortText: "Target discards up to 2 cards of their choice.",
-    rulesText: "Choose one player. They discard up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.",
+    shortText: "Target discards 2 cards of their choice, or all if fewer.",
+    rulesText: "Choose one player. They discard 2 cards of their choice, or their whole hand if fewer.",
     flavorText: "Plans burn faster than supplies.",
     tags: ["ability", "control", "discard"]
   },
@@ -457,8 +457,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["mark", "damage"],
     shortText: "Anyone attacking target deals +1 this round.",
-    rulesText: "Choose one player. Any attack against that player deals +1 damage until the end of the round.",
-    flavorText: "Everyone saw the signal.",
+    rulesText: "Choose one player. Attacks against them deal +1 damage until the round ends.",
+    flavorText: "Stand out. Fall first.",
     tags: ["ability", "mark", "damage-buff"]
   },
   {
@@ -472,8 +472,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 2,
     icons: ["control", "discard"],
     shortText: "Target must discard 1 to attack you before your next turn.",
-    rulesText: "Choose one player. Until your next turn, that player must discard 1 other card before a single-target weapon attack against you. Pay once for SMG; Minigun bypasses this cost.",
-    flavorText: "Fear is a resource too.",
+    rulesText: "Choose one player. Until your next turn, they must discard 1 other card before a single-target weapon attack against you. Pay once for SMG. Minigun is exempt.",
+    flavorText: "A little fear goes a long way.",
     tags: ["ability", "control", "deterrent"]
   },
   {
@@ -505,8 +505,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 1,
     icons: ["heal"],
     shortText: "Heal 3.",
-    rulesText: "Heal 3 health. You cannot exceed your maximum health.",
-    flavorText: "Not pretty. Good enough.",
+    rulesText: "Heal 3 health, up to your maximum.",
+    flavorText: "A temporary fix for a permanent concern.",
     tags: ["healing", "basic"]
   },
   {
@@ -522,8 +522,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 1,
     icons: ["heal", "two-actions"],
     shortText: "Heal 6. Costs 2 actions.",
-    rulesText: "Heal 6 health. This costs 2 actions. You cannot exceed your maximum health.",
-    flavorText: "A full stop in the middle of a war.",
+    rulesText: "Spend 2 actions to heal 6 health, up to your maximum.",
+    flavorText: "Health restored. Schedule ruined.",
     tags: ["healing", "large-heal", "two-actions"]
   },
   {
@@ -539,8 +539,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 1,
     icons: ["heal", "draw"],
     shortText: "Heal 2 and draw 1 card.",
-    rulesText: "Heal 2 health and draw 1 card. You cannot exceed your maximum health.",
-    flavorText: "Pain is information. Ignore it briefly.",
+    rulesText: "Heal 2 health, up to your maximum. Draw 1 card.",
+    flavorText: "Take the edge off. Keep the attitude.",
     tags: ["healing", "draw"]
   },
   {
@@ -555,8 +555,8 @@ export const mainDeckCards: Card[] = [
     supplyCost: 1,
     icons: ["heal"],
     shortText: "Heal 4.",
-    rulesText: "Heal 4 health. You cannot exceed your maximum health.",
-    flavorText: "Fast hands and clean pressure.",
+    rulesText: "Heal 4 health, up to your maximum.",
+    flavorText: "Apply pressure to yourself and the enemy.",
     tags: ["healing", "basic"]
   }
 ];
@@ -574,7 +574,7 @@ export const eventDeckCards: Card[] = [
     icons: ["collapse", "attack"],
     shortText: "All players take 1 damage.",
     rulesText: "All living players take 1 damage.",
-    flavorText: "The safe path disappeared first.",
+    flavorText: "The atmosphere has become openly hostile.",
     tags: ["event", "collapse", "pressure"]
   },
   {
@@ -587,8 +587,8 @@ export const eventDeckCards: Card[] = [
     rarity: "uncommon",
     icons: ["draw", "supply"],
     shortText: "Draw 3 cards.",
-    rulesText: "Draw 3 cards. You may exceed max hand size during play, but must discard down before ending your turn.",
-    flavorText: "Falling crates make rising tensions.",
+    rulesText: "Draw 3 cards.",
+    flavorText: "Special delivery.",
     tags: ["event", "supply", "card-gain"]
   },
   {
@@ -601,8 +601,8 @@ export const eventDeckCards: Card[] = [
     rarity: "common",
     icons: ["mark", "draw"],
     shortText: "Highest-health player takes 2 damage.",
-    rulesText: "The highest-health living player takes 2 damage. If tied, each tied highest-health player takes 2 damage.",
-    flavorText: "The leader is never hard to find.",
+    rulesText: "The highest-health living player or players, if tied, takes 2 damage.",
+    flavorText: "Healthy competition just got personal.",
     tags: ["event", "bounty", "catch-up"]
   },
   {
@@ -616,8 +616,8 @@ export const eventDeckCards: Card[] = [
     draw: 1,
     icons: ["draw", "supply"],
     shortText: "Each living player draws 1 card.",
-    rulesText: "Each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.",
-    flavorText: "Useful things turn up when everyone is desperate.",
+    rulesText: "Each living player draws 1 card. Each may exceed their hand limit until their turn ends.",
+    flavorText: "Finders keepers.",
     tags: ["event", "draw", "tempo"]
   },
   {
@@ -632,8 +632,8 @@ export const eventDeckCards: Card[] = [
     discard: 1,
     icons: ["discard", "weapon", "damage"],
     shortText: "Discard a weapon or take 3 damage.",
-    rulesText: "Each player chooses one weapon from hand to discard. Players who cannot discard a weapon take 3 damage.",
-    flavorText: "The loudest guns run dry first.",
+    rulesText: "Each player discards 1 weapon of their choice. Anyone unable to do so takes 3 damage.",
+    flavorText: "Click. The shortest horror story.",
     tags: ["event", "weapon-pressure", "damage"]
   },
   {
@@ -646,8 +646,8 @@ export const eventDeckCards: Card[] = [
     rarity: "common",
     icons: ["defense-down", "reaction"],
     shortText: "Discard a defense or take 2 damage.",
-    rulesText: "Each player chooses one defense card from hand to discard. Players who cannot discard a defense card take 2 damage.",
-    flavorText: "Every hiding place has an angle.",
+    rulesText: "Each player discards 1 defense card of their choice. Anyone unable to do so takes 2 damage.",
+    flavorText: "So much for staying out of sight.",
     tags: ["event", "defense-nerf"]
   },
   {
@@ -661,8 +661,8 @@ export const eventDeckCards: Card[] = [
     damage: 1,
     icons: ["damage", "low-health"],
     shortText: "Players at 10 or less take damage.",
-    rulesText: "Players at 10 or less health take 1 damage. Players below 5 health take 2 damage instead.",
-    flavorText: "Weakness has a sound.",
+    rulesText: "Players with 5–10 health take 1 damage. Players below 5 health take 2 damage.",
+    flavorText: "Bad shape. Worse timing.",
     tags: ["event", "low-health", "pressure"]
   },
   {
@@ -676,7 +676,7 @@ export const eventDeckCards: Card[] = [
     discard: 2,
     icons: ["search", "discard", "action"],
     shortText: "You may make a market trade.",
-    rulesText: "You may make the configured Black Market exchange once. Event cards revealed for market inventory are discarded and replaced. Unkept revealed cards are discarded.",
+    rulesText: "You may exchange once using the table’s Black Market configuration. Discard unkept cards.",
     flavorText: "Everything is available. Nothing is free.",
     tags: ["event", "search", "card-selection"]
   }

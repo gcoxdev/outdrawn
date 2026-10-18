@@ -116,40 +116,42 @@ Defense cards are played from hand as reactions. There is no equipment system in
 
 ## Abilities
 
-- Ambush: your next attack this turn deals +3 damage.
-- Disarm: target discards their highest-damage weapon from hand.
-- Steal: choose 1 face-down card from an opponent's hand and take it without seeing its identity first.
-- Search: draw 3, keep 1, discard the rest.
-- Reload: your next weapon attack this turn stays in your hand instead of being discarded after it resolves.
-- Sabotage: target discards up to 2 cards of their choice. If they have fewer than 2 cards, they discard what they have.
-- Mark Target: add +1 damage against the target this round. Repeated marks stack. This applies to the first SMG hit and to an assigned Minigun hit, but not Grenade splash.
-- Intimidate: the target must discard 1 other card before a single-target weapon attack against you until your next turn. The cost is paid once for an SMG attack. Minigun currently bypasses this cost.
-- Adrenaline: gain 1 net action this turn and lose 2 health. This loss can eliminate you; at 1 or 2 health you are eliminated immediately.
+- Ambush: Your next attack this turn deals +3 damage.
+- Disarm: Choose one player. They discard their highest-damage weapon.
+- Steal: Choose one player. Pick 1 card from their hand and take it. Choose a face-down card without seeing its identity first.
+- Search: Draw 3 cards. Keep 1 and discard the rest.
+- Reload: Keep your next weapon played this turn instead of discarding it after use.
+- Sabotage: Choose one player. They discard 2 cards of their choice, or their whole hand if fewer.
+- Mark Target: Choose one player. Attacks against them deal +1 damage until the round ends. Repeated marks stack. This applies to the first SMG hit and to an assigned Minigun hit, but not Grenade splash.
+- Intimidate: Choose one player. Until your next turn, they must discard 1 other card before a single-target weapon attack against you. Pay once for SMG. Minigun is exempt.
+- Adrenaline: Gain 1 net action this turn, then lose 2 health. This loss can eliminate you; at 1 or 2 health you are eliminated immediately.
 
 ## Healing
 
-- Bandage: heal 3.
-- Medkit: heal 6 and costs 2 actions.
-- Painkillers: heal 2 and draw 1 card.
-- Field Dressing: heal 4.
+- Bandage: Heal 3 health, up to your maximum.
+- Medkit: Spend 2 actions to heal 6 health, up to your maximum.
+- Painkillers: Heal 2 health, up to your maximum. Draw 1 card.
+- Field Dressing: Heal 4 health, up to your maximum.
 
 Healing cannot exceed maximum health. If team healing is enabled (on by default), you may heal a living teammate; you pay the card's action cost. Painkillers gives its extra draw to the player using it, even when healing a teammate.
 
 ## Events
 
-- Pressure Zone: all living players take 1 damage.
-- Supply Drop: draw 3 cards. You may exceed max hand size during play, but must discard down before ending your turn.
-- Bounty: the highest-health living player takes 2 damage. If tied, each tied highest-health player takes 2 damage.
-- Scavenge: each living player draws 1 card. Players may exceed max hand size during play, but must discard down before ending their turns.
-- Low Ammo: each living player chooses one weapon from hand to discard or takes 3 damage if they have no weapon.
-- No Cover: each living player chooses one defense card from hand to discard or takes 2 damage if they have no defense.
-- Critical Condition: players at 10 or less health take 1 damage; players below 5 health take 2 instead.
-- Black Market: the drawing player may make the configured market exchange once. Event cards revealed for market inventory are discarded and replaced. Unkept revealed cards are discarded.
+- Pressure Zone: All living players take 1 damage.
+- Supply Drop: Draw 3 cards.
+- Bounty: The highest-health living player or players, if tied, takes 2 damage.
+- Scavenge: Each living player draws 1 card. Each may exceed their hand limit until their turn ends.
+- Low Ammo: Each player discards 1 weapon of their choice. Anyone unable to do so takes 3 damage.
+- No Cover: Each player discards 1 defense card of their choice. Anyone unable to do so takes 2 damage.
+- Critical Condition: Players with 5–10 health take 1 damage. Players below 5 health take 2 damage.
+- Black Market: You may exchange once using the table’s Black Market configuration. Discard unkept cards.
 - Black Market Standard: risk discard 2 cards; reward reveal 3 and keep 1.
 - Black Market Discount Market: risk discard 1 card; reward reveal 3 and keep 1.
 - Black Market Bigger Market: risk discard 2 cards; reward reveal 5 and keep 2.
 - Black Market Health-Pay Market: risk 2 health; reward reveal 3 and keep 1.
 - Black Market Custom: host-defined discard cost, health cost, reveal count, and keep count.
+
+Events affect living players only. Players above 10 health take no damage from Critical Condition. Card draws may put you over your hand limit, but you must discard down before ending your turn. Event cards revealed for Black Market inventory are discarded and replaced.
 
 Black Market exchanges do not spend actions. A health payment must leave you with at least 1 health; you can always decline the exchange.
 

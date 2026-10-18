@@ -18,7 +18,7 @@
 ## Rules To Clarify
 
 - Retained rule exceptions: Minigun bypasses Intimidate, and Ricochet can target smoke-protected opponents. Current rules, catalog descriptions, and preview text explicitly describe these interactions.
-- Future artwork refresh: reflect Minigun’s setting-dependent defense and the Intimidate/Smoke/Ricochet exceptions on printed faces. The catalog and readable preview rules are already corrected; existing artwork is retained.
+- Completed artwork refresh: printed Minigun, Intimidate, Smoke Bomb, and Ricochet rules now include their defense and targeting exceptions, matching the catalog and readable previews.
 
 - Decide the final true-tie rule for simultaneous non-attack eliminations: allow no winner or add a deterministic final tiebreaker such as seating order from the current turn marker.
 - Revisit any future area-damage cards for large player counts so their value does not scale without a cap or damage pool.
