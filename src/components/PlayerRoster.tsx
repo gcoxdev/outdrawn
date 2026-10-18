@@ -1,5 +1,6 @@
 import "./PlayerRoster.css";
-import { Activity, Bot, Copy, Heart, Skull, Swords, User } from "lucide-react";
+import { Activity, Bot, Copy, Heart, Target, User } from "lucide-react";
+import { HeartMinusIcon } from "./HeartMinusIcon";
 import { memo, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { labelTeam } from "../game/rules";
@@ -128,10 +129,10 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
           )}
           <div className="player-roster-card__combat-stats">
             <span className="stat-kills" title="Kills" aria-label={`${player.eliminations} kills`}>
-              <Skull size={14} aria-hidden="true" />{player.eliminations}
+              <Target size={14} aria-hidden="true" />{player.eliminations}
             </span>
             <span className="stat-damage" title={partialDamageHistory ? "Damage dealt since this match was updated" : "Damage dealt after defenses"} aria-label={`${player.damageDealt ?? 0} damage dealt${partialDamageHistory ? " since this match was updated" : ""}`}>
-              <Swords size={14} aria-hidden="true" />{player.damageDealt ?? 0}
+              <HeartMinusIcon size={14} aria-hidden="true" />{player.damageDealt ?? 0}
             </span>
           </div>
         </div>

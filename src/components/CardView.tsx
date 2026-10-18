@@ -5,13 +5,13 @@ import {
   HeartPulse,
   Shield,
   ShieldCheck,
-  Swords,
   CircleHelp,
   Zap
 } from "lucide-react";
 import { useState } from "react";
 import type { Card } from "../data/cards";
 import { EventIcon } from "./EventIcon";
+import { HeartMinusIcon } from "./HeartMinusIcon";
 
 const typeIcons = {
   weapon: Crosshair,
@@ -94,7 +94,7 @@ export function CardView({ card, mode = "hand", isSelected = false, isDisabled =
     isSelected ? " is-selected" : ""
   }`;
   const stats = [
-    card.damage ? { label: card.damage, icon: Swords, title: "Damage" } : null,
+    card.damage ? { label: card.damage, icon: HeartMinusIcon, title: "Damage" } : null,
     card.splashDamage ? { label: card.splashDamage, icon: Bomb, title: "Splash" } : null,
     card.block ? { label: card.block, icon: ShieldCheck, title: "Block" } : null,
     card.actionsCost ? { label: card.actionsCost, icon: Activity, title: "Actions" } : null,
