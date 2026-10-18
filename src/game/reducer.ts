@@ -96,13 +96,13 @@ function advanceTurn(state: GameState): GameState {
     return completeGame(state, getWinner(state), getWinningTeamId(state));
   }
 
-  const allLivingActed = state.players.every((player) => player.eliminated || player.actedThisRound);
-  const nextLivingIndex = findNextLivingIndex(state.players, state.currentPlayerIndex);
+  // Losing the round starter can move the first living seat to the very next
+  // player. That does not finish the round while survivors still await a turn.
+  const nextRound = state.players.every((player) => player.eliminated || player.actedThisRound);
   const roundRobinFirstPlayerIndex =
     state.settings.turnOrder === "roundRobin" && state.players[state.firstPlayerIndex].eliminated
       ? findNextLivingIndex(state.players, state.firstPlayerIndex)
       : state.firstPlayerIndex;
-  const nextRound = state.settings.turnOrder === "roundRobin" ? nextLivingIndex === roundRobinFirstPlayerIndex : allLivingActed;
   const collapseState = nextRound ? logPlayerHealthChanges(state.players, finalizeEliminations(applyCollapseDamage(state)), "collapse") : state;
   const collapseGameOver = nextRound ? completeGameIfOver(collapseState, state.players) : null;
   if (collapseGameOver) {
