@@ -157,7 +157,7 @@ describe("weapon action availability", () => {
   it("keeps event draws free before Adrenaline, matching the reported round 7", () => {
     let state = fixture();
     state.mainDeck = [
-      { instanceId: "scavenge", definitionId: "event_high_ground" },
+      { instanceId: "scavenge", definitionId: "event_scavenge" },
       { instanceId: "supply", definitionId: "event_supply_drop" },
       ...Array.from({ length: 12 }, (_, index) => ({ instanceId: `event_draw_${index}`, definitionId: "weapon_pistol" }))
     ];

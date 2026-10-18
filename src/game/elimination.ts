@@ -7,7 +7,7 @@ export function finalizeEliminations(state: GameState, creditedPlayers: Record<P
   const hands = new Map(state.players.map((player) => [player.id, [...player.hand]]));
   const discarded = [...state.discardPile];
   for (const player of eliminated) {
-    const recipient = state.players.find((candidate) => candidate.id === creditedPlayers[player.id] && !candidate.eliminated);
+    const recipient = state.players.find((candidate) => candidate.id === creditedPlayers[player.id] && !candidate.eliminated && !candidate.recovering);
     const interruptedWeaponId = state.pendingMultiHitAttack?.attackerId === player.id ? state.pendingMultiHitAttack.weapon.instanceId : null;
     const loot = player.hand.filter(card => card.instanceId !== interruptedWeaponId);
     discarded.push(...player.hand.filter(card => card.instanceId === interruptedWeaponId));

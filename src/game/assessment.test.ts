@@ -94,18 +94,18 @@ describe("assessment follow-up", () => {
     expect(chooseAutomatedAction(state, "master", () => 0).type).not.toBe("TRANSFER_CARD");
   });
 
-  it("records Revive damage, prevention and healing separately", () => {
+  it("records automatic Revive damage and prevention without spending healing cards", () => {
     let state = base();
     state.players[0].hand = [card("weapon_pistol")];
     state.players[1].health = 3;
-    state.players[1].hand = [card("defense_fake_death"), card("healing_bandage")];
+    state.players[1].hand = [card("defense_revive"), card("healing_bandage")];
     state = gameReducer(state, { type: "ATTACK", attackerId: "player_1", targetPlayerId: "player_2", weaponInstanceId: "weapon_pistol" });
-    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: "defense_fake_death" });
+    state = gameReducer(state, { type: "SKIP_REACTION", defenderId: "player_2" });
     expect(state.resolvedEffects).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: "damage", playerId: "player_2", amount: 2 }),
-      expect.objectContaining({ kind: "prevention", playerId: "player_2", amount: 1 }),
-      expect.objectContaining({ kind: "healing", source: "revive", playerId: "player_2", amount: 3 })
+      expect.objectContaining({ kind: "prevention", playerId: "player_2", amount: 1 })
     ]));
+    expect(state.resolvedEffects?.some(effect => effect.kind === "healing")).toBe(false);
     expect(getBotObservation(state).resolvedEffects).toBeUndefined();
   });
 

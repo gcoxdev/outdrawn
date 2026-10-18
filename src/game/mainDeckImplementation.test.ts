@@ -18,11 +18,11 @@ function instances(definitionIds: string[]) {
 }
 
 describe("remaining main deck card implementations", () => {
-  it("Revive applies healing cards and discards the defender hand", () => {
+  it("Revive retains healing cards and discards other cards", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const attacker = state.players[state.currentPlayerIndex];
     const defender = state.players.find((player) => player.id !== attacker.id)!;
-    const [weapon, revive, medkit, bandage, extraCard] = instances(["weapon_pistol", "defense_fake_death", "healing_medkit", "healing_bandage", "weapon_knife"]);
+    const [weapon, revive, medkit, bandage, extraCard] = instances(["weapon_pistol", "defense_revive", "healing_medkit", "healing_bandage", "weapon_knife"]);
     state = {
       ...state,
       round: 3,
@@ -42,17 +42,17 @@ describe("remaining main deck card implementations", () => {
       weaponInstanceId: weapon.instanceId
     });
     state = gameReducer(state, {
-      type: "PLAY_REACTION",
-      defenderId: defender.id,
-      reactionCardInstanceId: revive.instanceId
+      type: "SKIP_REACTION",
+      defenderId: defender.id
     });
 
     const updatedDefender = state.players.find((player) => player.id === defender.id)!;
     expect(updatedDefender.eliminated).toBe(false);
-    expect(updatedDefender.health).toBe(10);
-    expect(updatedDefender.hand).toHaveLength(0);
+    expect(updatedDefender.health).toBe(1);
+    expect(updatedDefender.recovering).toBe(true);
+    expect(updatedDefender.hand).toEqual([medkit, bandage]);
     expect(state.discardPile.map((card) => card.instanceId)).toEqual(
-      expect.arrayContaining([revive.instanceId, medkit.instanceId, bandage.instanceId, extraCard.instanceId])
+      expect.arrayContaining([revive.instanceId, extraCard.instanceId])
     );
   });
 
@@ -92,7 +92,7 @@ describe("remaining main deck card implementations", () => {
     const attacker = state.players[state.currentPlayerIndex];
     const defender = state.players.find((player) => player.id !== attacker.id)!;
     const redirectedTarget = state.players.find((player) => player.id !== attacker.id && player.id !== defender.id)!;
-    const [weapon, ricochet] = instances(["weapon_pistol", "defense_decoy"]);
+    const [weapon, ricochet] = instances(["weapon_pistol", "defense_ricochet"]);
     state = {
       ...state,
       players: state.players.map((player) =>

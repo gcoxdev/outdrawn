@@ -91,7 +91,7 @@ Each living player acts once per round. After all living players have acted:
 
 - Played weapons are discarded under the general combat rules, including Shotgun.
 - Grenade: find the nearest living player in each direction, skipping the attacker and the target; hit each distinct player at most once. The attacker and their teammates take no splash damage.
-- SMG: each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, if the shooter loses the SMG (for example, by using Revive), or if the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
+- SMG: each hit has a separate reaction window. Ambush and Mark Target bonuses apply to the first hit only. The second hit stops if the shooter or original target is eliminated, if the shooter loses the SMG (for example, when Revive activates), or if the shooter or original target begins recovering or the original target becomes protected by Smoke Bomb. Ricochet redirects only its current hit.
 - Minigun: choose living opponents. Attack bonuses add to the total pool; Mark Target adds damage to each marked target after allocation. In the app, agreeing to secondary defense means enabling the “Defense on secondary attacks” setting; otherwise these hits resolve without reactions.
 
 ## Defense
@@ -106,14 +106,16 @@ Defense cards are played from hand as reactions. There is no equipment system in
 - Smoke Bomb: Cancel this hit’s damage to you. Until your next turn, attacks and targeted abilities cannot choose you. Splash, events, and Ricochet still affect you.
 - Ricochet: Redirect this hit to another opponent, or back to the attacker if no other is available. Smoke offers no protection. No further Ricochets.
 - Backfire: Cancel this hit’s damage to you. Deal that much damage to the attacker.
-- Revive: When another player’s attack would eliminate you, survive at 1 health. Use all healing cards in your hand, then discard the rest.
+- Revive: When damage would eliminate you, discard this card and all non-healing cards. Recover at 1 health until your next turn.
 
 ### Defense clarifications
 
 - Shield Plate rounds the damage you take down: a 3-damage hit becomes 1 damage.
 - Ricochet cannot redirect to yourself or a teammate. It can return to the attacker only when no other living opponent is available; smoke-protected opponents still count. Ricochet redirects only the direct hit; a redirected Grenade creates no splash. Use the new target’s Mark Target bonus instead of the original target’s, retaining Ambush. A redirected second SMG hit still receives no bonuses. A hit redirected onto the attacker or their teammate credits damage, eliminations, loot, and elimination rewards to the player who used Ricochet. Other redirects retain the original attacker’s credit. The secondary-defense setting only controls whether the new target may defend.
-- Revive can answer direct weapon hits. Grenade splash, Minigun, Counterattack, Backfire, and redirected hits require secondary defense to be enabled. Events, collapse, and self-inflicted damage cannot trigger Revive.
-- Revive consumes all healing cards without spending actions or triggering extra draws from Painkillers. Healing is capped at maximum health, and your entire hand is discarded, including Revive and the healing cards.
+- Revive activates automatically when damage from any source would eliminate you, including direct hits, splash, Minigun, redirected hits, retaliation, events, collapse, and Adrenaline. It is not a reaction and does not require secondary defense. You may still use an ordinary defense first; Revive is consumed only if the remaining damage would be lethal. Health payments still require enough health to pay normally.
+- **Recover:** remain alive at 1 health until the start of your next turn. Ignore all damage and cannot be targeted by attacks, abilities, healing, or transfers. You cannot act, receive cards, or make card choices while recovering. Interrupted draws/searches stop; cards already set aside for them are discarded. If recovery begins during your turn, finish the current effect and any required event explanations, then end your turn. Other players still resolve their parts of the effect.
+- At the start of your next turn, recovery protection ends and you receive your normal actions and free draws. Healing cards retained by Revive stay in hand until you play them at their normal action costs; Painkillers draws normally when played.
+- Recovery prevents elimination: no opponent gets elimination credit, rewards, or your hand. Recovering players count as alive for victory and seating. Grenade splash that reaches a recovering seat is prevented rather than moving to the next seat; remaining SMG hits against that player stop. Recovery holds health at 1, so elimination rewards do not heal a recovering player; any loot they would receive is discarded.
 
 ## Abilities
 

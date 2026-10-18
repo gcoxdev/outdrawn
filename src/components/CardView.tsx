@@ -40,11 +40,7 @@ function getCardFaceImage(card: Card) {
   }
 
   if (card.type === "defense") {
-    const slugById: Partial<Record<Card["id"], string>> = {
-      defense_decoy: "defense-ricochet",
-      defense_fake_death: "defense-revive"
-    };
-    const slug = slugById[card.id] ?? card.id.replaceAll("_", "-");
+    const slug = card.id.replaceAll("_", "-");
     return `/optimized/cards/fronts/defense/ai-review/final/${slug}-dark-01.webp`;
   }
 
@@ -59,7 +55,8 @@ function getCardFaceImage(card: Card) {
   }
 
   if (card.type === "event") {
-    const slug = card.id.replaceAll("_", "-");
+    // Keep the published artwork path stable when catalog IDs change.
+    const slug = card.id === "event_scavenge" ? "event-high-ground" : card.id.replaceAll("_", "-");
     return `/optimized/cards/fronts/events/ai-review/final/${slug}-dark-01.webp`;
   }
 

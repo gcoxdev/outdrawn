@@ -144,6 +144,7 @@ const PlayerRosterCard = memo(function PlayerRosterCard({
         {isSmokeProtected && !compactRoster && <span>Smoke</span>}
         {markedBonus > 0 && !compactRoster && <span>Marked +{markedBonus}</span>}
         {attackBonus > 0 && !compactRoster && <span>Ambush +{attackBonus}</span>}
+        {player.recovering && <span className="recovery-status" title="Protected from damage and targeting until their next turn">Recovering</span>}
         {player.eliminated && <span>Out</span>}
       </div>
     </article>

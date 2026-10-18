@@ -7,7 +7,7 @@ export type CardTarget = { player: PlayerState; seat: number; disabledReason?: s
 export function getCardTargets(state: GameState, player: PlayerState, card: CardInstance, transfer = false): CardTarget[] {
   const definition = getCardDefinitionById(card.definitionId);
   return state.players.flatMap((target, index) => {
-    if (target.eliminated) return [];
+    if (target.eliminated || target.recovering) return [];
     const option: CardTarget = { player: target, seat: index + 1 };
     if (transfer) return state.settings.allowTeamCardTransfer && target.id !== player.id && areTeammates(player, target) ? [option] : [];
     if (definition?.type === "healing") {
@@ -28,6 +28,6 @@ export function getCardTargets(state: GameState, player: PlayerState, card: Card
 }
 
 export function canPlayHealingCard(player: PlayerState, definition: Card, target: PlayerState, maxHealth: number, canAct: boolean): boolean {
-  return canAct && definition.type === "healing" && player.actionsRemaining >= (definition.actionsCost ?? 1)
+  return canAct && !target.recovering && definition.type === "healing" && player.actionsRemaining >= (definition.actionsCost ?? 1)
     && !((definition.heal ?? 0) > 0 && target.health >= maxHealth && !definition.draw);
 }

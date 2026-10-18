@@ -329,7 +329,7 @@ function chooseObservedAction(state: GameState, strategy: StrategyLevel, random:
   }
 
   // Cooperate using public health and hand counts only; never inspect an ally's cards.
-  const allies = state.players.filter(ally => !ally.eliminated && ally.id !== player.id && player.teamId && ally.teamId === player.teamId);
+  const allies = state.players.filter(ally => !ally.eliminated && !ally.recovering && ally.id !== player.id && player.teamId && ally.teamId === player.teamId);
   const woundedAlly = allies.filter(ally => ally.health < player.health && ally.health <= state.settings.maxHealth / 2).sort((a, b) => a.health - b.health)[0];
   const allyHeal = player.hand.find(card => { const definition = getCardDefinitionById(card.definitionId); return definition?.type === "healing" && !definition.isLethalDefense && (definition.heal ?? 0) > 0 && player.actionsRemaining >= (definition.actionsCost ?? 1); });
   if (state.settings.allowTeamHealing && woundedAlly && allyHeal) {
@@ -395,22 +395,17 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
   const defender = getPlayer(state, pending.defenderId)!;
   const reactionCards = defender.hand.filter((card) => {
     const definition = getCardDefinitionById(card.definitionId);
-    if (state.pendingSecondaryDamage && definition?.id === "defense_decoy") {
+    if (state.pendingSecondaryDamage && definition?.id === "defense_ricochet") {
       return false;
     }
-    if (definition?.id === "defense_decoy") {
+    if (definition?.id === "defense_ricochet") {
       return getRicochetTargets(state, pending.attackerId, defender.id).length > 0;
     }
-    return Boolean(definition && (definition.type === "defense" || definition.isLethalDefense));
+    return Boolean(definition?.isReaction);
   });
 
   if (strategy === "beginner" && random() < 0.45) {
     return { type: state.pendingSecondaryDamage ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: defender.id };
-  }
-
-  const lethal = reactionCards.find((card) => getCardDefinitionById(card.definitionId)?.isLethalDefense && pending.baseDamage >= defender.health);
-  if (lethal) {
-    return { type: state.pendingSecondaryDamage ? "PLAY_SECONDARY_REACTION" : "PLAY_REACTION", defenderId: defender.id, reactionCardInstanceId: lethal.instanceId };
   }
 
   const scored = reactionCards
@@ -782,7 +777,7 @@ function scoreReaction(card: CardInstance, damage: number, defenderHealth: numbe
     return damage >= 3 || damage >= defenderHealth ? 10 : 0;
   }
 
-  if (definition.id === "defense_decoy") {
+  if (definition.id === "defense_ricochet") {
     return damage >= 5 ? 8 : 0;
   }
 
@@ -1016,7 +1011,7 @@ export function getDeckBalance() {
     if (card.id === "defense_backfire") {
       return total + 6 * card.count;
     }
-    if (card.id === "defense_fake_death") {
+    if (card.id === "defense_revive") {
       return total + 5 * card.count;
     }
     if (card.type === "defense") {

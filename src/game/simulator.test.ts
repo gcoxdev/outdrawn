@@ -155,7 +155,7 @@ describe("game simulator", () => {
       () => 0
     );
     const pistol = main("weapon_pistol");
-    const ricochet = main("defense_decoy");
+    const ricochet = main("defense_ricochet");
     state = {
       ...state,
       pendingReaction: {

@@ -1,3 +1,4 @@
+import type { ComputerRecap } from "../game/matchPresentation";
 import { getRicochetTargets } from "../game/rules";
 import { getPlayerDecision, type PendingDecision } from "../game/decisions";
 import { Eye, EyeOff, Heart, Layers, ScrollText, Users, Swords, ArrowRight, LayoutGrid, List, ChevronRight, Check, Plus } from "lucide-react";
@@ -34,6 +35,11 @@ function definitionFor(card: CardInstance | null) {
 }
 
 type GameTableProps = {
+  fastForward?: boolean;
+  canSkipComputers?: boolean;
+  computerRecap?: ComputerRecap;
+  onSkipComputers?: () => void;
+  onDismissRecap?: () => void;
   state: GameState;
   dispatch: (action: GameAction) => void;
   eliminatedPlayerIds?: PlayerId[];
@@ -48,7 +54,7 @@ type GameTableProps = {
 
 type MobileTab = "play" | "players" | "log";
 
-export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminationsAcknowledged, saveFailed = false, paused = false, onPausedChange, computerDelay = 500, onComputerDelayChange, onReferenceOpenChange }: GameTableProps) {
+export function GameTable({ fastForward = false, canSkipComputers = false, computerRecap, onSkipComputers, onDismissRecap, state, dispatch, eliminatedPlayerIds, onEliminationsAcknowledged, saveFailed = false, paused = false, onPausedChange, computerDelay = 500, onComputerDelayChange, onReferenceOpenChange }: GameTableProps) {
   const hasEliminationNotice = !!eliminatedPlayerIds?.length;
   const [handLayout, setHandLayout] = useState<"tiles" | "list">("tiles");
   const handRef = useRef<HTMLDivElement>(null);
@@ -87,7 +93,7 @@ export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminations
     shouldShowDisplayHand &&
     handDisplayPlayer.id === displayPlayer.id &&
     displayPlayer.controller.type === "human" &&
-    !displayPlayer.eliminated &&
+    !displayPlayer.eliminated && !displayPlayer.recovering &&
     !handDisplayPlayer.eliminated &&
     !isComputerDecision &&
     !privacyGateActive &&
@@ -146,7 +152,7 @@ export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminations
   }
 
   return (
-    <main className={`game-table mobile-tab-${activeMobileTab}`}>
+    <main className={`game-table mobile-tab-${activeMobileTab}${computerRecap ? " has-computer-recap" : ""}`}>
       {saveFailed && <GameNotice className="save-warning">This browser could not save the match. Keep this tab open to continue playing.</GameNotice>}
       {state.pendingEventDialog ? (
         <EventDialog state={state} dispatch={dispatch} />
@@ -179,6 +185,13 @@ export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminations
         <GameMenu settings={state.settings} dispatch={dispatch} phase={state.phase} onOpenChange={setMenuOpen} />
       </header>
 
+      {computerRecap && <section className="computer-recap" aria-label="Computer turn recap">
+        <div role="status">
+          <strong>{fastForward ? "Skipping computer turns…" : "Computer turn recap"}</strong>
+          <p>{computerRecap.decisions} decisions · {computerRecap.eliminatedPlayerIds.length ? `Eliminated: ${computerRecap.eliminatedPlayerIds.map(id => state.players.find(player => player.id === id)?.name).join(", ")}` : "No eliminations"} · {Object.keys(computerRecap.damageTaken).length ? Object.entries(computerRecap.damageTaken).map(([id, amount]) => `${state.players.find(player => player.id === id)?.name}: ${amount} damage taken`).join("; ") : "No damage to human players"}{computerRecap.eventIds.length ? ` · Events: ${computerRecap.eventIds.map(id => allCards.find(card => card.id === id)?.name).join(", ")}` : " · No events"}</p>
+        </div>
+        <button type="button" onClick={fastForward ? onSkipComputers : onDismissRecap}>{fastForward ? "Stop skipping" : "Continue"}</button>
+      </section>}
       <section className="game-shell">
         <aside
           className="operations-sidebar board-panel board-panel-players"
@@ -195,6 +208,7 @@ export function GameTable({ state, dispatch, eliminatedPlayerIds, onEliminations
               <div className="computer-controls" role="group" aria-label="Computer controls">
                 <button type="button" aria-pressed={paused} onClick={() => onPausedChange?.(!paused)}>{paused ? "Resume computers" : "Pause computers"}</button>
                 <select aria-label="Computer speed" value={computerDelay} onChange={event => onComputerDelayChange?.(Number(event.target.value))}><option value={1000}>Slow</option><option value={500}>Normal</option><option value={150}>Fast</option></select>
+                <button className="computer-controls__skip" type="button" disabled={!fastForward && !canSkipComputers} onClick={onSkipComputers}>{fastForward ? "Stop skipping" : "Skip to next decision"}</button>
               </div>
             )}
           </div>
@@ -493,19 +507,15 @@ export function getPlayableReactionCardIds(state: GameState, handDisplayPlayer: 
   return handDisplayPlayer.hand
     .filter((card) => {
       const definition = definitionFor(card);
-      if (definition?.type !== "defense" && !definition?.isLethalDefense) {
+      if (!definition?.isReaction) {
         return false;
       }
 
-      if (state.pendingSecondaryDamage && definition.id === "defense_decoy") {
+      if (state.pendingSecondaryDamage && definition.id === "defense_ricochet") {
         return false;
       }
 
-      if (definition.isLethalDefense) {
-        return activeReaction.baseDamage >= handDisplayPlayer.health;
-      }
-
-      if (definition.id === "defense_decoy") {
+      if (definition.id === "defense_ricochet") {
         return getRicochetTargets(state, activeReaction.attackerId, handDisplayPlayer.id).length > 0;
       }
 

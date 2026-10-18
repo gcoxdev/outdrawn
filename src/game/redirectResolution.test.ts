@@ -11,7 +11,7 @@ function fixture(secondary: boolean, weapon = "weapon_grenade", teams?: string[]
   state.settings.allowSecondaryDefense = secondary;
   state.players.forEach(player => { player.hand = []; });
   state.players[0].hand = [card("weapon", weapon)];
-  state.players[1].hand = [card("redirect", "defense_decoy")];
+  state.players[1].hand = [card("redirect", "defense_ricochet")];
   return state;
 }
 function redirect(state: GameState, targetPlayerId = "player_4") {

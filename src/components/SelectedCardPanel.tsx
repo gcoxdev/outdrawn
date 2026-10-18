@@ -40,9 +40,9 @@ export function SelectedCardPanel({ state, player, card, dispatch }: {
   }
 
   return <section className="selected-action-box card-action-panel" aria-label={`${definition.name} actions`}>
-    <header className="card-action-header"><h2>{definition.name}</h2><span className="card-action-cost">{!transfer && isReaction ? "Reaction" : `${cost} action${cost === 1 ? "" : "s"}`}</span></header>
+    <header className="card-action-header"><h2>{definition.name}</h2><span className="card-action-cost">{!transfer && definition.isLethalDefense ? "Automatic" : !transfer && isReaction ? "Reaction" : `${cost} action${cost === 1 ? "" : "s"}`}</span></header>
     <p className="card-action-rules">{isMinigun ? `Allocate up to ${(definition.damage ?? 0) + (state.attackBonuses[player.id] ?? 0)} damage, max ${definition.maxDamagePerTarget ?? 3} per opponent.` : definition.rulesText}</p>
-    {transfer ? <p className="card-action-note">Give this card to a teammate.</p> : isReaction ? <p className="card-action-note">Play this card when you’re defending against an eligible attack.</p> : null}
+    {transfer ? <p className="card-action-note">Give this card to a teammate.</p> : definition.isLethalDefense ? <p className="card-action-note">Activates automatically when any damage would eliminate you. While recovering, you cannot act or be targeted and ignore all damage until your next turn.</p> : isReaction ? <p className="card-action-note">Play this card when you’re defending against an eligible attack.</p> : null}
     {(!isReaction || transfer) && !canAct && <p className="card-action-note" role="status">{player.actionsRemaining === 0 ? "No actions left. You can still discard cards or end your turn." : player.actionsRemaining < cost ? `You need ${cost} actions to ${transfer ? "transfer" : "play"} this card. You have ${player.actionsRemaining} left.` : "Finish the current decision first."}</p>}
     {canAct && (isMinigun ? <MinigunAllocation targets={options.map(option => option.player)} pool={(definition.damage ?? 0) + (state.attackBonuses[player.id] ?? 0)} perTargetCap={definition.maxDamagePerTarget ?? 3}
       disabledReasons={Object.fromEntries(options.filter(option => option.disabledReason).map(option => [option.player.id, option.disabledReason!]))}

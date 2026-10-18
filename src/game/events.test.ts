@@ -167,7 +167,7 @@ describe("event cards", () => {
     const shield = main("defense_shield_plate");
     state = {
       ...state,
-      mainDeck: [event("event_high_ground"), pistol, knife, shield],
+      mainDeck: [event("event_scavenge"), pistol, knife, shield],
       players: state.players.map((player) => ({ ...player, hand: [] }))
     };
 
@@ -186,7 +186,7 @@ describe("event cards", () => {
     const fullHands = Array.from({ length: state.settings.maxHandSize }, () => main("weapon_pistol"));
     state = {
       ...state,
-      mainDeck: [event("event_high_ground"), ...rewards],
+      mainDeck: [event("event_scavenge"), ...rewards],
       players: state.players.map((player, index) => ({
         ...player,
         hand: index < 2 ? fullHands.map((card, cardIndex) => ({ ...card, instanceId: `${card.instanceId}_${index}_${cardIndex}` })) : []
@@ -475,7 +475,7 @@ describe("event cards", () => {
   it("does not attribute nested event damage to Scavenge", () => {
     let state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
     const player = state.players[state.currentPlayerIndex];
-    const scavenge = event("event_high_ground");
+    const scavenge = event("event_scavenge");
     const pressureZone = event("event_pressure_zone");
     const pistol = main("weapon_pistol");
     const shield = main("defense_shield_plate");

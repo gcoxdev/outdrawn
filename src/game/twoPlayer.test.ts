@@ -9,7 +9,7 @@ import { simulateGame, chooseAutomatedAction } from "./simulator";
 import type { GameState, StrategyLevel } from "./types";
 
 const weapon = { instanceId: "duel_weapon", definitionId: "weapon_pistol" };
-const ricochet = { instanceId: "duel_ricochet", definitionId: "defense_decoy" };
+const ricochet = { instanceId: "duel_ricochet", definitionId: "defense_ricochet" };
 function duel(secondary = false, weaponId = "weapon_pistol") {
   const state = createNewGame(["Ari", "Blake"], () => 0);
   state.settings.allowSecondaryDefense = secondary;
@@ -126,9 +126,9 @@ describe("Ricochet attacker fallback", () => {
   });
   it("lets the original attacker use Revive against a lethal reflected hit when secondary defense is enabled", () => {
     const start = duel(true); start.players[0].health = 2;
-    start.players[0].hand.push({ instanceId: "revive", definitionId: "defense_fake_death" });
+    start.players[0].hand.push({ instanceId: "revive", definitionId: "defense_revive" });
     const pending = redirect(start);
-    const state = gameReducer(pending, { type: "PLAY_SECONDARY_REACTION", defenderId: "player_1", reactionCardInstanceId: "revive" });
+    const state = gameReducer(pending, { type: "SKIP_SECONDARY_REACTION", defenderId: "player_1" });
     expect(state.players[0]).toMatchObject({ health: 1, eliminated: false, hand: [] });
     expect(state.phase).toBe("action");
   });

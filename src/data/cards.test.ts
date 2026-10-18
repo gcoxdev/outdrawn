@@ -16,8 +16,8 @@ describe("card data consistency", () => {
     expect(card("defense_dodge").target).toBe("self");
     expect(card("defense_smoke_bomb").target).toBe("self");
     expect(card("defense_brace").target).toBe("self");
-    expect(card("defense_fake_death").target).toBe("self");
-    expect(card("defense_decoy").target).toBe("onePlayer");
+    expect(card("defense_revive").target).toBe("self");
+    expect(card("defense_ricochet").target).toBe("onePlayer");
     expect(card("defense_counterattack").target).toBe("onePlayer");
     expect(card("defense_backfire").target).toBe("self");
   });
@@ -26,7 +26,7 @@ describe("card data consistency", () => {
     expect(card("event_pressure_zone").target).toBe("allPlayers");
     expect(card("event_supply_drop").target).toBe("self");
     expect(card("event_bounty").target).toBe("onePlayer");
-    expect(card("event_high_ground").target).toBe("allPlayers");
+    expect(card("event_scavenge").target).toBe("allPlayers");
     expect(card("event_low_ammo").target).toBe("allPlayers");
     expect(card("event_no_cover").target).toBe("allPlayers");
     expect(card("event_critical_condition").target).toBe("allPlayers");

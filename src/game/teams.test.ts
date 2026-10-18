@@ -245,7 +245,7 @@ describe("team mode", () => {
     const defender = state.players.find((player) => player.teamId !== attacker.teamId)!;
     const defenderTeammate = state.players.find((player) => player.id !== defender.id && player.teamId === defender.teamId)!;
     const attackerTeammate = state.players.find((player) => player.id !== attacker.id && player.teamId === attacker.teamId)!;
-    const [pistol, ricochet] = instances(["weapon_pistol", "defense_decoy"]);
+    const [pistol, ricochet] = instances(["weapon_pistol", "defense_ricochet"]);
     state = {
       ...state,
       players: state.players.map((player) =>

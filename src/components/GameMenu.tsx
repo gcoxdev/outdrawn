@@ -46,7 +46,7 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
   const [cardSearch, setCardSearch] = useState("");
   const [cardType, setCardType] = useState<CardType | "all">("all");
   const [previewCard, setPreviewCard] = useState<Card | null>(null);
-  const [confirmation, setConfirmation] = useState<"lobby" | "restart" | null>(null);
+  const [confirmation, setConfirmation] = useState<"lobby" | "restart" | "privacy" | null>(null);
   const filteredCards = useMemo(() => {
     const query = cardSearch.trim().toLowerCase();
     return allCards.filter(card => (cardType === "all" || card.type === cardType)
@@ -54,6 +54,10 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
   }, [cardSearch, cardType]);
 
   function updateBooleanSetting(key: "debugHandSnapshots" | "passDeviceMode", value: boolean) {
+    if (key === "passDeviceMode" && !value && settings.passDeviceMode && phase === "action") {
+      setConfirmation("privacy");
+      return;
+    }
     dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, [key]: value } });
   }
 
@@ -212,19 +216,24 @@ export function GameMenu({ settings, dispatch, phase = "setup", variant = "float
       {isOpen && previewCard && (
         <CardPreview card={previewCard} onClose={() => setPreviewCard(null)} />
       )}
-      {isOpen && confirmation && <Dialog className="match-dialog" label={confirmation === "restart" ? "Restart match?" : "Return to lobby?"} onClose={() => setConfirmation(null)}>
+      {isOpen && confirmation && <Dialog className="match-dialog" label={confirmation === "privacy" ? "Turn off pass-device mode?" : confirmation === "restart" ? "Restart match?" : "Return to lobby?"} onClose={() => setConfirmation(null)}>
         <section className="match-dialog__panel match-confirmation">
           <header className="match-dialog__header"><div>
-            {confirmation === "restart" ? <RotateCcw size={18} aria-hidden="true" /> : <Home size={18} aria-hidden="true" />}
-            <h2>{confirmation === "restart" ? "Restart match?" : "Return to lobby?"}</h2>
+            {confirmation === "privacy" ? <Shield size={18} aria-hidden="true" /> : confirmation === "restart" ? <RotateCcw size={18} aria-hidden="true" /> : <Home size={18} aria-hidden="true" />}
+            <h2>{confirmation === "privacy" ? "Turn off pass-device mode?" : confirmation === "restart" ? "Restart match?" : "Return to lobby?"}</h2>
           </div></header>
           <div className="match-dialog__body match-confirmation__body">
-            <p>{confirmation === "restart" ? "End this match and deal a new game with the same players and rules." : "End this match and return to setup."}</p>
-            <p>Your current match progress will be lost.</p>
+            <p>{confirmation === "privacy" ? "Human players’ hands will be visible without a pass-device handoff. Anyone looking at the screen may see their cards." : confirmation === "restart" ? "End this match and deal a new game with the same players and rules." : "End this match and return to setup."}</p>
+            {confirmation !== "privacy" && <p>Your current match progress will be lost.</p>}
           </div>
           <footer className="match-dialog__footer">
-            <button type="button" onClick={() => setConfirmation(null)}>Keep playing</button>
-            <button className="match-dialog__primary" type="button" onClick={() => performMatchAction(confirmation)}>{confirmation === "restart" ? "Restart Game" : "Return to Lobby"}</button>
+            <button type="button" onClick={() => setConfirmation(null)}>{confirmation === "privacy" ? "Keep hands hidden" : "Keep playing"}</button>
+            <button className="match-dialog__primary" type="button" onClick={() => {
+              if (confirmation === "privacy") {
+                dispatch({ type: "UPDATE_SETTINGS", settings: { ...settings, passDeviceMode: false } });
+                setConfirmation(null);
+              } else performMatchAction(confirmation);
+            }}>{confirmation === "privacy" ? "Turn off" : confirmation === "restart" ? "Restart Game" : "Return to Lobby"}</button>
           </footer>
         </section>
       </Dialog>}

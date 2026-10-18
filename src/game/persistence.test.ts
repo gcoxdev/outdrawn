@@ -78,3 +78,43 @@ describe("local match saves", () => {
     expect(loadGame(state, { getItem() { throw new Error("blocked"); } })).toBe(state);
   });
 });
+
+
+describe("renamed card compatibility", () => {
+  it("migrates legacy definitions across deck, hand, pending redirect and events without changing instance IDs", () => {
+    const store = storage();
+    let state = createNewGame(["A", "B", "C"], () => 0);
+    const weapon = { instanceId: "weapon", definitionId: "weapon_pistol" };
+    const ricochet = { instanceId: "defense_decoy_original_1", definitionId: "defense_ricochet" };
+    state.players[0].hand = [weapon];
+    state.players[1].hand = [ricochet];
+    state.players[2].hand = [{ instanceId: "defense_fake_death_original_2", definitionId: "defense_revive" }];
+    state = gameReducer(state, { type: "ATTACK", attackerId: "player_1", targetPlayerId: "player_2", weaponInstanceId: "weapon" });
+    state = gameReducer(state, { type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: ricochet.instanceId });
+    expect(state.pendingRedirect).not.toBeNull();
+    const aliases: Record<string, string> = { defense_ricochet: "defense_decoy", defense_revive: "defense_fake_death", event_scavenge: "event_high_ground" };
+    const legacy = JSON.parse(JSON.stringify(state), (key, value) => key === "definitionId" ? aliases[value] ?? value : value);
+    expect(saveGame(legacy, store)).toBe(true);
+    const restored = loadGame({ ...state, phase: "setup" }, store);
+    expect(restored.phase).toBe("action");
+    expect(restored.pendingRedirect).toEqual(state.pendingRedirect);
+    expect(restored.mainDeck).toEqual(state.mainDeck);
+    expect(restored.players).toEqual(state.players);
+    const redirect = { type: "RESOLVE_PENDING_REDIRECT", defenderId: "player_2", targetPlayerId: "player_3" } as const;
+    expect(gameReducer(restored, redirect)).toEqual(gameReducer(state, redirect));
+  });
+
+  it("restores a legacy Scavenge popup and its queued draw", () => {
+    const store = storage(), state = createNewGame(["A", "B"], () => 0);
+    const event = { playerId: "player_1", card: { instanceId: "event_high_ground_old_1", definitionId: "event_high_ground" } };
+    state.pendingEventDialog = event;
+    state.eventDialogQueue = [event];
+    state.drawContinuations = [{ playerId: "player_1", cards: [{ instanceId: "old_revive", definitionId: "defense_fake_death" }], remaining: 1, destination: "hand", replaceEvents: true }];
+    saveGame(state, store);
+    const restored = loadGame({ ...state, phase: "setup" }, store);
+    expect(restored.phase).toBe("action");
+    expect(restored.pendingEventDialog?.card).toEqual({ ...event.card, definitionId: "event_scavenge" });
+    expect(restored.eventDialogQueue?.[0].card.definitionId).toBe("event_scavenge");
+    expect(restored.drawContinuations?.[0].cards[0]).toEqual({ instanceId: "old_revive", definitionId: "defense_revive" });
+  });
+});

@@ -296,3 +296,19 @@
   .game-table .match-complete-actions { grid-template-columns: minmax(0, 1fr); }
   .game-table .match-complete-actions button:last-child { grid-column: 1; }
 }
+
+/* Keep the recap accessible on every mobile tab, outside the scrolling roster. */
+.game-table.has-computer-recap { grid-template-rows: auto auto minmax(0, 1fr); }
+.computer-controls__skip { grid-column: 1 / -1; }
+.computer-recap { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 8px; border: 1px solid #68583d; border-radius: 8px; background: #27271f; font-size: 12px; max-height: 25dvh; overflow: auto; }
+.computer-recap > div { flex: 1; min-width: 0; }
+.computer-recap strong { color: #ebc58b; }
+.computer-recap p { margin: 3px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+.computer-recap button { flex: none; min-height: 32px; padding: 4px 10px; font-size: 12px; }
+@media (max-width: 640px), (max-height: 520px) {
+  .computer-recap { gap: 8px; padding: 6px 8px; font-size: 11px; }
+}
+
+.game-table.has-computer-recap:has(> .save-warning) { grid-template-rows: auto auto auto minmax(0, 1fr); }
+
+.game-table .player-roster-card__chips .recovery-status { color: #bee7d0; background: #254536; border: 1px solid #477258; }

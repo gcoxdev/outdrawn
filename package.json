@@ -26,23 +26,25 @@
     "test:decisions": "npm run build && node scripts/decision-smoke.mjs",
     "verify": "node scripts/verify.mjs",
     "balance:report": "node scripts/balance-report.mjs",
-    "test:actions": "npm run build && node scripts/action-smoke.mjs"
+    "test:actions": "npm run build && node scripts/action-smoke.mjs",
+    "test:pacing": "npm run build && node scripts/pacing-smoke.mjs",
+    "test:revive": "npm run build && node scripts/revive-smoke.mjs"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "typescript": "^5.8.0",
-    "vite": "^7.0.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "esbuild": "^0.27.7",
     "playwright": "^1.64.0",
     "sharp": "^0.35.5",
+    "typescript": "^5.8.0",
+    "vite": "^7.0.0",
     "vitest": "^3.0.0"
   },
   "engines": {

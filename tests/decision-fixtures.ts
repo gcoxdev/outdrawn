@@ -37,7 +37,7 @@ export function fixtures() {
   intimidated.intimidations = { player_1: ["player_2"] };
   const intimidate = gameReducer(intimidated, attack);
   const reaction = gameReducer(structuredClone(base), attack);
-  reaction.players[1].hand.push(card("defense_fake_death"), card("defense_decoy"));
+  reaction.players[1].hand.push(card("defense_revive"), card("defense_ricochet"));
   const secondary = structuredClone(reaction);
   secondary.pendingSecondaryDamage = { ...secondary.pendingReaction!, source: "ricochet", remaining: [] };
   secondary.pendingReaction = null;

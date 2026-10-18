@@ -55,7 +55,7 @@ export function fixtures() {
   exhaustedReaction.players[1].actionsRemaining = 0;
   exhaustedReaction.pendingReaction = { attackerId: "player_1", defenderId: "player_2", weapon: exhaustedReaction.players[0].hand[0], baseDamage: 3 };
   const redirect = structuredClone(smoke);
-  const decoy = card("defense_decoy");
+  const decoy = card("defense_ricochet");
   redirect.players[1].hand.push(decoy);
   redirect.pendingRedirect = { attackerId: "player_1", defenderId: "player_2", weapon: redirect.players[0].hand[0], baseDamage: 3, decoy };
   redirect.players[1].actionsRemaining = 0;

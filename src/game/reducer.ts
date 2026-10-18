@@ -1,3 +1,4 @@
+import { damagePlayer, recoveryMessage } from "./recovery";
 import { omitKey } from "./record";
 import { getRicochetTargets } from "./rules";
 import { accumulateDamageDealt, recordEffects, recordHealthChanges } from "./effects";
@@ -133,12 +134,13 @@ function advanceTurn(state: GameState): GameState {
     return {
       ...player,
       ...resetForRound,
+      ...(index === currentPlayerIndex ? { recovering: false } : {}),
       actionsRemaining: index === currentPlayerIndex ? transitionState.settings.actionsPerTurn : player.actionsRemaining,
       freeDrawsRemaining: index === currentPlayerIndex ? transitionState.settings.freeDrawsPerTurn : player.freeDrawsRemaining
     };
   });
 
-  const advanced = {
+  let advanced: GameState = {
     ...transitionState,
     round: nextRound ? transitionState.round + 1 : transitionState.round,
     players,
@@ -151,6 +153,9 @@ function advanceTurn(state: GameState): GameState {
   );
   advanced.intimidations = clearIntimidationsAgainst(advanced.intimidations, advanced.players[currentPlayerIndex].id);
 
+  if (transitionState.players[currentPlayerIndex].recovering) {
+    advanced = log(advanced, `${advanced.players[currentPlayerIndex].name} recovered. Revive protection has ended.`);
+  }
   return log(
     advanced,
     nextRound
@@ -233,19 +238,15 @@ function logPlayerHealthChanges(beforePlayers: PlayerState[], afterState: GameSt
   }, afterState);
 }
 
+function damagePlayers(state: GameState, amount: (player: PlayerState) => number): GameState {
+  const hits = state.players.map(player => damagePlayer(player, amount(player)));
+  let next = { ...state, players: hits.map(hit => hit.player), discardPile: [...state.discardPile, ...hits.flatMap(hit => hit.discarded)] };
+  for (const hit of hits) if (hit.revived) next = log(next, recoveryMessage(hit.player));
+  return next;
+}
+
 function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?: PlayerId, eventCard?: CardInstance): GameState {
-  if (eventId === "event_pressure_zone") {
-    return {
-      ...state,
-      players: state.players.map((player) => {
-        if (player.eliminated) {
-          return player;
-        }
-        const health = Math.max(0, player.health - 1);
-        return { ...player, health, eliminated: health === 0 };
-      })
-    };
-  }
+  if (eventId === "event_pressure_zone") return damagePlayers(state, () => 1);
 
   if (eventId === "event_supply_drop") {
     const player = sourcePlayerId ? getPlayer(state, sourcePlayerId) : undefined;
@@ -259,91 +260,24 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
   if (eventId === "event_bounty") {
     const living = state.players.filter((player) => !player.eliminated);
     const highestHealth = Math.max(...living.map((player) => player.health));
-    return {
-      ...state,
-      players: state.players.map((player) => {
-        if (player.eliminated || player.health !== highestHealth) {
-          return player;
-        }
-        const health = Math.max(0, player.health - 2);
-        return { ...player, health, eliminated: health === 0 };
-      })
-    };
+    return damagePlayers(state, player => player.health === highestHealth ? 2 : 0);
   }
 
-  if (eventId === "event_high_ground") {
+  if (eventId === "event_scavenge") {
     return queueDraws(state, state.players.filter(player => !player.eliminated).map(player => ({
       playerId: player.id, remaining: 1, cards: [], destination: "hand", replaceEvents: true
     })));
   }
 
-  if (eventId === "event_low_ammo") {
-    const playersNeedingChoice: PlayerId[] = [];
-    const players = state.players.map((player) => {
-      if (player.eliminated) {
-        return player;
-      }
-
-      const weapons = player.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "weapon");
-      if (weapons.length > 0) {
-        playersNeedingChoice.push(player.id);
-        return player;
-      }
-
-      const health = Math.max(0, player.health - 3);
-      return {
-        ...player,
-        health,
-        eliminated: health === 0
-      };
-    });
-
-    return scheduleForcedDiscard({
-      ...state,
-      players
-    }, playersNeedingChoice, "weapon", "Low Ammo");
-  }
-
   if (eventId === "event_critical_condition") {
-    return {
-      ...state,
-      players: state.players.map((player) => {
-        if (player.eliminated || player.health > 10) {
-          return player;
-        }
-
-        const damage = player.health < 5 ? 2 : 1;
-        const health = Math.max(0, player.health - damage);
-        return {
-          ...player,
-          health,
-          eliminated: health === 0
-        };
-      })
-    };
+    return damagePlayers(state, player => player.health > 10 ? 0 : player.health < 5 ? 2 : 1);
   }
 
-  if (eventId === "event_no_cover") {
-    const playersNeedingChoice: PlayerId[] = [];
-    const players = state.players.map((player) => {
-      if (player.eliminated) {
-        return player;
-      }
-
-      const defenses = player.hand.filter((card) => getCardDefinitionById(card.definitionId)?.type === "defense");
-      if (defenses.length > 0) {
-        playersNeedingChoice.push(player.id);
-        return player;
-      }
-
-      const health = Math.max(0, player.health - 2);
-      return { ...player, health, eliminated: health === 0 };
-    });
-
-    return scheduleForcedDiscard({
-      ...state,
-      players
-    }, playersNeedingChoice, "defense", "No Cover");
+  if (eventId === "event_low_ammo" || eventId === "event_no_cover") {
+    const cardType = eventId === "event_low_ammo" ? "weapon" : "defense";
+    const reason = cardType === "weapon" ? "Low Ammo" : "No Cover";
+    const playersNeedingChoice = state.players.filter(player => !player.eliminated && !player.recovering && player.hand.some(card => getCardDefinitionById(card.definitionId)?.type === cardType)).map(player => player.id);
+    return scheduleForcedDiscard(damagePlayers(state, player => playersNeedingChoice.includes(player.id) ? 0 : cardType === "weapon" ? 3 : 2), playersNeedingChoice, cardType, reason);
   }
 
   if (eventId === "event_black_market") {
@@ -377,10 +311,10 @@ function resumeDraws(state: GameState): GameState {
   while (next.phase === "action" && next.drawContinuations?.length && !hasInteractiveEffect(next)) {
     const [job, ...rest] = next.drawContinuations;
     const player = getPlayer(next, job.playerId);
-    if (!player || player.eliminated || job.remaining === 0 || (!next.mainDeck.length && !next.discardPile.length)) {
+    if (!player || player.eliminated || player.recovering || job.remaining === 0 || (!next.mainDeck.length && !next.discardPile.length)) {
       next = { ...next, drawContinuations: rest,
         discardPile: [...next.discardPile, ...(job.playedCard ? [job.playedCard] : [])] };
-      if (!player || player.eliminated) {
+      if (!player || player.eliminated || player.recovering) {
         next = { ...next, discardPile: [...next.discardPile, ...job.cards] };
       } else if (job.destination === "search" && job.cards.length) {
         next = log({ ...next, pendingSearch: { playerId: job.playerId, cards: job.cards } }, `${player.name} searched and must keep 1 of ${job.cards.length} cards.`);
@@ -507,21 +441,7 @@ function applyCollapseDamage(state: GameState): GameState {
     return state;
   }
 
-  return {
-    ...state,
-    players: state.players.map((player) => {
-      if (player.eliminated) {
-        return player;
-      }
-
-      const health = Math.max(0, player.health - damage);
-      return {
-        ...player,
-        health,
-        eliminated: health === 0
-      };
-    })
-  };
+  return damagePlayers(state, () => damage);
 }
 
 function findNextLivingIndex(players: PlayerState[], startIndex: number): number {
@@ -545,7 +465,7 @@ function getCriticalConditionSummary(beforePlayers: PlayerState[], afterPlayers:
     .map((after) => {
       const before = beforePlayers.find((player) => player.id === after.id);
       const damage = before ? before.health - after.health : 0;
-      return damage > 0 ? `${after.name} for ${damage} damage` : null;
+      return damage > 0 ? `${after.name} for ${damage} damage` : after.recovering && !before?.recovering ? `${after.name} (Revive activated)` : null;
     })
     .filter((message): message is string => Boolean(message));
 
@@ -577,7 +497,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (next.phase === "action") next = resumeMultiHit(resumeDraws(next));
   if (next.phase === "action" && !hasPendingDecision(next)) {
     next = completeGameIfOver(next, state.players, false) ?? next;
-    if (next.phase === "action" && getCurrentPlayer(next).eliminated) next = advanceTurn(expireTurnEffects(next));
+    if (next.phase === "action" && (getCurrentPlayer(next).eliminated || getCurrentPlayer(next).recovering)) {
+      next = updatePlayer(next, getCurrentPlayer(next).id, player => ({ ...player, actedThisRound: true }));
+      next = advanceTurn(expireTurnEffects(next));
+    }
   }
   if (next.phase === "gameOver" && !next.outcome) {
     const winner = next.players.find(player => player.id === next.winnerId);
@@ -709,7 +632,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       if (
         !target ||
         !card ||
-        target.eliminated ||
+        target.eliminated || target.recovering ||
         target.id === player.id ||
         !areTeammates(player, target) ||
         !state.settings.allowTeamCardTransfer
@@ -945,7 +868,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         !definition ||
         definition.type !== "healing" ||
         !target ||
-        target.eliminated ||
+        target.eliminated || target.recovering ||
         (target.id !== player.id && !areTeammates(player, target)) ||
         (target.id !== player.id && !state.settings.allowTeamHealing) ||
         player.actionsRemaining < (definition.actionsCost ?? 1)
@@ -1008,7 +931,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      if (definition.target === "onePlayer" && (!target || target.eliminated || !isHostileTarget(player, target))) {
+      if (definition.target === "onePlayer" && (!target || target.eliminated || target.recovering || !isHostileTarget(player, target))) {
         return state;
       }
 
@@ -1164,7 +1087,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
       }
 
-      if (!target || target.eliminated || !isHostileTarget(attacker, target) || state.smokeProtectedPlayerIds.includes(target.id)) {
+      if (!target || target.eliminated || target.recovering || !isHostileTarget(attacker, target) || state.smokeProtectedPlayerIds.includes(target.id)) {
         return state;
       }
 
@@ -1229,7 +1152,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         !attacker ||
         action.defenderId !== defender.id ||
         !reaction ||
-        (reactionDefinition?.type !== "defense" && !reactionDefinition?.isLethalDefense)
+        (reactionDefinition?.type !== "defense" || !reactionDefinition.isReaction)
       ) {
         return state;
       }
@@ -1238,7 +1161,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         return state;
       }
 
-      if (reactionDefinition.id === "defense_decoy") {
+      if (reactionDefinition.id === "defense_ricochet") {
         const hasRedirectTarget = getRicochetTargets(state, attacker.id, defender.id).length > 0;
         if (!hasRedirectTarget) {
           return state;
@@ -1283,8 +1206,8 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         !defender ||
         action.defenderId !== defender.id ||
         !reaction ||
-        (reactionDefinition?.type !== "defense" && !reactionDefinition?.isLethalDefense) ||
-        reactionDefinition?.id === "defense_decoy"
+        (reactionDefinition?.type !== "defense" || !reactionDefinition.isReaction) ||
+        reactionDefinition?.id === "defense_ricochet"
       ) {
         return state;
       }
@@ -1423,7 +1346,7 @@ function resumeMultiHit(state: GameState): GameState {
   const attacker = getPlayer(state, multi.attackerId), defender = getPlayer(state, multi.defenderId);
   // Revive can discard the shooter's weapon between hits without eliminating them.
   const stillHoldingWeapon = attacker?.hand.some(card => card.instanceId === multi.weapon.instanceId);
-  if (!attacker || !defender || !stillHoldingWeapon || attacker.eliminated || defender.eliminated || multi.hitsRemaining <= 0 || state.smokeProtectedPlayerIds.includes(defender.id)) {
+  if (!attacker || !defender || !stillHoldingWeapon || attacker.eliminated || attacker.recovering || defender.eliminated || defender.recovering || multi.hitsRemaining <= 0 || state.smokeProtectedPlayerIds.includes(defender.id)) {
     const cleaned = state.reloadPlayerIds.includes(multi.attackerId) ? state : discardInterruptedWeapon(state, multi.attackerId, multi.weapon);
     return { ...consumeReload(cleaned, multi.attackerId), pendingMultiHitAttack: null };
   }
@@ -1449,7 +1372,7 @@ function getGrenadeSplashItems(
     .filter((target) => {
       const current = getPlayer(state, target.id);
       const attacker = getPlayer(state, attackerId);
-      return current && attacker && !current.eliminated && !areTeammates(attacker, current);
+      return current && attacker && !current.eliminated && !current.recovering && !areTeammates(attacker, current);
     })
     .map((target) => ({
       attackerId,
@@ -1463,7 +1386,7 @@ function getGrenadeSplashItems(
 function enqueueSecondaryDamage(state: GameState, messages: string[], items: SecondaryDamageItem[]) {
   const pendingItems = items.filter((item) => {
     const defender = getPlayer(state, item.defenderId);
-    return state.phase !== "gameOver" && defender && !defender.eliminated && item.baseDamage > 0;
+    return state.phase !== "gameOver" && defender && !defender.eliminated && !defender.recovering && item.baseDamage > 0;
   });
 
   if (pendingItems.length === 0) {
@@ -1518,7 +1441,7 @@ function resolveCurrentSecondaryDamage(state: GameState, reaction: CardInstance 
 
   const [next, ...remaining] = remainingItems;
   const nextDefender = getPlayer(result.state, next.defenderId);
-  if (!nextDefender || nextDefender.eliminated) {
+  if (!nextDefender || nextDefender.eliminated || nextDefender.recovering) {
     return enqueueSecondaryDamage(result.state, result.messages, remaining);
   }
 
@@ -1631,7 +1554,7 @@ function getValidMinigunAllocation(
   const allocation: Record<PlayerId, number> = {};
   for (const [playerId, damage] of entries) {
     const target = getPlayer(state, playerId);
-    if (!target || target.eliminated || !isHostileTarget(attacker, target) || state.smokeProtectedPlayerIds.includes(target.id)) {
+    if (!target || target.eliminated || target.recovering || !isHostileTarget(attacker, target) || state.smokeProtectedPlayerIds.includes(target.id)) {
       return null;
     }
 
@@ -1728,12 +1651,8 @@ function resolveAbility(
   }
 
   if (definitionId === "ability_adrenaline") {
-    nextState = updatePlayer(nextState, player.id, (currentPlayer) => ({
-      ...currentPlayer,
-      health: Math.max(0, currentPlayer.health - 2),
-      eliminated: currentPlayer.health <= 2,
-      actionsRemaining: currentPlayer.actionsRemaining + 2
-    }));
+    nextState = updatePlayer(nextState, player.id, current => ({ ...current, actionsRemaining: current.actionsRemaining + 2 }));
+    nextState = damagePlayers(nextState, current => current.id === player.id ? 2 : 0);
     nextState = recordHealthChanges(state.players, nextState, "ability", definitionId, player.id);
     message = `${player.name} played Adrenaline, gained an action, and lost 2 health.`;
   }
@@ -1847,7 +1766,7 @@ function scheduleForcedDiscard(state: GameState, playerIds: PlayerId[], cardType
     .filter((card) => getCardDefinitionById(card.definitionId)?.type === cardType)
     .map((card) => card.instanceId);
 
-  if (player.eliminated || allowedIds.length === 0) {
+  if (player.eliminated || player.recovering || allowedIds.length === 0) {
     return scheduleForcedDiscard(state, remainingPlayerIds, cardType, reason);
   }
 

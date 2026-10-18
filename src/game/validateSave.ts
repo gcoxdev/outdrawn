@@ -1,3 +1,4 @@
+import { canonicalCardId } from "../data/cardIds";
 import { MIN_PLAYERS } from "./setupOptions";
 import { allCards } from "../data/cards";
 import { normalizeSettings } from "./settings";
@@ -13,7 +14,7 @@ function boolean(value: unknown) { requireValue(typeof value === "boolean"); }
 function array(value: unknown, check: (item: any) => void, max = 10000): asserts value is any[] {
   requireValue(Array.isArray(value) && value.length <= max); value.forEach(check);
 }
-function card(value: unknown) { object(value); text(value.instanceId); requireValue(definitions.has(value.definitionId)); }
+function card(value: unknown) { object(value); text(value.instanceId); text(value.definitionId); value.definitionId = canonicalCardId(value.definitionId); requireValue(definitions.has(value.definitionId)); }
 function cards(value: unknown) { array(value, card); }
 
 /** Validate before rendering and migrate compatible v1 fields in place. */
@@ -42,6 +43,8 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
     requireValue(player.controller.type === "human" || (player.controller.type === "computer" && ["beginner", "novice", "competent", "expert", "master"].includes(player.controller.strategy)));
     if (player.teamId !== undefined) text(player.teamId);
     number(player.health, 0, value.settings.maxHealth); cards(player.hand);
+    if (player.recovering !== undefined) boolean(player.recovering);
+    requireValue(!player.recovering || (!player.eliminated && player.health === 1 && player.actionsRemaining === 0 && player.freeDrawsRemaining === 0));
     for (const key of ["eliminated", "attackedThisRound", "actedThisRound"]) boolean(player[key]);
     for (const key of ["eliminations", "actionsRemaining", "freeDrawsRemaining"]) number(player[key]);
     if (player.damageDealt !== undefined) number(player.damageDealt);

@@ -4,7 +4,7 @@ import { MatchRecovery, preserveRejectedMatch } from "./components/MatchRecovery
 import { SetupScreen } from "./components/SetupScreen";
 import { createSetupState } from "./game/setup";
 import { readSavedMatch, saveGame } from "./game/persistence";
-import { createMatchPresentation, matchPresentationReducer } from "./game/matchPresentation";
+import { canFastForward, createMatchPresentation, matchPresentationReducer } from "./game/matchPresentation";
 import { chooseAutomatedAction, getDecisionPlayerId } from "./game/simulator";
 import type { PlayerSetup } from "./game/types";
 
@@ -13,7 +13,8 @@ const initialState = createSetupState();
 export default function App() {
   const [boot] = useState(() => { try { return readSavedMatch(initialState, window.localStorage); } catch { return { state: initialState }; } });
   const [rejected, setRejected] = useState(boot.rejected);
-  const [{ game: state, eliminatedPlayerIds }, dispatch] = useReducer(matchPresentationReducer, boot.state, createMatchPresentation);
+  const [presentation, dispatch] = useReducer(matchPresentationReducer, boot.state, createMatchPresentation);
+  const { game: state, eliminatedPlayerIds, fastForward, computerRecap } = presentation;
   const [saveFailed, setSaveFailed] = useState(false);
   useEffect(() => {
     if (rejected) return;
@@ -25,6 +26,17 @@ export default function App() {
   const aiRandom = useRef(createRng(Date.now()));
 
   useEffect(() => {
+    if (!fastForward) return;
+    if (paused || referenceOpen || rejected) {
+      dispatch({ type: "STOP_FAST_FORWARD" });
+      return;
+    }
+    const timeoutId = window.setTimeout(() => dispatch({ type: "ADVANCE_COMPUTERS", seed: Math.floor(aiRandom.current() * 0x100000000) }), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [presentation, fastForward, paused, referenceOpen, rejected]);
+
+  useEffect(() => {
+    if (fastForward || computerRecap) return;
     if (state.phase !== "action" || state.pendingEventDialog || eliminatedPlayerIds.length || paused || referenceOpen || rejected) {
       return;
     }
@@ -40,7 +52,7 @@ export default function App() {
     }, computerDelay);
 
     return () => window.clearTimeout(timeoutId);
-  }, [state, eliminatedPlayerIds, paused, referenceOpen, computerDelay, rejected]);
+  }, [state, eliminatedPlayerIds, paused, referenceOpen, computerDelay, rejected, fastForward, computerRecap]);
 
   if (rejected) return <MatchRecovery raw={rejected} onReset={() => { preserveRejectedMatch(rejected); setRejected(undefined); }} />;
 
@@ -65,7 +77,23 @@ export default function App() {
     );
   }
 
-  return <GameTable state={state} dispatch={dispatch} eliminatedPlayerIds={eliminatedPlayerIds} onEliminationsAcknowledged={() => dispatch({ type: "ACKNOWLEDGE_ELIMINATIONS" })} saveFailed={saveFailed} paused={paused} onPausedChange={setPaused} computerDelay={computerDelay} onComputerDelayChange={setComputerDelay} onReferenceOpenChange={setReferenceOpen} />;
+  return <GameTable
+    state={state}
+    dispatch={dispatch}
+    fastForward={fastForward}
+    computerRecap={computerRecap}
+    canSkipComputers={!paused && !referenceOpen && !computerRecap && canFastForward(presentation)}
+    onSkipComputers={() => dispatch({ type: fastForward ? "STOP_FAST_FORWARD" : "START_FAST_FORWARD" })}
+    onDismissRecap={() => dispatch({ type: "DISMISS_COMPUTER_RECAP" })}
+    eliminatedPlayerIds={eliminatedPlayerIds}
+    onEliminationsAcknowledged={() => dispatch({ type: "ACKNOWLEDGE_ELIMINATIONS" })}
+    saveFailed={saveFailed}
+    paused={paused}
+    onPausedChange={setPaused}
+    computerDelay={computerDelay}
+    onComputerDelayChange={setComputerDelay}
+    onReferenceOpenChange={setReferenceOpen}
+  />;
 }
 
 function createRng(seed: number): () => number {

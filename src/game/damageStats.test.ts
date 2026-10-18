@@ -69,17 +69,17 @@ describe("player damage totals", () => {
     }
   });
 
-  it("counts damage before Revive healing without counting prevented lethal damage", () => {
-    const state = fixture("weapon_sniper_rifle", "defense_fake_death");
+  it("counts damage before automatic recovery without counting prevented lethal damage", () => {
+    const state = fixture("weapon_sniper_rifle", "defense_revive");
     state.players[1].health = 2;
     state.players[1].hand.push({ instanceId: "bandage", definitionId: "healing_bandage" });
-    const next = defend(attack(state));
-    expect(next.players[1].health).toBe(4);
+    const next = takeHit(attack(state));
+    expect(next.players[1].health).toBe(1);
     expect(next.players[0].damageDealt).toBe(1);
   });
 
   it.each([false, true])("keeps Ricochet damage and kill credit with the original attacker, secondary defense %s", allowSecondaryDefense => {
-    let state = fixture("weapon_pistol", "defense_decoy");
+    let state = fixture("weapon_pistol", "defense_ricochet");
     state.settings.allowSecondaryDefense = allowSecondaryDefense;
     state.players[2].health = 2;
     state = defend(attack(state));

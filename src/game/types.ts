@@ -34,6 +34,8 @@ export type PlayerState = {
   health: number;
   hand: CardInstance[];
   eliminated: boolean;
+  /** Revive protection expires at the start of this player's next turn. */
+  recovering?: boolean;
   eliminations: number;
   /** Actual damage dealt to other players; absent in saves made before tracking. */
   damageDealt?: number;

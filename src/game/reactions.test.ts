@@ -36,11 +36,7 @@ function attackWithReaction(reactionId: string, targetHealth = 20, extraTargetCa
     targetPlayerId: target.id,
     weaponInstanceId: weapon.instanceId
   });
-  state = gameReducer(state, {
-    type: "PLAY_REACTION",
-    defenderId: target.id,
-    reactionCardInstanceId: reaction.instanceId
-  });
+  state = gameReducer(state, reactionId === "defense_revive" ? { type: "SKIP_REACTION", defenderId: target.id } : { type: "PLAY_REACTION", defenderId: target.id, reactionCardInstanceId: reaction.instanceId });
 
   return { state, attacker, target, weapon, reaction, extras };
 }
@@ -53,15 +49,16 @@ describe("reaction defense cards", () => {
     expect(state.players.find((player) => player.id === attacker.id)!.health).toBe(17);
   });
 
-  it("Revive prevents lethal attack damage and applies healing cards", () => {
-    const { state, target, reaction, extras } = attackWithReaction("defense_fake_death", 3, ["healing_bandage", "weapon_knife"]);
+  it("Revive automatically prevents lethal damage and retains healing cards", () => {
+    const { state, target, reaction, extras } = attackWithReaction("defense_revive", 3, ["healing_bandage", "weapon_knife"]);
     const defender = state.players.find((player) => player.id === target.id)!;
 
     expect(defender.eliminated).toBe(false);
-    expect(defender.health).toBe(4);
-    expect(defender.hand).toHaveLength(0);
+    expect(defender.health).toBe(1);
+    expect(defender.recovering).toBe(true);
+    expect(defender.hand).toEqual([extras[0]]);
     expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === reaction.instanceId)).toBe(true);
-    expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === extras[0].instanceId)).toBe(true);
+    expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === extras[0].instanceId)).toBe(false);
     expect(state.discardPile.some((cardInstance) => cardInstance.instanceId === extras[1].instanceId)).toBe(true);
   });
 });

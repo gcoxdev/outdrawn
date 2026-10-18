@@ -34,9 +34,10 @@ describe("live elimination notifications", () => {
 
   it("does not announce damage prevented by Revive", () => {
     const game = fixture();
-    game.players[1].hand = [{ instanceId: "revive", definitionId: "defense_fake_death" }];
-    const result = reduce(createMatchPresentation(game), { type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: "revive" });
+    game.players[1].hand = [{ instanceId: "revive", definitionId: "defense_revive" }];
+    const result = reduce(createMatchPresentation(game), { type: "SKIP_REACTION", defenderId: "player_2" });
     expect(result.game.players[1].health).toBe(1);
+    expect(result.game.players[1].recovering).toBe(true);
     expect(result.eliminatedPlayerIds).toEqual([]);
   });
 

@@ -75,11 +75,11 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
               : `${pendingAttacker.name} played ${weaponDefinition?.name ?? "a weapon"} for ${activeReaction.baseDamage} base damage.`}
             {smgHitNumber ? ` Hit ${smgHitNumber} of 2.` : ""}
           </p>
-          <p>Select a defense card from your hand above, or take the hit.</p>
+          <p>{pendingDefender.hand.some(card => card.definitionId === "defense_revive") && activeReaction.baseDamage >= pendingDefender.health ? "Revive activates automatically if this hit would eliminate you. You can still play another defense first." : "Select a defense card from your hand above, or take the hit."}</p>
         </div>
         <div className="action-row">
           <button onClick={() => dispatch({ type: isSecondary ? "SKIP_SECONDARY_REACTION" : "SKIP_REACTION", defenderId: pendingDefender.id })}>
-            Take Hit
+            {activeReaction.baseDamage >= pendingDefender.health && pendingDefender.hand.some(card => card.definitionId === "defense_revive") ? "Take Hit · Revive" : "Take Hit"}
           </button>
         </div>
       </section>

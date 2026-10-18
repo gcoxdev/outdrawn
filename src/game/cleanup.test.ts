@@ -23,7 +23,7 @@ describe("cleanup regressions", () => {
   ] as const)("stops SMG when Revive discards it after %s (Reload: %s)", (defenseId, reload) => {
     let state = base();
     state.settings.allowSecondaryDefense = true;
-    const weapon = card("weapon_smg"), revive = card("defense_fake_death"), bandage = card("healing_bandage"), counter = card(defenseId);
+    const weapon = card("weapon_smg"), revive = card("defense_revive"), bandage = card("healing_bandage"), counter = card(defenseId);
     state.players[0] = { ...state.players[0], health: 2, hand: [weapon, revive, bandage] };
     state.players[1].hand = [counter];
     if (reload) state.reloadPlayerIds = ["player_1"];
@@ -31,8 +31,8 @@ describe("cleanup regressions", () => {
     state = gameReducer(state, { type: "ATTACK", attackerId: "player_1", targetPlayerId: "player_2", weaponInstanceId: weapon.instanceId });
     state = gameReducer(state, { type: "PLAY_REACTION", defenderId: "player_2", reactionCardInstanceId: counter.instanceId });
     expect(state.pendingSecondaryDamage?.defenderId).toBe("player_1");
-    state = gameReducer(state, { type: "PLAY_SECONDARY_REACTION", defenderId: "player_1", reactionCardInstanceId: revive.instanceId });
-    expect(state.players[0]).toMatchObject({ health: 4, eliminated: false, hand: [], actionsRemaining: 1 });
+    state = gameReducer(state, { type: "SKIP_SECONDARY_REACTION", defenderId: "player_1" });
+    expect(state.players[0]).toMatchObject({ health: 1, recovering: true, eliminated: false, hand: [bandage], actionsRemaining: 0 });
     expect(state.players[1].health).toBe(defenseId === "defense_counterattack" ? 18 : 20);
     expect(state.pendingReaction).toBeNull();
     expect(state.pendingMultiHitAttack).toBeNull();
@@ -134,7 +134,7 @@ describe("cleanup regressions", () => {
   });
 
   it.each([false, true])("continues SMG after redirect with secondary defense %s", secondary => {
-    let state = base(); const weapon = card("weapon_smg"), ricochet = card("defense_decoy");
+    let state = base(); const weapon = card("weapon_smg"), ricochet = card("defense_ricochet");
     state.settings.allowSecondaryDefense = secondary;
     state.players[0].hand = [weapon]; state.players[1].hand = [ricochet];
     state = gameReducer(state, { type: "ATTACK", attackerId: "player_1", targetPlayerId: "player_2", weaponInstanceId: weapon.instanceId });

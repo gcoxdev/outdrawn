@@ -1,3 +1,4 @@
+import { damagePlayer, recoveryMessage } from "./recovery";
 import { omitKey } from "./record";
 import { recordEffects, recordCombatEffects } from "./effects";
 import { allCards } from "../data/cards";
@@ -64,116 +65,52 @@ function resolveWeaponHit(
 
   const baseDamage = options.baseDamageOverride ?? getBaseAttackDamage(state, attacker, target, weaponDefinition);
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
-  const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition);
-  const damage = reactionResult.damage;
-  const reviveResult = reactionResult.survivesLethal ? resolveReviveHand(target.hand, reaction, state) : null;
-  const nextHealth = reviveResult?.health ?? Math.max(0, target.health - damage);
-  const eliminated = nextHealth === 0;
-  const splashTargets =
-    weaponDefinition.id === "weapon_grenade" && options.resolveSplash !== false
-      ? getGrenadeSplashTargets(state.players, attacker.id, target.id)
-          .filter((splashTarget) => !areTeammates(attacker, splashTarget))
-      : [];
-  const splashEliminations = splashTargets.filter((splashTarget) => splashTarget.health <= (weaponDefinition.splashDamage ?? 0)).length;
-  const attackerEliminations = (eliminated ? 1 : 0) + splashEliminations;
-  const counterDamage = reactionResult.counterDamage;
-  const appliedCounterDamage = options.resolveCounterDamage === false ? 0 : counterDamage;
-  const counterEliminatesAttacker = appliedCounterDamage > 0 && attacker.health <= appliedCounterDamage;
-  const attackerHealthAfterCounter = Math.max(0, attacker.health - appliedCounterDamage);
-  const attackerRewardedHealth = applyEliminationHealthReward(attackerHealthAfterCounter, attackerEliminations, state);
-  const defenderRewardedHealth = applyEliminationHealthReward(nextHealth, counterEliminatesAttacker ? 1 : 0, state);
-  state = recordCombatEffects(state, attacker, target, source === "counterattack" ? "defense_counterattack" : source === "backfire" ? "defense_backfire" : weapon.definitionId, baseDamage, damage, reviveResult?.health, appliedCounterDamage, attackerRewardedHealth - attackerHealthAfterCounter, defenderRewardedHealth - nextHealth, source, reaction?.definitionId);
-  state = recordEffects(state, ...splashTargets.map(player => ({ kind: "damage" as const, source: "splash" as const, cardDefinitionId: weapon.definitionId, sourcePlayerId: attacker.id, playerId: player.id, amount: Math.min(player.health, weaponDefinition.splashDamage ?? 0) })));
-  const revivedDiscardedCards = reviveResult?.discardedCards ?? [];
-  const targetHandAfterReaction = reviveResult
-    ? []
-    : reaction
-      ? target.hand.filter((card) => card.instanceId !== reaction.instanceId)
-      : target.hand;
-  let winnerId = state.winnerId;
-  let phase = state.phase;
-  const messages = [!primary ? `${target.name} took ${damage} ${getSecondarySourceLabel(source, weaponDefinition.name)}.` :
-    reactionDefinition?.id === "defense_decoy"
-      ? `${target.name} was hit by Ricochet with ${weaponDefinition.name} for ${damage} damage.`
-      : `${attacker.name} attacked ${target.name} with ${weaponDefinition.name} for ${damage} damage.`
-  ];
-
-  if (reaction && reactionDefinition) {
-    messages.push(`${target.name} played ${reactionDefinition.name}.`);
-  }
-
-  if (reactionResult.message) {
-    messages.push(reactionResult.message.replace("{defender}", target.name));
-  }
-
-  if (reviveResult && reviveResult.appliedHealingCards > 0) {
-    messages.push(`${target.name} applied ${reviveResult.appliedHealingCards} healing cards and recovered to ${reviveResult.health} health.`);
-  }
-
-  if (counterDamage > 0) {
-    messages.push(`${target.name} counterattacked ${attacker.name} for ${counterDamage} damage.`);
-  }
-
-  if (eliminated) {
-    messages.push(primary ? `${target.name} was eliminated.` : `${target.name} was eliminated by ${getSecondaryEliminationLabel(source)}.`);
-  }
-
-  splashTargets.forEach((splashTarget) => {
-    const splashDamage = weaponDefinition.splashDamage ?? 0;
-    messages.push(`${splashTarget.name} took ${splashDamage} splash damage from ${weaponDefinition.name}.`);
-    if (splashTarget.health <= splashDamage) {
-      messages.push(`${splashTarget.name} was eliminated by splash damage.`);
-    }
-  });
-
-  const players = state.players.map((player) => {
-    if (player.id === attacker.id) {
-      const attackerHealth = attackerHealthAfterCounter;
-      return {
-        ...player,
-        hand: !primary || options.keepWeaponInHand && attackerHealth > 0 ? player.hand : player.hand.filter((card) => card.instanceId !== weapon.instanceId),
-        health: attackerRewardedHealth,
-        eliminated: player.eliminated || attackerHealth === 0,
-        eliminations: player.eliminations + attackerEliminations,
-        ...(primary ? {
-          attackedThisRound: true,
-          actedThisRound: true,
-          actionsRemaining: options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1)
-        } : {})
-      };
-    }
-
-    if (player.id === target.id) {
-      return {
-        ...player,
-        hand: targetHandAfterReaction,
-        health: defenderRewardedHealth,
-        eliminated,
-        eliminations: player.eliminations + (counterEliminatesAttacker ? 1 : 0)
-      };
-    }
-
-    const splashTarget = splashTargets.find((candidate) => candidate.id === player.id);
-    if (splashTarget) {
-      const splashHealth = Math.max(0, player.health - (weaponDefinition.splashDamage ?? 0));
-      return {
-        ...player,
-        health: splashHealth,
-        eliminated: splashHealth === 0
-      };
-    }
-
-    return player;
+  const reactionResult = resolveReactionDamage(baseDamage, weaponDefinition, reactionDefinition);
+  // Played cards leave hands before automatic Revive discards the rest.
+  const targetHit = damagePlayer({ ...target, hand: reaction ? target.hand.filter(card => card.instanceId !== reaction.instanceId) : target.hand }, reactionResult.damage);
+  const counterDamage = options.resolveCounterDamage === false ? 0 : reactionResult.counterDamage;
+  const attackerHit = damagePlayer({ ...attacker, hand: primary && !options.keepWeaponInHand ? attacker.hand.filter(card => card.instanceId !== weapon.instanceId) : attacker.hand }, counterDamage);
+  const splashTargets = weaponDefinition.id === "weapon_grenade" && options.resolveSplash !== false
+    ? getGrenadeSplashTargets(state.players, attacker.id, target.id).filter(player => !areTeammates(attacker, player)) : [];
+  const splashHits = splashTargets.map(player => damagePlayer(player, weaponDefinition.splashDamage ?? 0));
+  const attackerEliminations = Number(targetHit.player.eliminated) + splashHits.filter(hit => hit.player.eliminated).length;
+  const counterEliminatesAttacker = attackerHit.player.eliminated;
+  const attackerHealthAfterCounter = attackerHit.player.health;
+  const attackerRewardedHealth = attackerHit.player.recovering ? 1 : applyEliminationHealthReward(attackerHealthAfterCounter, attackerEliminations, state);
+  const defenderRewardedHealth = targetHit.player.recovering ? 1 : applyEliminationHealthReward(targetHit.player.health, Number(counterEliminatesAttacker), state);
+  const attackerReward = attackerRewardedHealth - attackerHealthAfterCounter;
+  const defenderReward = defenderRewardedHealth - targetHit.player.health;
+  state = recordCombatEffects(state, attacker, target, source === "counterattack" ? "defense_counterattack" : source === "backfire" ? "defense_backfire" : weapon.definitionId,
+    baseDamage, targetHit.damage, attackerHit.damage, attackerReward, defenderReward, source, reaction?.definitionId);
+  state = recordEffects(state, ...splashHits.map(hit => ({ kind: "damage" as const, source: "splash" as const, cardDefinitionId: weapon.definitionId, sourcePlayerId: attacker.id, playerId: hit.player.id, amount: hit.damage })));
+  const discardedWeapon = primary && (!options.keepWeaponInHand || attackerHit.player.eliminated);
+  const players = state.players.map(player => {
+    if (player.id === attacker.id) return {
+      ...attackerHit.player, health: attackerRewardedHealth,
+      hand: discardedWeapon ? attackerHit.player.hand.filter(card => card.instanceId !== weapon.instanceId) : attackerHit.player.hand,
+      eliminations: player.eliminations + attackerEliminations,
+      ...(primary ? { attackedThisRound: true, actedThisRound: true,
+        actionsRemaining: attackerHit.player.recovering ? 0 : options.spendAction === false ? player.actionsRemaining : Math.max(0, player.actionsRemaining - 1) } : {})
+    };
+    if (player.id === target.id) return { ...targetHit.player, health: defenderRewardedHealth, eliminations: player.eliminations + Number(counterEliminatesAttacker) };
+    return splashHits.find(hit => hit.player.id === player.id)?.player ?? player;
   });
   const nextState = { ...state, players };
-  const attackerRewardGain = attackerRewardedHealth - attackerHealthAfterCounter;
-  if (attackerRewardGain > 0) {
-    messages.push(`${attacker.name} recovered ${attackerRewardGain} health from elimination reward.`);
-  }
-  const defenderRewardGain = defenderRewardedHealth - nextHealth;
-  if (defenderRewardGain > 0) {
-    messages.push(`${target.name} recovered ${defenderRewardGain} health from elimination reward.`);
-  }
+  let winnerId = state.winnerId;
+  let phase = state.phase;
+  const messages = [primary ? `${attacker.name} attacked ${target.name} with ${weaponDefinition.name} for ${targetHit.damage} damage.`
+    : `${target.name} took ${targetHit.damage} ${getSecondarySourceLabel(source, weaponDefinition.name)}.`];
+  if (reaction && reactionDefinition) messages.push(`${target.name} played ${reactionDefinition.name}.`);
+  if (reactionResult.message) messages.push(reactionResult.message.replace("{defender}", target.name));
+  for (const hit of [targetHit, attackerHit, ...splashHits]) if (hit.revived) messages.push(recoveryMessage(hit.player));
+  if (counterDamage > 0) messages.push(`${target.name} counterattacked ${attacker.name} for ${attackerHit.damage} damage.`);
+  if (targetHit.player.eliminated) messages.push(primary ? `${target.name} was eliminated.` : `${target.name} was eliminated by ${getSecondaryEliminationLabel(source)}.`);
+  splashHits.forEach(hit => {
+    messages.push(`${hit.player.name} took ${hit.damage} splash damage from ${weaponDefinition.name}.`);
+    if (hit.player.eliminated) messages.push(`${hit.player.name} was eliminated by splash damage.`);
+  });
+  if (attackerReward > 0) messages.push(`${attacker.name} recovered ${attackerReward} health from elimination reward.`);
+  if (defenderReward > 0) messages.push(`${target.name} recovered ${defenderReward} health from elimination reward.`);
 
   const winner = getWinner(nextState);
   const winnerTeamId = getWinningTeamId(nextState);
@@ -195,9 +132,9 @@ function resolveWeaponHit(
           : nextState.smokeProtectedPlayerIds,
       discardPile: [
         ...nextState.discardPile,
-        ...(!primary || options.keepWeaponInHand && attackerHealthAfterCounter > 0 ? [] : [weapon]),
+        ...(discardedWeapon ? [weapon] : []),
         ...(reaction ? [reaction] : []),
-        ...(reactionResult.discardsDefenderHand ? revivedDiscardedCards : [])
+        ...targetHit.discarded, ...attackerHit.discarded, ...splashHits.flatMap(hit => hit.discarded)
       ],
       phase,
       winnerId,
@@ -263,34 +200,18 @@ function applyEliminationHealthReward(health: number, eliminations: number, stat
   return Math.min(state.settings.maxHealth, health + eliminations * state.settings.eliminationHealthReward);
 }
 
-function resolveReviveHand(hand: CardInstance[], reaction: CardInstance | null, state: GameState) {
-  const healingCards = hand.filter((card) => card.instanceId !== reaction?.instanceId && getCardDefinitionById(card.definitionId)?.type === "healing");
-  const heal = healingCards.reduce((total, card) => total + (getCardDefinitionById(card.definitionId)?.heal ?? 0), 0);
-
-  return {
-    health: Math.min(state.settings.maxHealth, 1 + heal),
-    discardedCards: hand.filter((card) => card.instanceId !== reaction?.instanceId),
-    appliedHealingCards: healingCards.length
-  };
-}
-
 function resolveReactionDamage(
   baseDamage: number,
-  defenderHealth: number,
   weaponDefinition: CardDefinition,
   reactionDefinition: CardDefinition | undefined
 ): {
   damage: number;
   counterDamage: number;
-  survivesLethal: boolean;
-  discardsDefenderHand: boolean;
   message: string | null;
 } {
   const baseResult = {
     damage: baseDamage,
     counterDamage: 0,
-    survivesLethal: false,
-    discardsDefenderHand: false,
     message: null
   };
 
@@ -322,15 +243,6 @@ function resolveReactionDamage(
       damage: 0,
       counterDamage: baseDamage,
       message: "{defender} caused the attack to backfire."
-    };
-  }
-
-  if (reactionDefinition.id === "defense_fake_death" && baseDamage >= defenderHealth) {
-    return {
-      ...baseResult,
-      survivesLethal: true,
-      discardsDefenderHand: true,
-      message: "{defender} revived and survived at 1 health."
     };
   }
 

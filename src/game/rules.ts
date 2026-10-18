@@ -28,7 +28,7 @@ export function hasPendingDecision(state: GameState): boolean {
 }
 
 export function canPlayerEndTurn(state: GameState, playerId: PlayerId): boolean {
-  return state.phase === "action" && !hasPendingDecision(state) && getCurrentPlayer(state)?.id === playerId;
+  return state.phase === "action" && !hasPendingDecision(state) && getCurrentPlayer(state)?.id === playerId && !getCurrentPlayer(state)?.recovering;
 }
 
 export function canPlayerAct(state: GameState, playerId: PlayerId): boolean {
@@ -66,7 +66,7 @@ export function areTeammates(left: PlayerState | undefined, right: PlayerState |
 }
 
 export function isHostileTarget(attacker: PlayerState, target: PlayerState): boolean {
-  return attacker.id !== target.id && !areTeammates(attacker, target);
+  return attacker.id !== target.id && !target.recovering && !areTeammates(attacker, target);
 }
 
 export function labelTeam(teamId: TeamId): string {
