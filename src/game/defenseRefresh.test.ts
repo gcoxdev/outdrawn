@@ -4,37 +4,34 @@ import { gameReducer } from "./reducer";
 import { createNewGame } from "./setup";
 import { chooseAutomatedAction } from "./simulator";
 
-function fixture(defenseId: string, weaponId = "weapon_pistol", noCover = false) {
+function fixture(defenseId: string, weaponId = "weapon_pistol") {
   const state = createNewGame(["Ari", "Blake", "Casey"], () => 0);
   const weapon = { instanceId: "weapon", definitionId: weaponId };
   const reaction = { instanceId: "defense", definitionId: defenseId };
   state.players.forEach(player => { player.hand = []; });
   state.players[0].hand = [weapon];
   state.players[1].hand = [reaction];
-  if (noCover) state.activeEvent = { card: { instanceId: "event", definitionId: "event_no_cover" }, timing: "thisRound" };
   return { state, weapon, reaction };
 }
 
 describe("refreshed blocking defenses", () => {
   it.each([
-    ["defense_armor_vest", 3, 0, 0],
-    ["defense_armor_vest", 8, 4, 5],
-    ["defense_shield_plate", 1, 0, 1],
-    ["defense_shield_plate", 3, 1, 2],
-    ["defense_shield_plate", 8, 4, 5],
-    ["defense_brace", 1, 0, 0],
-    ["defense_brace", 3, 1, 2],
-    ["defense_brace", 8, 6, 7]
-  ])("%s against %i damage resolves ordinary and secondary hits, including No Cover", (id, damage, normal, exposed) => {
-    for (const noCover of [false, true]) {
-      const { state, weapon, reaction } = fixture(id, "weapon_pistol", noCover);
-      const [attacker, defender] = state.players;
-      const primary = resolveAttack(state, attacker, defender, weapon, reaction, { baseDamageOverride: damage });
-      const secondary = resolveSecondaryDamage(state, attacker, defender, weapon, damage, "ricochet", reaction);
-      const expected = 20 - (noCover ? exposed : normal);
-      expect(primary.state.players[1].health).toBe(expected);
-      expect(secondary.state.players[1].health).toBe(expected);
-    }
+    ["defense_armor_vest", 3, 0],
+    ["defense_armor_vest", 8, 4],
+    ["defense_shield_plate", 1, 0],
+    ["defense_shield_plate", 3, 1],
+    ["defense_shield_plate", 8, 4],
+    ["defense_brace", 1, 0],
+    ["defense_brace", 3, 1],
+    ["defense_brace", 8, 6]
+  ])("%s against %i damage resolves ordinary and secondary hits", (id, damage, normal) => {
+    const { state, weapon, reaction } = fixture(id, "weapon_pistol");
+    const [attacker, defender] = state.players;
+    const primary = resolveAttack(state, attacker, defender, weapon, reaction, { baseDamageOverride: damage });
+    const secondary = resolveSecondaryDamage(state, attacker, defender, weapon, damage, "ricochet", reaction);
+    const expected = 20 - normal;
+    expect(primary.state.players[1].health).toBe(expected);
+    expect(secondary.state.players[1].health).toBe(expected);
   });
 
   it.each([

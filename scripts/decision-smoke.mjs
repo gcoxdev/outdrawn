@@ -119,11 +119,17 @@ try {
       assert(next.players[0].hand.some(card => card.instanceId === before.pendingSearch.cards[0].instanceId));
       assert(before.pendingSearch.cards.slice(1).every(card => next.discardPile.some(discard => discard.instanceId === card.instanceId)));
 
-      await load("supply");
-      await button("Keep Dodge").click();
-      assert.equal((await saved()).pendingSupplyDrop.currentIndex, 1);
-      await button("Pass").click();
-      assert.equal((await saved()).pendingSupplyDrop.currentIndex, 2);
+      await load("steal");
+      const stealing = await saved();
+      const order = stealing.pendingSteal.cardInstanceIds;
+      assert.equal(await page.getByRole("button", { name: /^Steal face-down card/ }).count(), order.length);
+      await page.reload();
+      assert.deepEqual((await saved()).pendingSteal.cardInstanceIds, order);
+      await button("Steal face-down card 1").click();
+      const stolen = await saved();
+      assert.equal(stolen.pendingSteal, null);
+      assert(stolen.players[0].hand.some(card => card.instanceId === order[0]));
+      assert(!stolen.players[1].hand.some(card => card.instanceId === order[0]));
 
       await load("market");
       assert(await button("Confirm Market Pick").isDisabled());
@@ -196,7 +202,7 @@ try {
       assert.equal((await saved()).phase, "action");
     }
     assert.deepEqual(errors, []);
-    console.log(`PASS ${engine}: restricted hand choices in tile/list views, card preview/choice separation, supply handoff, market limits/payment, 100-player Minigun allocation, warnings, confirmation layouts`);
+    console.log(`PASS ${engine}: restricted hand choices in tile/list views, card preview/choice separation, stable face-down Steal choices, market limits/payment, 100-player Minigun allocation, warnings, confirmation layouts`);
     await browser.close(); browser = null;
   }
 } finally {

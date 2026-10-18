@@ -39,9 +39,6 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
   const pendingAttackCostPlayer = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.attackerId) : undefined;
   const pendingAttackCostTarget = state.pendingAttackCost ? getPlayer(state, state.pendingAttackCost.targetPlayerId) : undefined;
   const pendingDiscardPlayer = state.pendingDiscard ? getPlayer(state, state.pendingDiscard.playerId) : undefined;
-  const pendingSupplyDropPlayer = state.pendingSupplyDrop
-    ? getPlayer(state, state.pendingSupplyDrop.playerOrder[state.pendingSupplyDrop.currentIndex])
-    : undefined;
   const pendingMarketPlayer = state.pendingMarketSearch ? getPlayer(state, state.pendingMarketSearch.playerId) : undefined;
   const pendingBlackMarketPlayer = state.pendingBlackMarket ? getPlayer(state, state.pendingBlackMarket.playerId) : undefined;
   const pendingStealPlayer = state.pendingSteal ? getPlayer(state, state.pendingSteal.playerId) : undefined;
@@ -182,24 +179,6 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
     );
   }
 
-  if (state.pendingSupplyDrop && pendingSupplyDropPlayer) {
-    return (
-      <section className="action-panel reaction-panel">
-        <div>
-          <p className="eyebrow">Supply Drop</p>
-          <h2>{pendingSupplyDropPlayer.name}, claim 1 card or pass</h2>
-          <p>Choose one revealed card to add to your hand. Unclaimed cards are discarded after everyone has had a choice.</p>
-        </div>
-        <CardChoices cards={state.pendingSupplyDrop.revealedCards} onChoose={instanceId => dispatch({
-          type: "RESOLVE_SUPPLY_DROP_PICK", playerId: pendingSupplyDropPlayer.id, cardInstanceId: instanceId
-        })} />
-        <div className="decision-footer"><p>Prefer your current hand?</p><button type="button" onClick={() => dispatch({
-          type: "RESOLVE_SUPPLY_DROP_PICK", playerId: pendingSupplyDropPlayer.id, cardInstanceId: null
-        })}>Pass</button></div>
-      </section>
-    );
-  }
-
   if (state.pendingMarketSearch && pendingMarketPlayer) {
     return (
       <section className="action-panel reaction-panel">
@@ -283,16 +262,17 @@ export function ActionPanel({ state, currentPlayer, selectedDiscardCards, discar
           <p>Pick one card from {pendingStealTarget.name}'s hand.</p>
         </div>
         <div className="pending-discard-list">
-          {pendingStealTarget.hand.map((card) => (
+          {state.pendingSteal.cardInstanceIds.map((cardInstanceId, index) => (
             <button
               className="reaction-card-button"
-              key={card.instanceId}
+              key={cardInstanceId}
+              aria-label={`Steal face-down card ${index + 1}`}
               onClick={() =>
                 dispatch({
                   type: "RESOLVE_PENDING_STEAL",
                   playerId: pendingStealPlayer.id,
                   targetPlayerId: pendingStealTarget.id,
-                  cardInstanceId: card.instanceId
+                  cardInstanceId
                 })
               }
             >

@@ -249,9 +249,9 @@ export function getBotObservation(state: GameState): GameState {
     mainDeck: hidden(state.mainDeck),
     deckRandomState: undefined,
     resolvedEffects: undefined,
-    eventDeck: hidden(state.eventDeck),
     log: [],
     selectedCardId: null,
+    pendingSteal: state.pendingSteal && { ...state.pendingSteal, cardInstanceIds: state.pendingSteal.cardInstanceIds.map((_, index) => `hidden_${index}`) },
     pendingSearch: state.pendingSearch && { ...state.pendingSearch, cards: state.pendingSearch.playerId === actorId ? state.pendingSearch.cards : hidden(state.pendingSearch.cards) },
     pendingMarketSearch: state.pendingMarketSearch && { ...state.pendingMarketSearch, cards: state.pendingMarketSearch.playerId === actorId ? state.pendingMarketSearch.cards : hidden(state.pendingMarketSearch.cards) },
     drawContinuations: state.drawContinuations?.map(job => ({ ...job, cards: hidden(job.cards) }))
@@ -263,8 +263,8 @@ export function chooseAutomatedAction(state: GameState, strategy: StrategyLevel,
   const action = chooseObservedAction(observation, strategy, random);
   if (action.type === "RESOLVE_PENDING_STEAL") {
     // Translate an opaque face-down position only after the policy has chosen it.
-    const index = getPlayer(observation, action.targetPlayerId)!.hand.findIndex(card => card.instanceId === action.cardInstanceId);
-    return { ...action, cardInstanceId: getPlayer(state, action.targetPlayerId)!.hand[index].instanceId };
+    const index = observation.pendingSteal!.cardInstanceIds.indexOf(action.cardInstanceId);
+    return { ...action, cardInstanceId: state.pendingSteal!.cardInstanceIds[index] };
   }
   return action;
 }
@@ -293,8 +293,6 @@ function chooseObservedAction(state: GameState, strategy: StrategyLevel, random:
       }
       case "search": return { type: "RESOLVE_PENDING_SEARCH", playerId: player.id,
         keepCardInstanceId: pickBestCard(decision.pending.cards, strategy, random).instanceId };
-      case "supplyDrop": return { type: "RESOLVE_SUPPLY_DROP_PICK", playerId: player.id,
-        cardInstanceId: chooseSupplyDropCard(decision.pending.revealedCards, strategy, random)?.instanceId ?? null };
       case "marketSearch": return { type: "RESOLVE_MARKET_SEARCH", playerId: player.id,
         keepCardInstanceIds: pickBestCards(decision.pending.cards, decision.pending.keepCount, strategy, random).map(card => card.instanceId) };
       case "blackMarket": {
@@ -308,7 +306,7 @@ function chooseObservedAction(state: GameState, strategy: StrategyLevel, random:
       case "steal": {
         const target = getPlayer(state, decision.pending.targetPlayerId)!;
         return { type: "RESOLVE_PENDING_STEAL", playerId: player.id, targetPlayerId: target.id,
-          cardInstanceId: randomItem(target.hand, random).instanceId };
+          cardInstanceId: randomItem(decision.pending.cardInstanceIds, random) };
       }
     }
   }
@@ -746,10 +744,9 @@ function forceProgress(state: GameState, metrics: SimulationMetrics): GameState 
 }
 
 export function ownedCards(state: GameState): CardInstance[] {
-  return [...state.mainDeck, ...state.eventDeck, ...state.discardPile, ...state.eventDiscardPile,
-    ...state.players.flatMap(player => player.hand), ...(state.activeEvent ? [state.activeEvent.card] : []),
+  return [...state.mainDeck, ...state.discardPile, ...state.eventDiscardPile,
+    ...state.players.flatMap(player => player.hand),
     ...(state.pendingSearch?.cards ?? []), ...(state.pendingMarketSearch?.cards ?? []),
-    ...(state.pendingSupplyDrop?.revealedCards ?? []),
     ...(state.drawContinuations ?? []).flatMap(job => [...job.cards, ...(job.playedCard ? [job.playedCard] : [])])];
 }
 
@@ -830,14 +827,6 @@ function chooseRedirectTarget(
   }
 
   return chooseThreatTarget(targets, strategy, random);
-}
-
-function chooseSupplyDropCard(cards: CardInstance[], strategy: StrategyLevel, random: () => number): CardInstance | null {
-  if (strategy === "beginner" && random() < 0.25) {
-    return null;
-  }
-
-  return pickBestCard(cards, strategy, random);
 }
 
 function chooseAbilityTarget(

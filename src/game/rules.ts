@@ -70,13 +70,7 @@ export function isHostileTarget(attacker: PlayerState, target: PlayerState): boo
 }
 
 export function labelTeam(teamId: TeamId): string {
-  const labels: Record<string, string> = {
-    team_a: "Team A",
-    team_b: "Team B",
-    team_c: "Team C"
-  };
-
-  return labels[teamId] ?? labelGeneratedTeam(teamId);
+  return labelGeneratedTeam(teamId);
 }
 
 export function getDecisionPlayerId(state: GameState): string {

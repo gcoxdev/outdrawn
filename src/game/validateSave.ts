@@ -1,6 +1,7 @@
 import { MIN_PLAYERS } from "./setupOptions";
 import { allCards } from "../data/cards";
 import { normalizeSettings } from "./settings";
+import { shuffleWithState } from "./deck";
 import type { GameState } from "./types";
 
 const definitions = new Map(allCards.map(card => [card.id, card]));
@@ -15,11 +16,22 @@ function array(value: unknown, check: (item: any) => void, max = 10000): asserts
 function card(value: unknown) { object(value); text(value.instanceId); requireValue(definitions.has(value.definitionId)); }
 function cards(value: unknown) { array(value, card); }
 
-/** Validate before rendering: JSON types, references, pending choices and ownership. */
+/** Validate before rendering and migrate compatible v1 fields in place. */
 export function validateSavedGame(value: unknown): asserts value is GameState {
   object(value);
+  // Current v1 saves carry these inert fields. Do not silently lose cards from
+  // an unsupported historical event or Supply Drop still in progress.
+  for (const key of ["activeEvent", "pendingSupplyDrop"]) {
+    requireValue(value[key] === undefined || value[key] === null);
+    delete value[key];
+  }
+  requireValue(value.eventDeck === undefined || (Array.isArray(value.eventDeck) && value.eventDeck.length === 0));
+  delete value.eventDeck;
   requireValue(value.phase === "action" || value.phase === "gameOver");
   object(value.settings);
+  object(value.settings.blackMarketCustom);
+  requireValue(value.settings.blackMarketCustom.actionCost === undefined || value.settings.blackMarketCustom.actionCost === 0);
+  delete value.settings.blackMarketCustom.actionCost;
   const normalized = normalizeSettings(value.settings);
   for (const key of Object.keys(normalized)) {
     requireValue(key === "blackMarketCustom" ? Object.entries(normalized.blackMarketCustom).every(([field, expected]) => value.settings.blackMarketCustom?.[field] === expected) : value.settings[key] === normalized[key as keyof typeof normalized]);
@@ -43,7 +55,7 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
   const playerIds = (list: unknown) => array(list, playerId, 100);
   const nullableId = (id: unknown) => { if (id !== null) playerId(id); };
   number(value.currentPlayerIndex, 0, value.players.length - 1); number(value.firstPlayerIndex, 0, value.players.length - 1);
-  for (const key of ["mainDeck", "eventDeck", "discardPile", "eventDiscardPile"]) cards(value[key]);
+  for (const key of ["mainDeck", "discardPile", "eventDiscardPile"]) cards(value[key]);
   if (value.deckRandomState !== undefined) number(value.deckRandomState, 0, 0xffffffff);
   for (const key of ["reloadPlayerIds", "smokeProtectedPlayerIds"]) playerIds(value[key]);
   for (const key of ["attackBonuses", "markedTargets", "intimidations"]) {
@@ -58,7 +70,6 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
   const event = (p: any) => { object(p); card(p.card); requireValue(definitions.get(p.card.definitionId)?.type === "event"); playerId(p.playerId); };
   const attack = (p: any) => { object(p); playerId(p.attackerId); playerId(p.defenderId); card(p.weapon); requireValue(definitions.get(p.weapon.definitionId)?.type === "weapon"); number(p.baseDamage); };
   const secondary = (p: any) => { attack(p); requireValue(["splash", "ricochet", "minigun", "counterattack", "backfire"].includes(p.source)); };
-  pending("activeEvent", p => { card(p.card); requireValue(["thisRound", "ongoing"].includes(p.timing)); if (p.sourcePlayerId !== undefined) playerId(p.sourcePlayerId); if (p.exemptPlayerIds !== undefined) playerIds(p.exemptPlayerIds); });
   pending("pendingEventDialog", event); optional("eventDialogQueue", v => array(v, event));
   optional("resolvedEventCount", v => number(v));
   optional("damageTrackingStartedMidMatch", boolean);
@@ -78,9 +89,20 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
   });
   pending("pendingSearch", p => { playerId(p.playerId); cards(p.cards); requireValue(p.cards.length > 0); });
   pending("pendingMarketSearch", p => { playerId(p.playerId); cards(p.cards); number(p.keepCount, 0, p.cards.length); });
-  pending("pendingSupplyDrop", p => { playerIds(p.playerOrder); number(p.currentIndex, 0, p.playerOrder.length - 1); cards(p.revealedCards); });
   pending("pendingBlackMarket", event);
-  pending("pendingSteal", p => { playerId(p.playerId); playerId(p.targetPlayerId); });
+  pending("pendingSteal", p => {
+    playerId(p.playerId); playerId(p.targetPlayerId);
+    requireValue(p.playerId !== p.targetPlayerId);
+    const handIds = value.players.find((player: any) => player.id === p.targetPlayerId).hand.map((c: any) => c.instanceId);
+    requireValue(handIds.length > 0);
+    if (p.cardInstanceIds === undefined) {
+      const order = shuffleWithState(handIds, value.deckRandomState);
+      p.cardInstanceIds = order.shuffled;
+      value.deckRandomState = order.randomState;
+    }
+    array(p.cardInstanceIds, id => { text(id); requireValue(handIds.includes(id)); });
+    requireValue(p.cardInstanceIds.length === handIds.length && new Set(p.cardInstanceIds).size === handIds.length);
+  });
   optional("drawContinuations", v => array(v, p => {
     object(p); playerId(p.playerId); number(p.remaining); cards(p.cards); boolean(p.replaceEvents);
     requireValue(p.destination === "hand" || p.destination === "search");
@@ -92,8 +114,8 @@ export function validateSavedGame(value: unknown): asserts value is GameState {
     if (entry.participantIds !== undefined) playerIds(entry.participantIds);
   }, 1000);
   requireValue(new Set(value.log.map(entry => entry.id)).size === value.log.length);
-  const owned = [...value.mainDeck, ...value.eventDeck, ...value.discardPile, ...value.eventDiscardPile, ...value.players.flatMap(p => p.hand),
-    ...(value.activeEvent ? [value.activeEvent.card] : []), ...(value.pendingSearch?.cards ?? []), ...(value.pendingMarketSearch?.cards ?? []), ...(value.pendingSupplyDrop?.revealedCards ?? []),
+  const owned = [...value.mainDeck, ...value.discardPile, ...value.eventDiscardPile, ...value.players.flatMap(p => p.hand),
+    ...(value.pendingSearch?.cards ?? []), ...(value.pendingMarketSearch?.cards ?? []),
     ...(value.drawContinuations ?? []).flatMap((p: any) => [...p.cards, ...(p.playedCard ? [p.playedCard] : [])])];
   const ownedDefinitions = new Map(owned.map(c => [c.instanceId, c.definitionId]));
   requireValue(ownedDefinitions.size === owned.length);

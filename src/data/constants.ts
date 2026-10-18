@@ -9,7 +9,6 @@ export type TurnOrderMode = "standard" | "roundRobin";
 export type BlackMarketPreset = "standard" | "discount" | "bigger" | "healthPay" | "custom";
 
 export type BlackMarketConfig = {
-  actionCost: number;
   discardCost: number;
   healthCost: number;
   revealCount: number;
@@ -35,11 +34,11 @@ export type GameSettings = {
 };
 
 export const blackMarketPresets: Record<BlackMarketPreset, BlackMarketConfig> = {
-  standard: { actionCost: 0, discardCost: 2, healthCost: 0, revealCount: 3, keepCount: 1 },
-  discount: { actionCost: 0, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1 },
-  bigger: { actionCost: 0, discardCost: 2, healthCost: 0, revealCount: 5, keepCount: 2 },
-  healthPay: { actionCost: 0, discardCost: 0, healthCost: 2, revealCount: 3, keepCount: 1 },
-  custom: { actionCost: 0, discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1 }
+  standard: { discardCost: 2, healthCost: 0, revealCount: 3, keepCount: 1 },
+  discount: { discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1 },
+  bigger: { discardCost: 2, healthCost: 0, revealCount: 5, keepCount: 2 },
+  healthPay: { discardCost: 0, healthCost: 2, revealCount: 3, keepCount: 1 },
+  custom: { discardCost: 1, healthCost: 0, revealCount: 3, keepCount: 1 }
 };
 
 export const defaultGameSettings: GameSettings = {

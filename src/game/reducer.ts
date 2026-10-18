@@ -1,9 +1,10 @@
+import { omitKey } from "./record";
 import { getRicochetTargets } from "./rules";
 import { accumulateDamageDealt, recordEffects, recordHealthChanges } from "./effects";
 import { acceptsDecisionAction, getPlayerDecision } from "./decisions";
 import { allCards, type CardType } from "../data/cards";
 import { blackMarketPresets } from "../data/constants";
-import { drawCardsWithRefill } from "./deck";
+import { drawCardsWithRefill, shuffleWithState } from "./deck";
 import { finalizeEliminations } from "./elimination";
 import { normalizeSettings } from "./settings";
 import type { CardInstance, DrawContinuation, PlayerId, SecondaryDamageItem, SecondaryDamageSource } from "./types";
@@ -109,7 +110,7 @@ function advanceTurn(state: GameState): GameState {
     return collapseGameOver;
   }
 
-  const transitionState = nextRound ? expireActiveEvent(collapseState) : state;
+  const transitionState = nextRound ? collapseState : state;
 
   const firstPlayerIndex =
     state.settings.turnOrder === "roundRobin"
@@ -191,7 +192,6 @@ function completeGame(state: GameState, winner: PlayerState | null, winnerTeamId
     pendingMultiHitAttack: null,
     pendingDiscard: null,
     pendingSearch: null,
-    pendingSupplyDrop: null,
     pendingMarketSearch: null,
     pendingBlackMarket: null,
     pendingSteal: null,
@@ -363,18 +363,6 @@ function applyImmediateEvent(state: GameState, eventId: string, sourcePlayerId?:
   return state;
 }
 
-function expireActiveEvent(state: GameState): GameState {
-  if (!state.activeEvent) {
-    return state;
-  }
-
-  return {
-    ...state,
-    activeEvent: null,
-    eventDiscardPile: [...state.eventDiscardPile, state.activeEvent.card]
-  };
-}
-
 function queueDraws(state: GameState, jobs: DrawContinuation[]): GameState {
   return { ...state, drawContinuations: [...jobs, ...(state.drawContinuations ?? [])] };
 }
@@ -461,22 +449,21 @@ function drawMarketCardsSkippingEvents(state: GameState, count: number) {
 function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: PlayerId): GameState {
   const definition = getCardDefinitionById(eventCard.definitionId);
   const player = getPlayer(state, playerId);
-  const stateWithoutActiveEvent = state;
 
   if (!definition || definition.type !== "event" || !player) {
     return state;
   }
 
   if (definition.timing === "immediate") {
-    const shouldShowEventDialog = stateWithoutActiveEvent.players.some((candidate) => !candidate.eliminated && candidate.controller.type === "human");
+    const shouldShowEventDialog = state.players.some((candidate) => !candidate.eliminated && candidate.controller.type === "human");
     const eventState = {
-      ...stateWithoutActiveEvent,
+      ...state,
       resolvedEventCount: (state.resolvedEventCount ?? 0) + 1,
       pendingEventDialog: state.pendingEventDialog ?? (shouldShowEventDialog ? { card: eventCard, playerId } : null),
       eventDialogQueue: shouldShowEventDialog && state.pendingEventDialog
         ? [...(state.eventDialogQueue ?? []), { card: eventCard, playerId }] : state.eventDialogQueue,
       eventDiscardPile:
-        [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
+        [...state.eventDiscardPile, eventCard]
     };
     const eventLoggedState = log(eventState, `${player.name} drew ${definition.name}.`);
     const applied = finalizeEliminations(applyImmediateEvent(eventLoggedState, definition.id, playerId, eventCard));
@@ -491,32 +478,14 @@ function resolveDrawnEvent(state: GameState, eventCard: CardInstance, playerId: 
     return completeGameIfOver(resolved, state.players) ?? resolved;
   }
 
-  if (definition.timing === "thisRound" || definition.timing === "ongoing") {
-    return log(
-      {
-        ...stateWithoutActiveEvent,
-        pendingEventDialog: {
-          card: eventCard,
-          playerId
-        },
-        activeEvent: {
-          card: eventCard,
-          timing: definition.timing,
-          sourcePlayerId: playerId
-        }
-      },
-      `${player.name} drew ${definition.name}. Event: ${definition.name}.`
-    );
-  }
-
   return log(
     {
-      ...stateWithoutActiveEvent,
+      ...state,
       pendingEventDialog: {
         card: eventCard,
         playerId
       },
-      eventDiscardPile: [...stateWithoutActiveEvent.eventDiscardPile, eventCard]
+      eventDiscardPile: [...state.eventDiscardPile, eventCard]
     },
     `${player.name} drew ${definition.name}.`
   );
@@ -772,7 +741,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
           })
         };
 
-      return log(enforceHandLimit(transferredState, target.id), `${player.name} transferred ${getCardDefinitionById(card.definitionId)?.name ?? "a card"} to ${target.name}.`);
+      return log(transferredState, `${player.name} transferred a card to ${target.name}.`);
     }
     case "RESOLVE_PENDING_DISCARD": {
       const pendingDiscard = state.pendingDiscard;
@@ -846,45 +815,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         )
       };
 
-      return log(enforceHandLimit(nextState, player.id), `${player.name} kept 1 card from Search and discarded ${discarded.length}.`);
-    }
-    case "RESOLVE_SUPPLY_DROP_PICK": {
-      const pending = state.pendingSupplyDrop;
-      const expectedPlayerId = pending?.playerOrder[pending.currentIndex];
-      const player = expectedPlayerId ? getPlayer(state, expectedPlayerId) : undefined;
-      const picked = action.cardInstanceId ? pending?.revealedCards.find((card) => card.instanceId === action.cardInstanceId) : null;
-
-      if (!pending || !player || action.playerId !== expectedPlayerId || (action.cardInstanceId && !picked)) {
-        return state;
-      }
-
-      const revealedCards = picked ? pending.revealedCards.filter((card) => card.instanceId !== picked.instanceId) : pending.revealedCards;
-      const nextIndex = pending.currentIndex + 1;
-      const finished = nextIndex >= pending.playerOrder.length || revealedCards.length === 0;
-      let nextState = {
-        ...state,
-        pendingSupplyDrop: finished
-          ? null
-          : {
-              ...pending,
-              currentIndex: nextIndex,
-              revealedCards
-            },
-        discardPile: finished ? [...state.discardPile, ...revealedCards] : state.discardPile,
-        players: state.players.map((candidate) =>
-          candidate.id === player.id && picked
-            ? {
-                ...candidate,
-                hand: [...candidate.hand, picked]
-              }
-            : candidate
-        )
-      };
-      if (picked) {
-        nextState = enforceHandLimit(nextState, player.id);
-      }
-
-      return log(nextState, picked ? `${player.name} claimed a Supply Drop card.` : `${player.name} passed on Supply Drop.`);
+      return log(nextState, `${player.name} kept 1 card from Search and discarded ${discarded.length}.`);
     }
     case "START_BLACK_MARKET": {
       const pendingBlackMarket = state.pendingBlackMarket;
@@ -959,7 +890,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         )
       };
 
-      return log(enforceHandLimit(nextState, player.id), `${player.name} bought ${kept.length} Black Market card${kept.length === 1 ? "" : "s"} and discarded ${unkept.length}.`);
+      return log(nextState, `${player.name} bought ${kept.length} Black Market card${kept.length === 1 ? "" : "s"} and discarded ${unkept.length}.`);
     }
     case "PASS_BLACK_MARKET": {
       const pendingBlackMarket = state.pendingBlackMarket;
@@ -977,7 +908,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
       const target = pending ? getPlayer(state, pending.targetPlayerId) : undefined;
       const stolen = target?.hand.find((card) => card.instanceId === action.cardInstanceId);
 
-      if (!pending || !player || !target || !stolen || action.playerId !== player.id || action.targetPlayerId !== target.id) {
+      if (!pending || !player || !target || !stolen || !pending.cardInstanceIds.includes(action.cardInstanceId) || action.playerId !== player.id || action.targetPlayerId !== target.id) {
         return state;
       }
 
@@ -997,7 +928,7 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
         })
       };
 
-      return log(enforceHandLimit(nextState, player.id), `${player.name} stole 1 card from ${target.name}.`);
+      return log(nextState, `${player.name} stole 1 card from ${target.name}.`);
     }
     case "PLAY_HEALING": {
       if (!canPlayerAct(state, action.playerId)) {
@@ -1057,11 +988,11 @@ function reduceGameAction(state: GameState, action: GameAction): GameState {
             ? `${player.name} played ${definition.name} and healed ${healedAmount}.`
             : `${player.name} played ${definition.name} on ${target.name} and healed ${healedAmount}.`;
 
-        return log(enforceHandLimit(nextState, player.id), message);
+        return log(nextState, message);
       }
 
       const result = resolveHealing(state, player, card, definition, target);
-      return result.messages.reduce((nextState, message) => log(nextState, message), enforceHandLimit(result.state, player.id));
+      return result.messages.reduce((nextState, message) => log(nextState, message), result.state);
     }
     case "PLAY_ABILITY": {
       if (!canPlayerAct(state, action.playerId)) {
@@ -1730,13 +1661,6 @@ function sumValues(record: Record<string, number>): number {
   return Object.values(record).reduce((total, value) => total + value, 0);
 }
 
-
-function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
-  const next = { ...record };
-  delete next[key];
-  return next;
-}
-
 function consumeReload(state: GameState, playerId: PlayerId): GameState {
   return {
     ...state,
@@ -1814,11 +1738,14 @@ function resolveAbility(
       return log(nextState, `${player.name} played Steal, but ${target.name} had no cards.`);
     }
 
+    const order = shuffleWithState(target.hand.map(card => card.instanceId), nextState.deckRandomState);
     nextState = {
       ...nextState,
+      deckRandomState: order.randomState,
       pendingSteal: {
         playerId: player.id,
-        targetPlayerId: target.id
+        targetPlayerId: target.id,
+        cardInstanceIds: order.shuffled
       }
     };
     message = `${player.name} played Steal and must choose 1 card from ${target.name}.`;
@@ -1902,11 +1829,6 @@ function clearIntimidationsAgainst(intimidations: Record<string, string[]>, sour
       .map(([targetId, sourceIds]) => [targetId, sourceIds.filter((id) => id !== sourcePlayerId)] as const)
       .filter(([, sourceIds]) => sourceIds.length > 0)
   );
-}
-
-function enforceHandLimit(state: GameState, playerId: string): GameState {
-  void playerId;
-  return state;
 }
 
 function scheduleForcedDiscard(state: GameState, playerIds: PlayerId[], cardType: CardType, reason: string): GameState {

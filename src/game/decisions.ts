@@ -11,7 +11,6 @@ type DecisionFields = {
   attackCost: "pendingAttackCost";
   discard: "pendingDiscard";
   search: "pendingSearch";
-  supplyDrop: "pendingSupplyDrop";
   marketSearch: "pendingMarketSearch";
   blackMarket: "pendingBlackMarket";
   steal: "pendingSteal";
@@ -31,7 +30,6 @@ export function getPlayerDecision(state: GameState): Exclude<PendingDecision, { 
   if (state.pendingAttackCost) return { kind: "attackCost", playerId: state.pendingAttackCost.attackerId, pending: state.pendingAttackCost };
   if (state.pendingDiscard) return { kind: "discard", playerId: state.pendingDiscard.playerId, pending: state.pendingDiscard };
   if (state.pendingSearch) return { kind: "search", playerId: state.pendingSearch.playerId, pending: state.pendingSearch };
-  if (state.pendingSupplyDrop) return { kind: "supplyDrop", playerId: state.pendingSupplyDrop.playerOrder[state.pendingSupplyDrop.currentIndex], pending: state.pendingSupplyDrop };
   if (state.pendingMarketSearch) return { kind: "marketSearch", playerId: state.pendingMarketSearch.playerId, pending: state.pendingMarketSearch };
   if (state.pendingBlackMarket) return { kind: "blackMarket", playerId: state.pendingBlackMarket.playerId, pending: state.pendingBlackMarket };
   if (state.pendingSteal) return { kind: "steal", playerId: state.pendingSteal.playerId, pending: state.pendingSteal };
@@ -52,7 +50,6 @@ const resolutionActions: Record<PendingDecision["kind"], readonly GameAction["ty
   attackCost: ["RESOLVE_PENDING_ATTACK_COST"],
   discard: ["RESOLVE_PENDING_DISCARD"],
   search: ["RESOLVE_PENDING_SEARCH"],
-  supplyDrop: ["RESOLVE_SUPPLY_DROP_PICK"],
   marketSearch: ["RESOLVE_MARKET_SEARCH"],
   blackMarket: ["START_BLACK_MARKET", "PASS_BLACK_MARKET"],
   steal: ["RESOLVE_PENDING_STEAL"]

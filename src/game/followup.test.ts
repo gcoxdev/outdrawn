@@ -29,7 +29,7 @@ describe("bot information boundaries", () => {
         expect(chooseAutomatedAction(state, strategy, () => randomValue))
           .toEqual(chooseAutomatedAction(hiddenAlternative(state), strategy, () => randomValue));
       }
-      const stealing = { ...state, pendingSteal: { playerId: "player_1", targetPlayerId: "player_2" } };
+      const stealing = { ...state, pendingSteal: { playerId: "player_1", targetPlayerId: "player_2", cardInstanceIds: state.players[1].hand.map(card => card.instanceId) } };
       expect(chooseAutomatedAction(stealing, strategy, () => 0.6))
         .toEqual(chooseAutomatedAction(hiddenAlternative(stealing), strategy, () => 0.6));
     }

@@ -20,7 +20,6 @@ describe("game setup", () => {
     const state = createNewGame(["Ari", "Blake", "Casey", "Devon"], () => 0);
 
     expect(state.mainDeck).toHaveLength(deckSummary.mainDeckTotal + deckSummary.eventDeckTotal - 4 * STARTING_HAND_SIZE);
-    expect(state.eventDeck).toHaveLength(0);
     expect(state.players.flatMap((player) => player.hand).some((card) => card.definitionId.startsWith("event_"))).toBe(false);
     expect(state.mainDeck.some((card) => card.definitionId.startsWith("event_"))).toBe(true);
     expect(state.discardPile).toHaveLength(0);

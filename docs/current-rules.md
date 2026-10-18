@@ -6,7 +6,7 @@ These rules describe the implemented browser game. Lobby settings override the d
 
 Be the last player alive, or the last team with any living players in team mode.
 
-The current web prototype is a local browser game for 3-100 players. Each player can be human or computer-controlled. Computer players can use Beginner, Novice, Competent, Expert, or Master strategy. Supported table modes are free-for-all, duos, trios, squads, two teams, and custom teams.
+The current web prototype is a local browser game for 2-100 players. Each player can be human or computer-controlled. Computer players can use Beginner, Novice, Competent, Expert, or Master strategy. Supported table modes are free-for-all, duos, trios, squads, two teams, and custom teams.
 
 ## Setup
 
@@ -110,8 +110,9 @@ Defense cards are played from hand as reactions. There is no equipment system in
 
 ### Defense clarifications
 
-- Shield Plate rounds the damage you take down: a 3-damage hit becomes 1 damage. No Cover reduces the amount prevented by 1, as it does for other blocking defenses.
+- Shield Plate rounds the damage you take down: a 3-damage hit becomes 1 damage.
 - Ricochet cannot redirect to yourself or a teammate. It can return to the attacker only when no other living opponent is available; smoke-protected opponents still count. Ricochet redirects only the direct hit; a redirected Grenade creates no splash. A hit redirected onto the attacker or their teammate credits damage, eliminations, loot, and elimination rewards to the player who used Ricochet. Other redirects retain the original attacker’s credit. The secondary-defense setting only controls whether the new target may defend.
+- Revive can answer direct weapon hits. Grenade splash, Minigun, Counterattack, Backfire, and redirected hits require secondary defense to be enabled. Events, collapse, and self-inflicted damage cannot trigger Revive.
 - Revive consumes all healing cards without spending actions or triggering extra draws from Painkillers. Healing is capped at maximum health, and your entire hand is discarded, including Revive and the healing cards.
 
 ## Abilities

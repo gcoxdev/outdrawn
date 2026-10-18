@@ -12,13 +12,14 @@ export function fixtures() {
   const choices = () => [card("weapon_pistol"), card("defense_dodge"), card("healing_bandage")];
   const search = structuredClone(base);
   search.pendingSearch = { playerId: "player_1", cards: choices() };
-  const supply = structuredClone(base);
-  supply.pendingSupplyDrop = { playerOrder: ["player_1", "player_2", "player_3"], currentIndex: 0, revealedCards: choices() };
+  const stealBase = structuredClone(base);
+  stealBase.players[0].hand.push(card("ability_steal"));
+  const steal = gameReducer(stealBase, { type: "PLAY_ABILITY", playerId: "player_1", targetPlayerId: "player_2", cardInstanceId: stealBase.players[0].hand.at(-1)!.instanceId });
   const market = structuredClone(base);
   market.pendingMarketSearch = { playerId: "player_1", cards: choices(), keepCount: 2 };
   const trade = structuredClone(base);
   trade.settings.blackMarketPreset = "custom";
-  trade.settings.blackMarketCustom = { actionCost: 0, discardCost: 1, healthCost: 2, revealCount: 3, keepCount: 1 };
+  trade.settings.blackMarketCustom = { discardCost: 1, healthCost: 2, revealCount: 3, keepCount: 1 };
   trade.pendingBlackMarket = { playerId: "player_1", card: card("event_black_market") };
   const minigun = createNewGame(Array.from({ length: 100 }, (_, i) => `Player ${i + 1}`), () => 0);
   minigun.players[0].hand = [card("weapon_minigun")];
@@ -40,7 +41,7 @@ export function fixtures() {
   const secondary = structuredClone(reaction);
   secondary.pendingSecondaryDamage = { ...secondary.pendingReaction!, source: "ricochet", remaining: [] };
   secondary.pendingReaction = null;
-  return Object.fromEntries(Object.entries({ base, search, supply, market, trade, minigun, warning, noCover, lowAmmo, intimidate, reaction, secondary }).map(([name, state]) => {
+  return Object.fromEntries(Object.entries({ base, search, steal, market, trade, minigun, warning, noCover, lowAmmo, intimidate, reaction, secondary }).map(([name, state]) => {
     validateSavedGame(state);
     let serialized = "";
     saveGame(state, { setItem: (_key, value) => { serialized = value; }, removeItem() {} });

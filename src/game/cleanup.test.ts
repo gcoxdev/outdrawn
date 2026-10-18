@@ -198,9 +198,9 @@ describe("cleanup regressions", () => {
 
   it("normalizes nonfinite, fractional, and inconsistent settings", () => {
     const settings = normalizeSettings({ startingHealth: NaN, actionsPerTurn: -10, freeDrawsPerTurn: 2.9,
-      blackMarketCustom: { actionCost: 7, discardCost: -2, healthCost: Infinity, revealCount: 2, keepCount: 8 } });
+      blackMarketCustom: { discardCost: -2, healthCost: Infinity, revealCount: 2, keepCount: 8 } });
     expect(settings).toMatchObject({ startingHealth: 20, actionsPerTurn: 1, freeDrawsPerTurn: 2,
-      blackMarketCustom: { actionCost: 0, discardCost: 0, healthCost: 0, revealCount: 2, keepCount: 2 } });
+      blackMarketCustom: { discardCost: 0, healthCost: 0, revealCount: 2, keepCount: 2 } });
   });
 
   it("completes the assessment seeds without rejected bot actions", () => {

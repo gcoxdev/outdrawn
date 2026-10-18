@@ -37,7 +37,6 @@ describe("event cards", () => {
       startingHandSize: 7
     });
 
-    expect(state.eventDeck).toHaveLength(0);
     expect(state.players.flatMap((player) => player.hand).some((card) => card.definitionId.startsWith("event_"))).toBe(false);
     expect(state.mainDeck.some((card) => card.definitionId.startsWith("event_"))).toBe(true);
   });
@@ -54,7 +53,6 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.activeEvent).toBeNull();
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(pressureZone.instanceId);
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand).toHaveLength(0);
     expect(state.players.map((candidate) => candidate.health)).toEqual([19, 19, 19]);
@@ -133,12 +131,10 @@ describe("event cards", () => {
     };
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
-    expect(state.activeEvent).toBeNull();
     state = gameReducer(state, { type: "ACKNOWLEDGE_EVENT_DIALOG" });
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.activeEvent).toBeNull();
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(pressureZone.instanceId);
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([pistol.instanceId]);
   });
@@ -159,7 +155,6 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "PLAY_ABILITY", playerId: player.id, cardInstanceId: search.instanceId });
 
-    expect(state.activeEvent).toBeNull();
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toContain(pressureZone.instanceId);
     expect(state.players.map((candidate) => candidate.health)).toEqual([19, 19, 19]);
     expect(state.pendingSearch?.cards.map((card) => card.instanceId)).toEqual([pistol.instanceId, shield.instanceId, knife.instanceId]);
@@ -329,7 +324,6 @@ describe("event cards", () => {
     state = {
       ...state,
       round: 3,
-      eventDeck: []
     };
 
     state = endCurrentRound(state);
@@ -365,7 +359,6 @@ describe("event cards", () => {
       round: 10,
       firstPlayerIndex: 2, // Devon has acted; Ari finishes the round.
       currentPlayerIndex: 0,
-      eventDeck: [event("event_critical_condition")],
       players: state.players.map((player, index) => ({
         ...player,
         health: index === 0 ? 2 : index === 2 ? 3 : 0,
@@ -419,7 +412,6 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.pendingSupplyDrop).toBeNull();
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([
       pistol.instanceId,
       shield.instanceId,
@@ -470,7 +462,6 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.activeEvent).toBeNull();
     expect(state.eventDiscardPile.map((card) => card.instanceId)).toEqual(expect.arrayContaining([supplyDrop.instanceId, pressureZone.instanceId]));
     expect(state.players.map((candidate) => candidate.health)).toEqual([19, 19, 19]);
     expect(state.players.find((candidate) => candidate.id === player.id)?.hand.map((card) => card.instanceId)).toEqual([
@@ -549,7 +540,6 @@ describe("event cards", () => {
 
     state = gameReducer(state, { type: "DRAW_CARD", playerId: player.id });
 
-    expect(state.activeEvent).toBeNull();
     expect(state.pendingBlackMarket).toMatchObject({
       card: blackMarket,
       playerId: player.id

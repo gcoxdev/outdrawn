@@ -23,7 +23,6 @@ export function normalizeSettings(input: Partial<GameSettings>): GameSettings {
     turnOrder: settings.turnOrder === "standard" ? "standard" : "roundRobin",
     blackMarketPreset: Object.hasOwn(blackMarketPresets, settings.blackMarketPreset) ? settings.blackMarketPreset : "standard",
     blackMarketCustom: {
-      actionCost: 0,
       discardCost: integer(custom.discardCost, 1, 0, 6),
       healthCost: integer(custom.healthCost, 0, 0, 20),
       revealCount,

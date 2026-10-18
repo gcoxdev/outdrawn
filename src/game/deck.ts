@@ -39,6 +39,15 @@ export function drawCards(deck: CardInstance[], count: number) {
   };
 }
 
+/** Persist the stream so reducer replays and restored choices keep their order. */
+export function shuffleWithState<T>(items: T[], randomState = 0x6d2b79f5): { shuffled: T[]; randomState: number } {
+  const shuffled = shuffleDeck(items, () => {
+    randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
+    return randomState / 0x100000000;
+  });
+  return { shuffled, randomState };
+}
+
 export function drawCardsWithRefill(
   mainDeck: CardInstance[],
   discardPile: CardInstance[],
@@ -58,10 +67,9 @@ export function drawCardsWithRefill(
     if (deck.length === 0) {
       // Advance only when shuffling. Keeping the generator state in the match
       // makes repeated reducer calls and save/resume produce identical draws.
-      deck = shuffleDeck(discard, () => {
-        randomState = (Math.imul(randomState, 1664525) + 1013904223) >>> 0;
-        return randomState / 0x100000000;
-      });
+      const shuffle = shuffleWithState(discard, randomState);
+      deck = shuffle.shuffled;
+      randomState = shuffle.randomState;
       discard = [];
     }
 

@@ -16,7 +16,7 @@ import {
   assignTeamsForMode,
   clampPlayerCount,
   getDefaultPlayerName,
-  getTeamModeValidation as getScalableTeamModeValidation,
+  getTeamModeValidation,
   getTeamOptionsForMode,
   labelLobbyMode,
   type LobbyMode
@@ -34,7 +34,6 @@ type SetupScreenProps = {
 
 const strategyLevels: StrategyLevel[] = ["beginner", "novice", "competent", "expert", "master"];
 type ControlChoice = "human" | `computer:${StrategyLevel}`;
-type LegacyLobbyMode = "2v2" | "2v2v2" | "3v3";
 type SetupSlot = {
   name: string;
   control: ControlChoice;
@@ -335,52 +334,6 @@ function controlToController(control: ControlChoice): PlayerSetup["controller"] 
   };
 }
 
-export function getTeamModeValidation(
-  lobbyMode: LobbyMode | LegacyLobbyMode,
-  teams: TeamId[],
-  playerCount: number
-): { isValid: true; message?: undefined } | { isValid: false; message: string } {
-  if (lobbyMode === "duos" || lobbyMode === "trios" || lobbyMode === "squads" || lobbyMode === "twoTeams" || lobbyMode === "custom") {
-    return getScalableTeamModeValidation(lobbyMode, teams, playerCount);
-  }
-
-  if (lobbyMode === "ffa") {
-    return { isValid: true };
-  }
-
-  const requiredCounts: Record<LegacyLobbyMode, Partial<Record<TeamId, number>>> = {
-    "2v2": { team_a: 2, team_b: 2 },
-    "2v2v2": { team_a: 2, team_b: 2, team_c: 2 },
-    "3v3": { team_a: 3, team_b: 3 }
-  };
-  const expectedCounts = requiredCounts[lobbyMode];
-  const activeTeams = teams.slice(0, playerCount);
-  const hasExactTeams = Object.entries(expectedCounts).every(
-    ([teamId, expectedCount]) => activeTeams.filter((team) => team === teamId).length === expectedCount
-  );
-  const hasNoExtraTeams = activeTeams.every((team) => team in expectedCounts);
-
-  if (hasExactTeams && hasNoExtraTeams) {
-    return { isValid: true };
-  }
-
-  const countValues = Object.values(expectedCounts).filter((count): count is number => typeof count === "number");
-  const teamsText = formatList(Object.keys(expectedCounts).map((teamId) => labelTeam(teamId as TeamId)));
-  const requirementText =
-    countValues.length > 0 && countValues.every((count) => count === countValues[0])
-      ? `${countValues[0]} players each on ${teamsText}`
-      : formatList(
-          Object.entries(expectedCounts)
-            .filter((entry): entry is [string, number] => typeof entry[1] === "number")
-            .map(([teamId, expectedCount]) => `${expectedCount} player${expectedCount === 1 ? "" : "s"} on ${labelTeam(teamId as TeamId)}`)
-        );
-
-  return {
-    isValid: false,
-    message: `${lobbyMode} requires ${requirementText}.`
-  };
-}
-
 function createSlots(count: number, lobbyMode: LobbyMode): SetupSlot[] {
   return applyTeamsToSlots(
     Array.from({ length: count }, (_, index) => ({
@@ -415,14 +368,6 @@ function applyTeamsToSlots(slots: SetupSlot[], lobbyMode: LobbyMode, playerCount
     ...slot,
     teamId: lobbyMode === "ffa" ? undefined : (assignedTeams[index] ?? slot.teamId)
   }));
-}
-
-function formatList(values: string[]): string {
-  if (values.length <= 2) {
-    return values.join(" and ");
-  }
-
-  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
 }
 
 function labelStrategy(strategy: StrategyLevel): string {

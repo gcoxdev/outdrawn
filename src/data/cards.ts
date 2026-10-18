@@ -7,8 +7,6 @@ export type CardTiming =
   | "action"
   | "reaction"
   | "immediate"
-  | "thisRound"
-  | "ongoing"
   | "lethal";
 
 export type CardTarget =

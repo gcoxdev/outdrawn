@@ -26,7 +26,7 @@ import { EliminationDialog } from "./EliminationDialog";
 const handLabels: Record<Exclude<PendingDecision["kind"], "event">, string> = {
   reaction: "Defender Hand", redirect: "Redirecting Hand", secondary: "Secondary Defense",
   attackCost: "Attack Cost", discard: "Discarding Hand", search: "Searching Hand",
-  supplyDrop: "Supply Drop", marketSearch: "Black Market", blackMarket: "Black Market", steal: "Stealing"
+  marketSearch: "Black Market", blackMarket: "Black Market", steal: "Stealing"
 };
 
 function definitionFor(card: CardInstance | null) {
@@ -540,10 +540,6 @@ function getDecisionText(state: GameState, currentPlayerName: string, displayPla
     return `${displayPlayerName} must discard`;
   }
 
-  if (decision?.kind === "supplyDrop") {
-    return `${displayPlayerName} is choosing supply`;
-  }
-
   if (decision?.kind === "marketSearch") {
     return `${displayPlayerName} is choosing market loot`;
   }
@@ -582,7 +578,7 @@ function EventDialog({ state, dispatch }: GameTableProps) {
         <div className="match-dialog__body event-dialog-body">
           <div className="event-dialog-card"><CardView card={definition} mode="detail" /></div>
           <div className="event-dialog-copy">
-            <p className="match-dialog__kicker">{definition.timing === "thisRound" ? "This round" : definition.timing === "ongoing" ? "Ongoing" : "Immediate"}</p>
+            <p className="match-dialog__kicker">Immediate</p>
             <h2>{definition.name}</h2>
             {player && <p className="event-dialog-player">Drawn by {player.name}</p>}
             <p className="event-dialog-rules">{definition.rulesText}</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTeamModeValidation } from "./SetupScreen";
+import { getTeamModeValidation } from "../game/setupOptions";
 import type { TeamId } from "../game/types";
 import { assignTeamsForMode, getPlayerCountOptions, getDefaultPlayerName, getTeamColor, labelGeneratedTeam } from "../game/setupOptions";
 
@@ -17,7 +17,7 @@ describe("setup screen team mode validation", () => {
   });
 
   it("allows free-for-all without team balance checks", () => {
-    expect(getTeamModeValidation("ffa", ["team_a", "team_a", "team_b"], 3).isValid).toBe(true);
+    expect(getTeamModeValidation("ffa", ["team_1", "team_1", "team_2"], 3).isValid).toBe(true);
   });
 
   it("requires generated team modes to create at least two teams", () => {
@@ -39,27 +39,27 @@ describe("setup screen team mode validation", () => {
     });
   });
 
-  it("requires two balanced teams for 2v2 and 3v3", () => {
-    expect(getTeamModeValidation("2v2", ["team_a", "team_b", "team_a", "team_b"], 4).isValid).toBe(true);
-    expect(getTeamModeValidation("2v2", ["team_a", "team_a", "team_a", "team_b"], 4)).toEqual({
+  it("requires two balanced teams for duos and trios", () => {
+    expect(getTeamModeValidation("duos", ["team_1", "team_2", "team_1", "team_2"], 4).isValid).toBe(true);
+    expect(getTeamModeValidation("duos", ["team_1", "team_1", "team_1", "team_2"], 4)).toEqual({
       isValid: false,
-      message: "2v2 requires 2 players each on Team A and Team B."
+      message: "Duos requires 2 players each on Team 1 and Team 2."
     });
-    expect(getTeamModeValidation("3v3", ["team_a", "team_b", "team_a", "team_b", "team_a", "team_b"], 6).isValid).toBe(true);
-    expect(getTeamModeValidation("3v3", ["team_a", "team_b", "team_a", "team_b", "team_a", "team_a"], 6)).toEqual({
+    expect(getTeamModeValidation("trios", ["team_1", "team_2", "team_1", "team_2", "team_1", "team_2"], 6).isValid).toBe(true);
+    expect(getTeamModeValidation("trios", ["team_1", "team_2", "team_1", "team_2", "team_1", "team_1"], 6)).toEqual({
       isValid: false,
-      message: "3v3 requires 3 players each on Team A and Team B."
+      message: "Trios requires 3 players each on Team 1 and Team 2."
     });
   });
 
-  it("allows valid 2v2v2 teams and rejects uneven team splits", () => {
-    const validTeams: TeamId[] = ["team_a", "team_b", "team_c", "team_a", "team_b", "team_c"];
-    const unevenTeams: TeamId[] = ["team_a", "team_a", "team_a", "team_a", "team_a", "team_b"];
+  it("allows three valid duo teams and rejects uneven team splits", () => {
+    const validTeams: TeamId[] = ["team_1", "team_2", "team_3", "team_1", "team_2", "team_3"];
+    const unevenTeams: TeamId[] = ["team_1", "team_1", "team_1", "team_1", "team_1", "team_2"];
 
-    expect(getTeamModeValidation("2v2v2", validTeams, 6).isValid).toBe(true);
-    expect(getTeamModeValidation("2v2v2", unevenTeams, 6)).toEqual({
+    expect(getTeamModeValidation("duos", validTeams, 6).isValid).toBe(true);
+    expect(getTeamModeValidation("duos", unevenTeams, 6)).toEqual({
       isValid: false,
-      message: "2v2v2 requires 2 players each on Team A, Team B, and Team C."
+      message: "Duos requires 2 players each on Team 1, Team 2, and Team 3."
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Trophy, X, Equal, RotateCcw } from "lucide-react";
+import { Trophy, X, Equal, Plus } from "lucide-react";
 import { Dialog } from "./Dialog";
 import type { GameAction } from "../game/actions";
 import { labelTeam } from "../game/rules";
@@ -41,7 +41,7 @@ export function WinnerModal({ onClose, outcome, winner, winnerTeamId, winnerTeam
         </div>
         <footer className="match-dialog__footer winner-modal__actions">
           <button type="button" onClick={onClose}>Review table</button>
-          <button className="match-dialog__primary" type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}><RotateCcw size={16} />New Game</button>
+          <button className="match-dialog__primary" type="button" onClick={() => dispatch({ type: "RESTART_GAME" })}><Plus size={16} aria-hidden="true" />New Game</button>
         </footer>
       </section>
     </Dialog>

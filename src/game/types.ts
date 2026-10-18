@@ -1,4 +1,4 @@
-import type { Card, CardTiming, CardType } from "../data/cards";
+import type { Card, CardType } from "../data/cards";
 import type { GameSettings } from "../data/constants";
 
 export type PlayerId = string;
@@ -41,13 +41,6 @@ export type PlayerState = {
   actedThisRound: boolean;
   actionsRemaining: number;
   freeDrawsRemaining: number;
-};
-
-export type ActiveEvent = {
-  card: CardInstance;
-  timing: Extract<CardTiming, "thisRound" | "ongoing">;
-  sourcePlayerId?: PlayerId;
-  exemptPlayerIds?: PlayerId[];
 };
 
 export type PendingEventDialog = {
@@ -120,12 +113,6 @@ export type PendingSearch = {
   cards: CardInstance[];
 };
 
-export type PendingSupplyDrop = {
-  playerOrder: PlayerId[];
-  currentIndex: number;
-  revealedCards: CardInstance[];
-};
-
 export type PendingMarketSearch = {
   playerId: PlayerId;
   cards: CardInstance[];
@@ -140,6 +127,8 @@ export type PendingBlackMarket = {
 export type PendingSteal = {
   playerId: PlayerId;
   targetPlayerId: PlayerId;
+  /** Stable shuffled face-down order, independent of hand acquisition order. */
+  cardInstanceIds: CardInstanceId[];
 };
 
 export type SecondaryDamageSource = "splash" | "ricochet" | "minigun" | "counterattack" | "backfire";
@@ -192,12 +181,10 @@ export type GameState = {
   currentPlayerIndex: number;
   firstPlayerIndex: number;
   mainDeck: CardInstance[];
-  /** Optional for legacy saves; persists the next discard-refill shuffle. */
+  /** Optional for legacy saves; persists discard-refill and face-down choice shuffles. */
   deckRandomState?: number;
-  eventDeck: CardInstance[];
   discardPile: CardInstance[];
   eventDiscardPile: CardInstance[];
-  activeEvent: ActiveEvent | null;
   pendingEventDialog: PendingEventDialog | null;
   eventDialogQueue?: PendingEventDialog[];
   resolvedEventCount?: number;
@@ -208,7 +195,6 @@ export type GameState = {
   pendingMultiHitAttack: PendingMultiHitAttack | null;
   pendingDiscard: PendingDiscard | null;
   pendingSearch: PendingSearch | null;
-  pendingSupplyDrop: PendingSupplyDrop | null;
   pendingMarketSearch: PendingMarketSearch | null;
   pendingBlackMarket: PendingBlackMarket | null;
   pendingSteal: PendingSteal | null;

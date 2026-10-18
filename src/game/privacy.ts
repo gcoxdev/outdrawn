@@ -61,10 +61,6 @@ function getPassDeviceReason(state: GameState): string {
     return "They need to choose which Search card to keep.";
   }
 
-  if (decision?.kind === "supplyDrop") {
-    return "They need to choose a Supply Drop card or pass.";
-  }
-
   if (decision?.kind === "marketSearch") {
     return "They need to choose which Black Market card to keep.";
   }

@@ -1,3 +1,4 @@
+import { omitKey } from "./record";
 import { recordEffects, recordCombatEffects } from "./effects";
 import { allCards } from "../data/cards";
 import type { CardDefinition, CardInstance, GameState, PendingReaction, PlayerState, SecondaryDamageSource } from "./types";
@@ -63,7 +64,7 @@ function resolveWeaponHit(
 
   const baseDamage = options.baseDamageOverride ?? getBaseAttackDamage(state, attacker, target, weaponDefinition);
   const reactionDefinition = getCardDefinitionById(reaction?.definitionId ?? "");
-  const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition, state.activeEvent?.card.definitionId);
+  const reactionResult = resolveReactionDamage(baseDamage, target.health, weaponDefinition, reactionDefinition);
   const damage = reactionResult.damage;
   const reviveResult = reactionResult.survivesLethal ? resolveReviveHand(target.hand, reaction, state) : null;
   const nextHealth = reviveResult?.health ?? Math.max(0, target.health - damage);
@@ -164,7 +165,7 @@ function resolveWeaponHit(
 
     return player;
   });
-  let nextState = { ...state, players };
+  const nextState = { ...state, players };
   const attackerRewardGain = attackerRewardedHealth - attackerHealthAfterCounter;
   if (attackerRewardGain > 0) {
     messages.push(`${attacker.name} recovered ${attackerRewardGain} health from elimination reward.`);
@@ -174,26 +175,6 @@ function resolveWeaponHit(
     messages.push(`${target.name} recovered ${defenderRewardGain} health from elimination reward.`);
   }
 
-  if (primary && shouldRewardBounty(state, target, damage)) {
-    const bountyDraw = drawCardsWithRefill(nextState.mainDeck, nextState.discardPile, 1, nextState.deckRandomState);
-    nextState = {
-      ...nextState,
-      mainDeck: bountyDraw.mainDeck,
-      deckRandomState: bountyDraw.deckRandomState,
-      discardPile: bountyDraw.discardPile,
-      players: nextState.players.map((player) =>
-        player.id === attacker.id
-          ? {
-              ...player,
-              hand: [...player.hand, ...bountyDraw.drawn]
-            }
-          : player
-      )
-    };
-    if (bountyDraw.drawn.length > 0) {
-      messages.push(`${attacker.name} claimed the Bounty and drew 1 card.`);
-    }
-  }
   const winner = getWinner(nextState);
   const winnerTeamId = getWinningTeamId(nextState);
 
@@ -297,8 +278,7 @@ function resolveReactionDamage(
   baseDamage: number,
   defenderHealth: number,
   weaponDefinition: CardDefinition,
-  reactionDefinition: CardDefinition | undefined,
-  activeEventId: string | undefined
+  reactionDefinition: CardDefinition | undefined
 ): {
   damage: number;
   counterDamage: number;
@@ -325,10 +305,9 @@ function resolveReactionDamage(
   }
 
   if (reactionDefinition.id === "defense_shield_plate") {
-    const prevented = baseDamage - Math.floor(baseDamage / 2);
     return {
       ...baseResult,
-      damage: applyNoCover(baseDamage, prevented, activeEventId),
+      damage: Math.floor(baseDamage / 2),
       message: "{defender} used Shield Plate to halve the hit."
     };
   }
@@ -363,26 +342,12 @@ function resolveReactionDamage(
   if (block > 0) {
     return {
       ...baseResult,
-      damage: applyNoCover(baseDamage, block, activeEventId),
+      damage: Math.max(0, baseDamage - block),
       message: `{defender} blocked ${block} damage.`
     };
   }
 
   return baseResult;
-}
-
-function applyNoCover(baseDamage: number, preventedDamage: number, activeEventId: string | undefined): number {
-  const adjustedPrevention = activeEventId === "event_no_cover" ? Math.max(0, preventedDamage - 1) : preventedDamage;
-  return Math.max(0, baseDamage - adjustedPrevention);
-}
-
-function shouldRewardBounty(state: GameState, target: PlayerState, damage: number): boolean {
-  if (state.activeEvent?.card.definitionId !== "event_bounty" || damage <= 0) {
-    return false;
-  }
-
-  const highestHealth = Math.max(...state.players.filter((player) => !player.eliminated).map((player) => player.health));
-  return target.health === highestHealth;
 }
 
 export function getGrenadeSplashTargets(players: PlayerState[], attackerId: string, targetId: string): PlayerState[] {
@@ -442,12 +407,6 @@ export function createPendingReaction(
     },
     messages: [`${attacker.name} played ${weaponDefinition.name} targeting ${target.name}.`]
   };
-}
-
-function omitKey<T>(record: Record<string, T>, key: string): Record<string, T> {
-  const next = { ...record };
-  delete next[key];
-  return next;
 }
 
 export function resolveHealing(

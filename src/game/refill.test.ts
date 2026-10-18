@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createNewGame } from "./setup";
 import { gameReducer } from "./reducer";
-import { resolveAttack, resolveHealing } from "./combat";
+import { resolveHealing } from "./combat";
 import { drawCardsWithRefill } from "./deck";
 import { getCardDefinitionById } from "./rules";
 import { ownedCards } from "./simulator";
 import type { GameState } from "./types";
 
 describe("discard shuffle integration", () => {
-  it.each(["draw", "search", "market", "healing", "direct healing", "bounty"])("persists shuffle state through %s and leaves events out of refills", mode => {
+  it.each(["draw", "search", "market", "healing", "direct healing"])("persists shuffle state through %s and leaves events out of refills", mode => {
     const state = createNewGame(["A", "B", "C"], () => 0);
     const card = (id: string) => ({ instanceId: `refill_${id}`, definitionId: id });
     state.players.forEach(player => { player.hand = []; });
@@ -23,17 +23,13 @@ describe("discard shuffle integration", () => {
       if (mode === "market") return gameReducer(input, { type: "START_BLACK_MARKET", playerId: "player_1", cardInstanceIds: [] });
       if (mode === "healing") return gameReducer(input, { type: "PLAY_HEALING", playerId: "player_1", cardInstanceId: "refill_healing_painkillers" });
       if (mode === "direct healing") return resolveHealing(input, input.players[0], card("healing_painkillers"), getCardDefinitionById("healing_painkillers")!).state;
-      return resolveAttack(input, input.players[0], input.players[1], card("weapon_smg"), null).state;
+      throw new Error(`Unknown refill path: ${mode}`);
     };
     if (mode === "search") state.players[0].hand = [card("ability_search")];
     if (mode.includes("healing")) { state.players[0].hand = [card("healing_painkillers")]; state.players[0].health = 10; }
     if (mode === "market") {
       state.settings.blackMarketPreset = "healthPay";
       state.pendingBlackMarket = { playerId: "player_1", card: card("event_black_market") };
-    }
-    if (mode === "bounty") {
-      state.players[0].hand = [card("weapon_smg")];
-      state.activeEvent = { card: card("event_bounty"), timing: "thisRound" };
     }
     const before = structuredClone(state);
     const next = run(state);
