@@ -98,11 +98,11 @@ export const mainDeckCards: Card[] = [
     timing: "action",
     target: "onePlayer",
     damage: 2,
-    icons: ["damage", "loot"],
+    icons: ["damage"],
     shortText: "Deal 2 damage to one player.",
     rulesText: "Deal 2 damage to one player.",
     flavorText: "Some arguments need a sharp point.",
-    tags: ["weapon", "loot", "single-target"]
+    tags: ["weapon", "single-target"]
   },
   {
     id: "weapon_grenade",

@@ -1,5 +1,6 @@
 import { getRicochetTargets } from "./rules";
 import { getPendingDecision } from "./decisions";
+import { resolveReactionDamage } from "./combat";
 import { mainDeckCards } from "../data/cards";
 import { blackMarketPresets, defaultGameSettings, type GameSettings } from "../data/constants";
 import type { GameAction } from "./actions";
@@ -409,7 +410,7 @@ function chooseReaction(state: GameState, strategy: StrategyLevel, random: () =>
   }
 
   const scored = reactionCards
-    .map((card) => ({ card, score: scoreReaction(card, pending.baseDamage, defender.health) }))
+    .map((card) => ({ card, score: scoreReaction(state, card, defender) }))
     .filter((entry) => entry.score > 0)
     .sort((left, right) => right.score - left.score);
 
@@ -767,33 +768,52 @@ function collectStateIssues(state: GameState, metrics: SimulationMetrics) {
   if (state.phase === "gameOver" && !state.winnerId) addIssue(metrics, "unresolved true tie");
 }
 
-function scoreReaction(card: CardInstance, damage: number, defenderHealth: number): number {
+// Opportunity costs favor keeping more flexible defenses when a simpler one
+// achieves the same result. These are bot preferences, not card power ratings.
+const defenseReserveCost: Record<string, number> = {
+  defense_brace: 0.1,
+  defense_armor_vest: 0.25,
+  defense_shield_plate: 0.5,
+  defense_dodge: 0.75,
+  defense_counterattack: 0.25,
+  defense_ricochet: 2,
+  defense_backfire: 2.5,
+  defense_smoke_bomb: 2.5
+};
+
+function scoreReaction(state: GameState, card: CardInstance, defender: PlayerState): number {
+  const pending = state.pendingReaction ?? state.pendingSecondaryDamage!;
   const definition = getCardDefinitionById(card.definitionId);
-  if (!definition) {
+  const weapon = getCardDefinitionById(pending.weapon.definitionId);
+  if (!definition || !weapon || pending.baseDamage <= 0) {
     return 0;
   }
 
-  if (definition.id === "defense_dodge" || definition.id === "defense_smoke_bomb") {
-    return damage >= 3 || damage >= defenderHealth ? 10 : 0;
-  }
+  // Ricochet's target legality is checked before scoring. All other defenses
+  // use combat's actual calculation, including piercing and half-damage rounding.
+  const outcome = definition.id === "defense_ricochet"
+    ? { damage: 0, counterDamage: 0 }
+    : resolveReactionDamage(pending.baseDamage, weapon, definition);
+  // Do not spend a card that still requires automatic Revive or elimination.
+  // In particular, retaliation cannot rescue a defender who dies taking the hit.
+  if (outcome.damage >= defender.health) return 0;
 
-  if (definition.id === "defense_ricochet") {
-    return damage >= 5 ? 8 : 0;
-  }
+  const prevented = pending.baseDamage - outcome.damage;
+  const attacker = getPlayer(state, pending.attackerId);
+  const retaliates = attacker && !attacker.eliminated && !attacker.recovering && isHostileTarget(defender, attacker);
+  const retaliation = retaliates ? Math.min(outcome.counterDamage, attacker.health) : 0;
+  // Only public health is known. A hidden Revive can still save the attacker;
+  // with secondary defense enabled, do not count a potential lethal hit as a kill.
+  const lethalRetaliation = retaliation > 0 && retaliation === attacker!.health && !state.settings.allowSecondaryDefense;
+  const multi = state.pendingMultiHitAttack;
+  const smokeFollowUp = definition.id === "defense_smoke_bomb" && state.pendingReaction &&
+    multi?.defenderId === defender.id && multi.hitsRemaining > 1
+    ? multi.hitDamage * (multi.hitsRemaining - 1) : 0;
 
-  if (definition.id === "defense_counterattack") {
-    return defenderHealth > damage ? 4 : 0;
-  }
-
-  if (definition.id === "defense_backfire") {
-    return damage >= 3 || damage >= defenderHealth ? 7 : 0;
-  }
-
-  if (definition.id === "defense_shield_plate") {
-    return damage - Math.floor(damage / 2);
-  }
-
-  return Math.min(damage, definition.block ?? 0);
+  return (pending.baseDamage >= defender.health ? 100 : 0) +
+    prevented * 2 + smokeFollowUp * 2 +
+    (lethalRetaliation ? 20 : 0) + retaliation * (state.settings.allowSecondaryDefense ? 0.25 : 0.5) -
+    (defenseReserveCost[definition.id] ?? 0);
 }
 
 function getSimulationPlayerNames(options: SimulationOptions): string[] {

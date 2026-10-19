@@ -200,7 +200,7 @@ function applyEliminationHealthReward(health: number, eliminations: number, stat
   return Math.min(state.settings.maxHealth, health + eliminations * state.settings.eliminationHealthReward);
 }
 
-function resolveReactionDamage(
+export function resolveReactionDamage(
   baseDamage: number,
   weaponDefinition: CardDefinition,
   reactionDefinition: CardDefinition | undefined
