@@ -45,6 +45,8 @@ On a player's turn, they may spend actions to:
 
 If free draws are enabled, a player may draw up to the configured free-draw limit before drawing starts spending actions.
 
+On your turn, you may discard cards without spending actions when no attack or other choice is pending.
+
 A player may end their turn early and forfeit unused actions and free draws. They cannot end while above the maximum hand size or while an attack, reaction, event choice, or draw effect is unresolved.
 
 An ordinary Draw that reveals an event resolves that event and stops. It consumes neither an action nor a free draw, and does not automatically draw a replacement; the player can choose Draw again.
